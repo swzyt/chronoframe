@@ -1,5 +1,6 @@
 import pkg from './package.json'
 import type { AnalyticsConfig } from './shared/types/config'
+import i18n, { dayjsLocales } from './i18n/i18n.options'
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -245,7 +246,7 @@ export default defineNuxtConfig({
   },
 
   dayjs: {
-    locales: ['zh-cn', 'zh-hk', 'en'],
+    locales: dayjsLocales,
     plugins: [
       'relativeTime',
       'utc',
@@ -257,38 +258,5 @@ export default defineNuxtConfig({
     defaultTimezone: 'Asia/Shanghai',
   },
 
-  i18n: {
-    experimental: {
-      localeDetector: 'localeDetector.ts',
-    },
-    detectBrowserLanguage: {
-      fallbackLocale: 'en',
-      useCookie: false,
-      cookieKey: 'chronoframe-locale',
-    },
-    strategy: 'no_prefix',
-    defaultLocale: 'en',
-    locales: [
-      {
-        code: 'zh-Hans',
-        name: '简体中文',
-        file: 'zh-Hans.json',
-        language: 'zh',
-      },
-      {
-        code: 'zh-Hant-TW',
-        name: '繁体中文(台湾)',
-        file: 'zh-Hant-TW.json',
-        language: 'zh-TW',
-      },
-      {
-        code: 'zh-Hant-HK',
-        name: '繁体中文(香港)',
-        file: 'zh-Hant-HK.json',
-        language: 'zh-HK',
-      },
-      { code: 'en', name: 'English', file: 'en.json', language: 'en' },
-      { code: 'ja', name: '日本語', file: 'ja.json', language: 'ja' },
-    ],
-  },
+  i18n,
 })
