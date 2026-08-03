@@ -1,6 +1,6 @@
 services:
   chronoframe:
-    image: ghcr.io/hoshinosuzumi/chronoframe:latest
+    image: ghcr.io/swzyt/chronoframe:latest
     container_name: chronoframe
     restart: unless-stopped
     ports:

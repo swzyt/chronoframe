@@ -45,6 +45,10 @@ export default defineConfig({
         items: [
           { text: 'Getting Started', link: '/guide/getting-started' },
           { text: 'Configuration', link: '/guide/configuration' },
+          {
+            text: 'Docker Image Publishing',
+            link: '/guide/docker-image-publish',
+          },
           { text: 'Update Guide', link: '/guide/updates' },
           {
             text: 'Differences from Upstream',
@@ -76,13 +80,13 @@ export default defineConfig({
     ],
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/HoshinoSuzumi/chronoframe' },
+      { icon: 'github', link: 'https://github.com/swzyt/chronoframe' },
       { icon: 'discord', link: 'https://discord.gg/MM4ZK4Ed7s' },
     ],
 
     editLink: {
       pattern:
-        'https://github.com/HoshinoSuzumi/chronoframe/edit/main/docs/:path',
+        'https://github.com/swzyt/chronoframe/edit/main/docs/:path',
       text: 'Edit this page on GitHub',
     },
 

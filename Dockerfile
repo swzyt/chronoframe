@@ -22,7 +22,9 @@ FROM node:22.23.1-alpine AS runtime_deps
 RUN apk add --no-cache ca-certificates perl exiftool ffmpeg \
 	&& install -Dm755 "$(readlink -f /usr/bin/perl)" /opt/runtime-bin/perl \
 	&& install -Dm755 "$(readlink -f /usr/bin/env)" /opt/runtime-bin/env \
-	&& install -Dm755 "$(readlink -f /usr/bin/exiftool)" /opt/runtime-bin/exiftool
+	&& install -Dm755 "$(readlink -f /usr/bin/exiftool)" /opt/runtime-bin/exiftool \
+	&& install -Dm755 "$(readlink -f /usr/bin/ffmpeg)" /opt/runtime-bin/ffmpeg \
+	&& install -Dm755 "$(readlink -f /usr/bin/ffprobe)" /opt/runtime-bin/ffprobe
 
 FROM scratch AS runtime
 WORKDIR /app
@@ -31,6 +33,8 @@ COPY --from=runtime_deps /usr/local/bin/node /usr/bin/node
 COPY --from=runtime_deps /opt/runtime-bin/perl /usr/bin/perl
 COPY --from=runtime_deps /opt/runtime-bin/env /usr/bin/env
 COPY --from=runtime_deps /opt/runtime-bin/exiftool /usr/bin/exiftool
+COPY --from=runtime_deps /opt/runtime-bin/ffmpeg /usr/bin/ffmpeg
+COPY --from=runtime_deps /opt/runtime-bin/ffprobe /usr/bin/ffprobe
 COPY --from=runtime_deps /usr/lib /usr/lib
 COPY --from=runtime_deps /usr/share /usr/share
 COPY --from=runtime_deps /lib /lib
@@ -49,5 +53,7 @@ ENV DATABASE_URL=./data/app.sqlite3
 ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 ENV NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt
 ENV EXIFTOOL_PATH=/usr/bin/exiftool
+ENV FFMPEG_PATH=/usr/bin/ffmpeg
+ENV FFPROBE_PATH=/usr/bin/ffprobe
 
 CMD ["/usr/bin/node", ".output/server/index.mjs"]

@@ -18,6 +18,10 @@ export default defineConfig({
         items: [
           { text: '快速开始', link: '/zh/guide/getting-started' },
           { text: '配置说明', link: '/zh/guide/configuration' },
+          {
+            text: 'Docker 镜像发布',
+            link: '/zh/guide/docker-image-publish',
+          },
           { text: '升级指南', link: '/zh/guide/updates' },
           {
             text: '与上游仓库的差异',
