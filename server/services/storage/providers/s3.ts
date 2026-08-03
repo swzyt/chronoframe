@@ -2,6 +2,7 @@ import type { _Object, S3ClientConfig } from '@aws-sdk/client-s3'
 import {
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   ListObjectsCommand,
   PutObjectCommand,
   S3Client,
@@ -27,6 +28,7 @@ const createClient = (config: S3StorageConfig): S3Client => {
   const clientConfig: S3ClientConfig = {
     endpoint,
     region,
+    maxAttempts: 2,
     // Tencent COS buckets created after 2024-01-01 no longer support
     // path-style domains (`cos.<region>.myqcloud.com/<bucket>/<key>`).
     // Always use virtual-hosted-style for COS even if a stale config still has
@@ -42,6 +44,8 @@ const createClient = (config: S3StorageConfig): S3Client => {
 
   return new S3Client(clientConfig)
 }
+
+const DEFAULT_S3_TIMEOUT_MS = 30_000
 
 const convertToStorageObject = (s3object: _Object): StorageObject => {
   return {
@@ -61,6 +65,68 @@ export class S3StorageProvider implements StorageProvider {
     this.config = config
     this.logger = logger
     this.client = createClient(config)
+  }
+
+  private async sendWithTimeout<T>(
+    cmd: any,
+    operation: string,
+    timeoutMs = DEFAULT_S3_TIMEOUT_MS,
+  ): Promise<T> {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => {
+      controller.abort()
+    }, timeoutMs)
+
+    try {
+      return (await this.client.send(cmd, {
+        abortSignal: controller.signal,
+      })) as T
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Unknown S3 provider error'
+      this.logger?.error(
+        `S3 ${operation} failed after ${timeoutMs}ms timeout budget: ${message}`,
+        error,
+      )
+      throw error
+    } finally {
+      clearTimeout(timeout)
+    }
+  }
+
+  private async readBodyStream(
+    stream: NodeJS.ReadableStream,
+    key: string,
+    timeoutMs = DEFAULT_S3_TIMEOUT_MS,
+  ): Promise<Buffer> {
+    const chunks: Uint8Array[] = []
+
+    return await new Promise<Buffer>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        const error = new Error(
+          `Timed out reading S3 object stream for key ${key}`,
+        )
+        if ('destroy' in stream && typeof stream.destroy === 'function') {
+          stream.destroy(error)
+        }
+        reject(error)
+      }, timeoutMs)
+
+      stream.on('data', (chunk: Uint8Array) => {
+        chunks.push(chunk)
+      })
+
+      stream.on('end', () => {
+        clearTimeout(timeout)
+        resolve(Buffer.concat(chunks))
+      })
+
+      stream.on('error', (err) => {
+        clearTimeout(timeout)
+        this.logger?.error(`S3 stream read failed for key: ${key}`, err)
+        reject(err)
+      })
+    })
   }
 
   private getAbsoluteKey(key: string): string {
@@ -90,7 +156,10 @@ export class S3StorageProvider implements StorageProvider {
         ContentType: contentType || 'application/octet-stream',
       })
 
-      const resp = await this.client.send(cmd)
+      const resp = await this.sendWithTimeout<any>(
+        cmd,
+        `put object ${absoluteKey}`,
+      )
 
       this.logger?.success(`Created object with key: ${absoluteKey}`)
 
@@ -108,13 +177,13 @@ export class S3StorageProvider implements StorageProvider {
 
   async delete(key: string): Promise<void> {
     try {
-      const absoluteKey = key.replace(/^\/+/, '')
+      const absoluteKey = this.getAbsoluteKey(key)
       const cmd = new DeleteObjectCommand({
         Bucket: this.config.bucket,
         Key: absoluteKey,
       })
 
-      await this.client.send(cmd)
+      await this.sendWithTimeout(cmd, `delete object ${absoluteKey}`)
       this.logger?.success(`Deleted object with key: ${absoluteKey}`)
     } catch (error) {
       this.logger?.error(`Failed to delete object with key: ${key}`, error)
@@ -124,13 +193,16 @@ export class S3StorageProvider implements StorageProvider {
 
   async get(key: string): Promise<Buffer | null> {
     try {
-      const absoluteKey = key.replace(/^\/+/, '')
+      const absoluteKey = this.getAbsoluteKey(key)
       const cmd = new GetObjectCommand({
         Bucket: this.config.bucket,
         Key: absoluteKey,
       })
 
-      const resp = await this.client.send(cmd)
+      const resp = await this.sendWithTimeout<any>(
+        cmd,
+        `get object ${absoluteKey}`,
+      )
 
       if (!resp.Body) {
         return null
@@ -140,30 +212,57 @@ export class S3StorageProvider implements StorageProvider {
         return resp.Body
       }
 
-      const chunks: Uint8Array[] = []
       const stream = resp.Body as NodeJS.ReadableStream
+      return await this.readBodyStream(stream, absoluteKey)
+    } catch (error) {
+      const statusCode = (error as any)?.$metadata?.httpStatusCode
+      if (statusCode !== 404 && (error as any)?.name !== 'NoSuchKey') {
+        this.logger?.error(`Failed to get object with key: ${key}`, error)
+      }
+      return null
+    }
+  }
 
-      return new Promise<Buffer>((resolve, reject) => {
-        stream.on('data', (chunk: Uint8Array) => {
-          chunks.push(chunk)
-        })
-
-        stream.on('end', () => {
-          resolve(Buffer.concat(chunks))
-        })
-
-        stream.on('error', (err) => {
-          reject(err)
-        })
+  async getRange(
+    key: string,
+    start: number,
+    end: number,
+  ): Promise<Buffer | null> {
+    try {
+      const absoluteKey = this.getAbsoluteKey(key)
+      const cmd = new GetObjectCommand({
+        Bucket: this.config.bucket,
+        Key: absoluteKey,
+        Range: `bytes=${start}-${end}`,
       })
-    } catch {
+
+      const resp = await this.sendWithTimeout<any>(
+        cmd,
+        `get object range ${absoluteKey} ${start}-${end}`,
+      )
+
+      if (!resp.Body) {
+        return null
+      }
+
+      if (resp.Body instanceof Buffer) {
+        return resp.Body
+      }
+
+      const stream = resp.Body as NodeJS.ReadableStream
+      return await this.readBodyStream(stream, absoluteKey)
+    } catch (error) {
+      const statusCode = (error as any)?.$metadata?.httpStatusCode
+      if (statusCode !== 404 && (error as any)?.name !== 'NoSuchKey') {
+        this.logger?.error(`Failed to get object range with key: ${key}`, error)
+      }
       return null
     }
   }
 
   getPublicUrl(key: string): string {
     const { cdnUrl, bucket, region, endpoint } = this.config
-    const absoluteKey = key.replace(/^\/+/, '')
+    const absoluteKey = this.getAbsoluteKey(key)
 
     // CDN URL
     if (cdnUrl) {
@@ -208,7 +307,7 @@ export class S3StorageProvider implements StorageProvider {
     expiresIn: number = 3600,
     options?: UploadOptions,
   ): Promise<string> {
-    const absoluteKey = key.replace(/^\/+/, '')
+    const absoluteKey = this.getAbsoluteKey(key)
     const cmd = new PutObjectCommand({
       Bucket: this.config.bucket,
       Key: absoluteKey,
@@ -225,13 +324,16 @@ export class S3StorageProvider implements StorageProvider {
 
   async getFileMeta(key: string): Promise<StorageObject | null> {
     try {
-      const absoluteKey = key.replace(/^\/+/, '')
-      const cmd = new GetObjectCommand({
+      const absoluteKey = this.getAbsoluteKey(key)
+      const cmd = new HeadObjectCommand({
         Bucket: this.config.bucket,
         Key: absoluteKey,
       })
 
-      const resp = await this.client.send(cmd)
+      const resp = await this.sendWithTimeout<any>(
+        cmd,
+        `get metadata ${absoluteKey}`,
+      )
 
       if (!resp.ETag) {
         return null
@@ -255,11 +357,11 @@ export class S3StorageProvider implements StorageProvider {
   async listAll(): Promise<StorageObject[]> {
     const cmd = new ListObjectsCommand({
       Bucket: this.config.bucket,
-      Prefix: this.config.prefix,
+      Prefix: this.getAbsoluteKey(''),
       MaxKeys: this.config.maxKeys,
     })
 
-    const resp = await this.client.send(cmd)
+    const resp = await this.sendWithTimeout<any>(cmd, 'list objects')
     this.logger?.log(resp.Contents?.map(convertToStorageObject))
     return resp.Contents?.map(convertToStorageObject) || []
   }
@@ -267,11 +369,11 @@ export class S3StorageProvider implements StorageProvider {
   async listImages(): Promise<StorageObject[]> {
     const cmd = new ListObjectsCommand({
       Bucket: this.config.bucket,
-      Prefix: this.config.prefix,
+      Prefix: this.getAbsoluteKey(''),
       MaxKeys: this.config.maxKeys,
     })
 
-    const resp = await this.client.send(cmd)
+    const resp = await this.sendWithTimeout<any>(cmd, 'list images')
     // TODO: filter supported image format
     return resp.Contents?.map(convertToStorageObject) || []
   }

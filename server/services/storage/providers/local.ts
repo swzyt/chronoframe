@@ -74,6 +74,28 @@ export class LocalStorageProvider implements StorageProvider {
     }
   }
 
+  async getRange(
+    key: string,
+    start: number,
+    end: number,
+  ): Promise<Buffer | null> {
+    const { absFile } = this.resolveAbsoluteKey(key)
+    const length = end - start + 1
+    const buffer = Buffer.alloc(length)
+    let handle: fs.FileHandle | undefined
+
+    try {
+      handle = await fs.open(absFile, 'r')
+      const { bytesRead } = await handle.read(buffer, 0, length, start)
+      return buffer.subarray(0, bytesRead)
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT') return null
+      throw err
+    } finally {
+      await handle?.close()
+    }
+  }
+
   getPublicUrl(key: string): string {
     const relKey = sanitizeKey(combinePrefixAndKey(this.config.prefix, key))
     const base = (this.config.baseUrl || '/storage').replace(/\/+$/, '')

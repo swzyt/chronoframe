@@ -1,6 +1,6 @@
 import path from 'path'
 import { useStorageProvider } from '~~/server/utils/useStorageProvider'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import {
   generateSafePhotoId,
   generateSafeVideoId,
@@ -44,6 +44,51 @@ const isLikelyImageKey = (storageKey?: string | null): boolean => {
   return ext !== '' && IMAGE_EXTENSIONS.has(ext)
 }
 
+const appendStorageKeySuffix = (storageKey: string, suffix: string) => {
+  const parsed = path.parse(storageKey)
+  return path.join(parsed.dir, `${parsed.name}-${suffix}${parsed.ext}`)
+}
+
+const storageKeyExists = (storageKey: string) => {
+  const db = useDB()
+  const existingPhoto = db
+    .select({ id: tables.photos.id })
+    .from(tables.photos)
+    .where(eq(tables.photos.storageKey, storageKey))
+    .get()
+
+  if (existingPhoto) {
+    return true
+  }
+
+  const existingTask = db
+    .select({ id: tables.pipelineQueue.id })
+    .from(tables.pipelineQueue)
+    .where(
+      sql`json_extract(${tables.pipelineQueue.payload}, '$.storageKey') = ${storageKey}
+        and ${tables.pipelineQueue.status} in ('pending', 'in-stages', 'completed')`,
+    )
+    .get()
+
+  return Boolean(existingTask)
+}
+
+const uniqueStorageKey = (storageKey: string) => {
+  let candidate = storageKey
+  let attempt = 0
+
+  while (storageKeyExists(candidate)) {
+    attempt += 1
+    const suffix =
+      attempt === 1
+        ? `${Date.now().toString(36)}`
+        : `${Date.now().toString(36)}-${attempt}`
+    candidate = appendStorageKeySuffix(storageKey, suffix)
+  }
+
+  return candidate
+}
+
 export default eventHandler(async (event) => {
   const user = await requireCurrentUser(event)
   const { storageProvider } = useStorageProvider(event)
@@ -67,7 +112,7 @@ export default eventHandler(async (event) => {
             .replace(/^\/+/, '')
             .replace(/\/+$/, '')
         : ''
-    const objectKey = [prefix, 'users', String(user.id), fileName]
+    let objectKey = [prefix, 'users', String(user.id), fileName]
       .filter(Boolean)
       .join('/')
 
@@ -146,6 +191,8 @@ export default eventHandler(async (event) => {
         // 'warn' 模式：继续上传但返回警告信息
       }
     }
+
+    objectKey = uniqueStorageKey(objectKey)
 
     const isTencentCos =
       storageProvider.config &&
