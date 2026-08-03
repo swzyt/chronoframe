@@ -1,15 +1,15 @@
 # ChronoFrame
 
 <p align="center">
-  <img src="https://socialify.git.ci/HoshinoSuzumi/chronoframe/image?custom_description=Self-hosted+personal+gallery+application.&description=1&font=KoHo&forks=0&issues=0&logo=https%3A%2F%2Fgithub.com%2FHoshinoSuzumi%2Fchronoframe%2Fraw%2Frefs%2Fheads%2Fmain%2Fpublic%2Ffavicon.svg&name=1&owner=1&pattern=Plus&pulls=0&stargazers=0&theme=Auto" alt="Chronoframe">
+  <img src="https://socialify.git.ci/swzyt/chronoframe/image?custom_description=Self-hosted+personal+gallery+application.&description=1&font=KoHo&forks=0&issues=0&logo=https%3A%2F%2Fgithub.com%2Fswzyt%2Fchronoframe%2Fraw%2Frefs%2Fheads%2Fmain%2Fpublic%2Ffavicon.svg&name=1&owner=1&pattern=Plus&pulls=0&stargazers=0&theme=Auto" alt="Chronoframe">
 </p>
 
 <p align="center">
-  <a href="https://github.com/HoshinoSuzumi/chronoframe/releases/latest">
-    <img src="https://badgen.net/github/release/HoshinoSuzumi/chronoframe/stable?icon=docker&label=stable" alt="Latest Release">
+  <a href="https://github.com/swzyt/chronoframe/releases/latest">
+    <img src="https://badgen.net/github/release/swzyt/chronoframe/stable?icon=docker&label=stable" alt="Latest Release">
   </a>
-  <a href="https://github.com/HoshinoSuzumi/chronoframe/releases?q=beta&expanded=false">
-    <img src="https://badgen.net/github/release/HoshinoSuzumi/chronoframe?icon=docker&label=nightly" alt="Latest Nightly Release">
+  <a href="https://github.com/swzyt/chronoframe/releases?q=beta&expanded=false">
+    <img src="https://badgen.net/github/release/swzyt/chronoframe?icon=docker&label=nightly" alt="Latest Nightly Release">
   </a>
   <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License">
 </p>
@@ -29,7 +29,7 @@
 
 A smooth photo display and management application, supporting multiple image formats and large-size image rendering.
 
-> This fork adds multi-user authorization, owned photos and albums, controlled visitor previews, and protected media access. See [Differences from Upstream](docs/guide/fork-differences.md).
+> This fork adds multi-user authorization, owned photos and albums, controlled visitor previews, and protected media access. See the [Project Wiki](docs/wiki/overview.md) and [Differences from Upstream](docs/guide/fork-differences.md).
 
 [Live Demo: TimoYin's Mems](https://lens.bh8.ga)
 
@@ -58,7 +58,7 @@ A smooth photo display and management application, supporting multiple image for
 
 ## 🐳 Deployment
 
-We recommend deploying with the prebuilt Docker image. [View the image on ghcr](https://github.com/HoshinoSuzumi/chronoframe/pkgs/container/chronoframe)
+We recommend deploying with the prebuilt Docker image. [View the image on ghcr](https://github.com/swzyt/chronoframe/pkgs/container/chronoframe)
 
 Create a `.env` file and configure environment variables.
 
@@ -78,12 +78,18 @@ NUXT_PUBLIC_APP_SLOGAN=
 NUXT_PUBLIC_APP_AUTHOR=
 NUXT_PUBLIC_APP_AVATAR_URL=
 
-# Map provider (maplibre/mapbox)
+# SQLite database path
+DATABASE_URL=/app/data/app.sqlite3
+
+# Map provider (maplibre/mapbox/amap)
 NUXT_PUBLIC_MAP_PROVIDER=maplibre
 # MapTiler access token for MapLibre
 NUXT_PUBLIC_MAP_MAPLIBRE_TOKEN=
 # Mapbox access token for Mapbox
 NUXT_PUBLIC_MAPBOX_ACCESS_TOKEN=
+# AMap browser key and optional security code
+NUXT_PUBLIC_MAP_AMAP_KEY=
+NUXT_PUBLIC_MAP_AMAP_SECURITY_JS_CODE=
 
 # Mapbox unrestricted token (optional, reverse geocoding)
 NUXT_MAPBOX_ACCESS_TOKEN=
@@ -91,6 +97,7 @@ NUXT_MAPBOX_ACCESS_TOKEN=
 # Storage provider (local, s3 or openlist)
 NUXT_STORAGE_PROVIDER=local
 NUXT_PROVIDER_LOCAL_PATH=/app/data/storage
+NUXT_PROVIDER_LOCAL_BASE_URL=/storage
 
 # Session password (32‑char random string, required)
 NUXT_SESSION_PASSWORD=
@@ -101,18 +108,12 @@ NUXT_OG_IMAGE_SECRET=
 
 ### Pull Image
 
-Use the published image on GitHub Container Registry and Docker Hub. Choose the source that works best for your network:
+Use the published image on GitHub Container Registry:
 
-#### [GitHub Container Registry (GHCR)](https://github.com/HoshinoSuzumi/chronoframe/pkgs/container/chronoframe)
-
-```bash
-docker pull ghcr.io/hoshinosuzumi/chronoframe:latest
-```
-
-#### [Docker Hub](https://hub.docker.com/r/hoshinosuzumi/chronoframe)
+#### [GitHub Container Registry (GHCR)](https://github.com/swzyt/chronoframe/pkgs/container/chronoframe)
 
 ```bash
-docker pull hoshinosuzumi/chronoframe:latest
+docker pull ghcr.io/swzyt/chronoframe:latest
 ```
 
 ### Docker
@@ -120,7 +121,7 @@ docker pull hoshinosuzumi/chronoframe:latest
 Run with customized environment variables:
 
 ```bash
-docker run -d --name chronoframe -p 3000:3000 -v $(pwd)/data:/app/data --env-file .env ghcr.io/hoshinosuzumi/chronoframe:latest
+docker run -d --name chronoframe -p 3000:3000 -v $(pwd)/data:/app/data --env-file .env ghcr.io/swzyt/chronoframe:latest
 ```
 
 ### Docker Compose
@@ -130,7 +131,7 @@ Create docker-compose.yml:
 ```yaml
 services:
   chronoframe:
-    image: ghcr.io/hoshinosuzumi/chronoframe:latest
+    image: ghcr.io/swzyt/chronoframe:latest
     container_name: chronoframe
     restart: unless-stopped
     ports:

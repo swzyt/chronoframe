@@ -1,15 +1,15 @@
 # ChronoFrame
 
 <p align="center">
-  <img src="https://socialify.git.ci/HoshinoSuzumi/chronoframe/image?custom_description=Self-hosted+personal+gallery+application.&description=1&font=KoHo&forks=0&issues=0&logo=https%3A%2F%2Fgithub.com%2FHoshinoSuzumi%2Fchronoframe%2Fraw%2Frefs%2Fheads%2Fmain%2Fpublic%2Ffavicon.svg&name=1&owner=1&pattern=Plus&pulls=0&stargazers=0&theme=Auto" alt="Chronoframe">
+  <img src="https://socialify.git.ci/swzyt/chronoframe/image?custom_description=Self-hosted+personal+gallery+application.&description=1&font=KoHo&forks=0&issues=0&logo=https%3A%2F%2Fgithub.com%2Fswzyt%2Fchronoframe%2Fraw%2Frefs%2Fheads%2Fmain%2Fpublic%2Ffavicon.svg&name=1&owner=1&pattern=Plus&pulls=0&stargazers=0&theme=Auto" alt="Chronoframe">
 </p>
 
 <p align="center">
-  <a href="https://github.com/HoshinoSuzumi/chronoframe/releases/latest">
-    <img src="https://badgen.net/github/release/HoshinoSuzumi/chronoframe/stable?icon=docker&label=稳定" alt="Latest Release">
+  <a href="https://github.com/swzyt/chronoframe/releases/latest">
+    <img src="https://badgen.net/github/release/swzyt/chronoframe/stable?icon=docker&label=稳定" alt="Latest Release">
   </a>
-  <a href="https://github.com/HoshinoSuzumi/chronoframe/releases?q=beta&expanded=false">
-    <img src="https://badgen.net/github/release/HoshinoSuzumi/chronoframe?icon=docker&label=测试" alt="Latest Nightly Release">
+  <a href="https://github.com/swzyt/chronoframe/releases?q=beta&expanded=false">
+    <img src="https://badgen.net/github/release/swzyt/chronoframe?icon=docker&label=测试" alt="Latest Nightly Release">
   </a>
   <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License">
 </p>
@@ -29,7 +29,7 @@
 
 丝滑的照片展示和管理应用，支持多种图片格式和大尺寸图片渲染。
 
-> 当前 fork 增加了多用户权限、照片及相簿归属、访客预览和媒体访问保护。详见[与上游仓库的差异](docs/zh/guide/fork-differences.md)。
+> 当前 fork 增加了多用户权限、照片及相簿归属、访客预览和媒体访问保护。详见[项目 Wiki](docs/zh/wiki/overview.md) 和[与上游仓库的差异](docs/zh/guide/fork-differences.md)。
 
 [在线演示: TimoYin's Mems](https://lens.bh8.ga)
 
@@ -58,7 +58,7 @@
 
 ## 🐳 部署
 
-推荐使用预构建的 docker 镜像部署，[在 ghcr 上查看镜像](https://github.com/HoshinoSuzumi/chronoframe/pkgs/container/chronoframe)
+推荐使用预构建的 docker 镜像部署，[在 ghcr 上查看镜像](https://github.com/swzyt/chronoframe/pkgs/container/chronoframe)
 
 创建 `.env` 文件并配置。
 
@@ -78,12 +78,18 @@ NUXT_PUBLIC_APP_SLOGAN=
 NUXT_PUBLIC_APP_AUTHOR=
 NUXT_PUBLIC_APP_AVATAR_URL=
 
-# 地图提供器 (maplibre/mapbox)
+# SQLite 数据库路径
+DATABASE_URL=/app/data/app.sqlite3
+
+# 地图提供器 (maplibre/mapbox/amap)
 NUXT_PUBLIC_MAP_PROVIDER=maplibre
 # 使用 MapLibre 需要 MapTiler 访问令牌
 NUXT_PUBLIC_MAP_MAPLIBRE_TOKEN=
 # 使用 Mapbox 需要 Mapbox 访问令牌
 NUXT_PUBLIC_MAPBOX_ACCESS_TOKEN=
+# 使用高德地图需要浏览器端 Key，可选填写安全密钥
+NUXT_PUBLIC_MAP_AMAP_KEY=
+NUXT_PUBLIC_MAP_AMAP_SECURITY_JS_CODE=
 
 # Mapbox 无域名限制令牌（反向地理编码，可选）
 NUXT_MAPBOX_ACCESS_TOKEN=
@@ -91,6 +97,7 @@ NUXT_MAPBOX_ACCESS_TOKEN=
 # 存储提供者（local、s3 或 openlist）
 NUXT_STORAGE_PROVIDER=local
 NUXT_PROVIDER_LOCAL_PATH=/app/data/storage
+NUXT_PROVIDER_LOCAL_BASE_URL=/storage
 
 # 会话密码（必须，32 位随机字符串）
 NUXT_SESSION_PASSWORD=
@@ -101,18 +108,12 @@ NUXT_OG_IMAGE_SECRET=
 
 ### 拉取镜像
 
-我们推荐使用预构建的 Docker 镜像进行部署，镜像托管在 GHCR 和 Docker Hub，您可以根据网络情况选择合适的源。
+推荐使用预构建的 Docker 镜像进行部署，镜像托管在 GHCR：
 
-#### [GitHub Container Registry (GHCR)](https://github.com/HoshinoSuzumi/chronoframe/pkgs/container/chronoframe)
-
-```bash
-docker pull ghcr.io/hoshinosuzumi/chronoframe:latest
-```
-
-#### [Docker Hub](https://hub.docker.com/r/hoshinosuzumi/chronoframe)
+#### [GitHub Container Registry (GHCR)](https://github.com/swzyt/chronoframe/pkgs/container/chronoframe)
 
 ```bash
-docker pull hoshinosuzumi/chronoframe:latest
+docker pull ghcr.io/swzyt/chronoframe:latest
 ```
 
 ### Docker
@@ -120,7 +121,7 @@ docker pull hoshinosuzumi/chronoframe:latest
 一行命令启动：
 
 ```bash
-docker run -d --name chronoframe -p 3000:3000 -v $(pwd)/data:/app/data --env-file .env ghcr.io/hoshinosuzumi/chronoframe:latest
+docker run -d --name chronoframe -p 3000:3000 -v $(pwd)/data:/app/data --env-file .env ghcr.io/swzyt/chronoframe:latest
 ```
 
 ### Docker Compose
@@ -130,7 +131,7 @@ docker run -d --name chronoframe -p 3000:3000 -v $(pwd)/data:/app/data --env-fil
 ```yaml
 services:
   chronoframe:
-    image: ghcr.io/hoshinosuzumi/chronoframe:latest
+    image: ghcr.io/swzyt/chronoframe:latest
     container_name: chronoframe
     restart: unless-stopped
     ports:

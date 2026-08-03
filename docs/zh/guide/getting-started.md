@@ -25,18 +25,12 @@
 
 ### 拉取镜像
 
-我们推荐使用预构建的 Docker 镜像进行部署，镜像托管在 GHCR 和 Docker Hub，您可以根据网络情况选择合适的源。
+推荐使用预构建的 Docker 镜像进行部署，镜像托管在 GHCR：
 
-#### [GitHub Container Registry (GHCR)](https://github.com/HoshinoSuzumi/chronoframe/pkgs/container/chronoframe)
-
-```bash
-docker pull ghcr.io/hoshinosuzumi/chronoframe:latest
-```
-
-#### [Docker Hub](https://hub.docker.com/r/hoshinosuzumi/chronoframe)
+#### [GitHub Container Registry (GHCR)](https://github.com/swzyt/chronoframe/pkgs/container/chronoframe)
 
 ```bash
-docker pull hoshinosuzumi/chronoframe:latest
+docker pull ghcr.io/swzyt/chronoframe:latest
 ```
 
 ### 创建配置文件
@@ -57,16 +51,23 @@ NUXT_PUBLIC_APP_SLOGAN=
 NUXT_PUBLIC_APP_AUTHOR=
 NUXT_PUBLIC_APP_AVATAR_URL=
 
-# 地图提供器 (maplibre/mapbox)
+# SQLite 数据库路径
+DATABASE_URL=/app/data/app.sqlite3
+
+# 地图提供器 (maplibre/mapbox/amap)
 NUXT_PUBLIC_MAP_PROVIDER=maplibre
 # 使用 MapLibre 需要 MapTiler 访问令牌
 NUXT_PUBLIC_MAP_MAPLIBRE_TOKEN=
 # 使用 Mapbox 需要 Mapbox 访问令牌
 NUXT_PUBLIC_MAPBOX_ACCESS_TOKEN=
+# 使用高德地图需要浏览器端 Key，可选填写安全密钥
+NUXT_PUBLIC_MAP_AMAP_KEY=
+NUXT_PUBLIC_MAP_AMAP_SECURITY_JS_CODE=
 
 # 存储提供者（local 或 s3 或 openlist）
 NUXT_STORAGE_PROVIDER=local
 NUXT_PROVIDER_LOCAL_PATH=/app/data/storage
+NUXT_PROVIDER_LOCAL_BASE_URL=/storage
 
 # 会话密码（必须，32 位随机字符串）
 NUXT_SESSION_PASSWORD=
@@ -106,7 +107,7 @@ NUXT_OAUTH_GITHUB_CLIENT_SECRET=
 #### 快速启动
 
 ```bash
-docker run -d --name chronoframe -p 3000:3000 -v $(pwd)/data:/app/data --env-file .env ghcr.io/hoshinosuzumi/chronoframe:latest
+docker run -d --name chronoframe -p 3000:3000 -v $(pwd)/data:/app/data --env-file .env ghcr.io/swzyt/chronoframe:latest
 ```
 
 ### Docker Compose 部署
@@ -118,7 +119,7 @@ docker run -d --name chronoframe -p 3000:3000 -v $(pwd)/data:/app/data --env-fil
 ```yaml
 services:
   chronoframe:
-    image: ghcr.io/hoshinosuzumi/chronoframe:latest
+    image: ghcr.io/swzyt/chronoframe:latest
     container_name: chronoframe
     restart: unless-stopped
     ports:
@@ -215,7 +216,7 @@ server {
 ```yaml
 services:
   chronoframe:
-    image: ghcr.io/hoshinosuzumi/chronoframe:latest
+    image: ghcr.io/swzyt/chronoframe:latest
     container_name: chronoframe
     restart: unless-stopped
     volumes:

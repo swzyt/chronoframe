@@ -15,8 +15,11 @@ hero:
       text: 快速开始
       link: /zh/guide/getting-started
     - theme: alt
+      text: 阅读 Wiki
+      link: /zh/wiki/overview
+    - theme: alt
       text: 查看 GitHub
-      link: https://github.com/HoshinoSuzumi/chronoframe
+      link: https://github.com/swzyt/chronoframe
     - theme: alt
       text: 查看演示
       link: https://lens.bh8.ga
@@ -33,7 +36,7 @@ features:
     details: 支持多种存储后端，包括兼容 S3 的存储和本地文件系统。
   - title: 智能地理位置
     icon: 🌍
-    details: 自动提取照片 GPS 信息，使用 Mapbox 进行地理编码，在地图上展示照片拍摄位置。
+    details: 自动提取照片 GPS 信息，支持 Mapbox、MapLibre 和高德地图，在地图上展示照片拍摄位置。
   - title: 响应式设计
     icon: 📱
     details: 完美适配桌面端和移动端，支持触摸操作和手势控制，提供原生应用般的体验。
@@ -48,12 +51,17 @@ features:
 
 - [**TimoYin's Mems**](https://lens.bh8.ga)
 
+## 📚 文档
+
+- [**项目 Wiki**](/zh/wiki/overview)：部署、权限、媒体、存储、地图、备份和排障。
+- [**与上游仓库的差异**](/zh/guide/fork-differences)：当前 fork 的功能变化。
+
 ## 💬 社区支持
 
-- **GitHub Issues**: [报告问题](https://github.com/HoshinoSuzumi/chronoframe/issues)
-- **GitHub Discussions**: [讨论分享](https://github.com/HoshinoSuzumi/chronoframe/discussions)
+- **GitHub Issues**: [报告问题](https://github.com/swzyt/chronoframe/issues)
+- **GitHub Discussions**: [讨论分享](https://github.com/swzyt/chronoframe/discussions)
 - **Discord**: [加入我们](https://discord.gg/MM4ZK4Ed7s)
 
 ## 📄 开源协议
 
-ChronoFrame 基于 [MIT 协议](https://github.com/HoshinoSuzumi/chronoframe/blob/main/LICENSE) 开源，欢迎自由使用和贡献。
+ChronoFrame 基于 [MIT 协议](https://github.com/swzyt/chronoframe/blob/main/LICENSE) 开源，欢迎自由使用和贡献。

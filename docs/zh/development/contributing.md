@@ -17,10 +17,10 @@
 
 ```bash
 # 使用 HTTPS
-git clone https://github.com/HoshinoSuzumi/chronoframe.git
+git clone https://github.com/swzyt/chronoframe.git
 
 # 或使用 SSH
-git clone git@github.com:HoshinoSuzumi/chronoframe.git
+git clone git@github.com:swzyt/chronoframe.git
 
 # 进入项目目录
 cd chronoframe
@@ -348,5 +348,5 @@ chore: 更新依赖包版本
 
 ### 社区资源
 
-- [GitHub Issues](https://github.com/HoshinoSuzumi/chronoframe/issues)
-- [GitHub Discussions](https://github.com/HoshinoSuzumi/chronoframe/discussions)
+- [GitHub Issues](https://github.com/swzyt/chronoframe/issues)
+- [GitHub Discussions](https://github.com/swzyt/chronoframe/discussions)

@@ -15,8 +15,11 @@ hero:
       text: Getting Started
       link: /guide/getting-started
     - theme: alt
+      text: Read Wiki
+      link: /wiki/overview
+    - theme: alt
       text: View on GitHub
-      link: https://github.com/HoshinoSuzumi/chronoframe
+      link: https://github.com/swzyt/chronoframe
     - theme: alt
       text: View Demo
       link: https://lens.bh8.ga
@@ -33,7 +36,7 @@ features:
     details: Support multiple storage backends including S3-compatible storage and local filesystem.
   - title: Smart Geolocation
     icon: 🌍
-    details: Automatically extract photo GPS information, use Mapbox for geocoding, display photo locations on map.
+    details: Automatically extract photo GPS information, support Mapbox, MapLibre, and AMap, display photo locations on map.
   - title: Responsive Design
     icon: 📱
     details: Perfect for desktop and mobile, support touch operations and gesture controls, native app-like experience.
@@ -48,12 +51,17 @@ Here are some well-running ChronoFrame instances built by developers and communi
 
 - [**TimoYin's Mems**](https://lens.bh8.ga)
 
+## 📚 Documentation
+
+- [**Project Wiki**](/wiki/overview): deployment, permissions, media, storage, maps, backup, and troubleshooting.
+- [**Differences from Upstream**](/guide/fork-differences): feature changes in this fork.
+
 ## 💬 Community Support
 
-- **GitHub Issues**: [Report Issues](https://github.com/HoshinoSuzumi/chronoframe/issues)
-- **GitHub Discussions**: [Discussions](https://github.com/HoshinoSuzumi/chronoframe/discussions)
+- **GitHub Issues**: [Report Issues](https://github.com/swzyt/chronoframe/issues)
+- **GitHub Discussions**: [Discussions](https://github.com/swzyt/chronoframe/discussions)
 - **Discord**: [Join Us](https://discord.gg/MM4ZK4Ed7s)
 
 ## 📄 License
 
-ChronoFrame is open source under the [MIT License](https://github.com/HoshinoSuzumi/chronoframe/blob/main/LICENSE), welcome to use and contribute freely.
+ChronoFrame is open source under the [MIT License](https://github.com/swzyt/chronoframe/blob/main/LICENSE), welcome to use and contribute freely.

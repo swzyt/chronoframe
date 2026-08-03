@@ -28,7 +28,7 @@ ts=$(date +%Y%m%d-%H%M%S) && mkdir -p backups/$ts && cp -r data/ .env docker-com
 
 #### 2. 检查兼容性
 
-查看 [发布说明](https://github.com/HoshinoSuzumi/chronoframe/releases) 了解：
+查看 [发布说明](https://github.com/swzyt/chronoframe/releases) 了解：
 
 - 破坏性变更
 - 新增环境变量
@@ -66,7 +66,7 @@ docker-compose logs -f chronoframe
 # docker-compose.yml
 services:
   chronoframe:
-    image: ghcr.io/hoshinosuzumi/chronoframe:v1.2.3 # 指定版本
+    image: ghcr.io/swzyt/chronoframe:v1.2.3 # 指定版本
     # ... 其他配置
 ```
 
@@ -82,7 +82,7 @@ docker stop chronoframe
 docker rm chronoframe
 
 # 拉取最新镜像
-docker pull ghcr.io/hoshinosuzumi/chronoframe:latest
+docker pull ghcr.io/swzyt/chronoframe:latest
 
 # 使用相同配置启动新容器
 docker run -d \
@@ -90,7 +90,7 @@ docker run -d \
   -p 3000:3000 \
   -v $(pwd)/data:/app/data \
   --env-file .env \
-  ghcr.io/hoshinosuzumi/chronoframe:latest
+  ghcr.io/swzyt/chronoframe:latest
 ```
 
 ## 数据库迁移

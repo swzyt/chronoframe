@@ -25,18 +25,12 @@ The documentation is still being written; some sections may be incomplete.
 
 ### Pull Image
 
-Use the published image on GitHub Container Registry and Docker Hub. Choose the source that works best for your network:
+Use the published image on GitHub Container Registry:
 
-#### [GitHub Container Registry (GHCR)](https://github.com/HoshinoSuzumi/chronoframe/pkgs/container/chronoframe)
-
-```bash
-docker pull ghcr.io/hoshinosuzumi/chronoframe:latest
-```
-
-#### [Docker Hub](https://hub.docker.com/r/hoshinosuzumi/chronoframe)
+#### [GitHub Container Registry (GHCR)](https://github.com/swzyt/chronoframe/pkgs/container/chronoframe)
 
 ```bash
-docker pull hoshinosuzumi/chronoframe:latest
+docker pull ghcr.io/swzyt/chronoframe:latest
 ```
 
 ### Create `.env`
@@ -57,16 +51,23 @@ NUXT_PUBLIC_APP_SLOGAN=
 NUXT_PUBLIC_APP_AUTHOR=
 NUXT_PUBLIC_APP_AVATAR_URL=
 
-# Map provider (maplibre/mapbox)
+# SQLite database path
+DATABASE_URL=/app/data/app.sqlite3
+
+# Map provider (maplibre/mapbox/amap)
 NUXT_PUBLIC_MAP_PROVIDER=maplibre
 # MapTiler access token for MapLibre
 NUXT_PUBLIC_MAP_MAPLIBRE_TOKEN=
 # Mapbox access token for Mapbox
 NUXT_PUBLIC_MAPBOX_ACCESS_TOKEN=
+# AMap browser key and optional security code
+NUXT_PUBLIC_MAP_AMAP_KEY=
+NUXT_PUBLIC_MAP_AMAP_SECURITY_JS_CODE=
 
 # Storage provider (local or s3 or openlist)
 NUXT_STORAGE_PROVIDER=local
 NUXT_PROVIDER_LOCAL_PATH=/app/data/storage
+NUXT_PROVIDER_LOCAL_BASE_URL=/storage
 
 # Session password (32‑char random string, required)
 NUXT_SESSION_PASSWORD=
@@ -109,7 +110,7 @@ docker run -d \
   -p 3000:3000 \
   -v "$(pwd)/data:/app/data" \
   --env-file .env \
-  ghcr.io/hoshinosuzumi/chronoframe:latest
+  ghcr.io/swzyt/chronoframe:latest
 ```
 
 ### Docker Compose
@@ -119,7 +120,7 @@ Create `docker-compose.yml`:
 ```yaml
 services:
   chronoframe:
-    image: ghcr.io/hoshinosuzumi/chronoframe:latest
+    image: ghcr.io/swzyt/chronoframe:latest
     container_name: chronoframe
     restart: unless-stopped
     ports:
@@ -202,7 +203,7 @@ server {
 ```yaml
 services:
   chronoframe:
-    image: ghcr.io/hoshinosuzumi/chronoframe:latest
+    image: ghcr.io/swzyt/chronoframe:latest
     container_name: chronoframe
     restart: unless-stopped
     volumes:

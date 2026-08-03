@@ -17,10 +17,10 @@ This document will guide you through setting up the ChronoFrame development envi
 
 ```bash
 # Using HTTPS
-git clone https://github.com/HoshinoSuzumi/chronoframe.git
+git clone https://github.com/swzyt/chronoframe.git
 
 # Or using SSH
-git clone git@github.com:HoshinoSuzumi/chronoframe.git
+git clone git@github.com:swzyt/chronoframe.git
 
 # Enter project directory
 cd chronoframe
@@ -348,5 +348,5 @@ Look for Issues labeled with:
 
 ### Community Resources
 
-- [GitHub Issues](https://github.com/HoshinoSuzumi/chronoframe/issues)
-- [GitHub Discussions](https://github.com/HoshinoSuzumi/chronoframe/discussions)
+- [GitHub Issues](https://github.com/swzyt/chronoframe/issues)
+- [GitHub Discussions](https://github.com/swzyt/chronoframe/discussions)

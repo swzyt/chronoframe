@@ -8,6 +8,7 @@ export default defineConfig({
     // https://vitepress.dev/reference/default-theme-config
     nav: [
       { text: '指南', link: '/zh/guide/getting-started' },
+      { text: 'Wiki', link: '/zh/wiki/overview' },
       { text: '开发文档', link: '/zh/development/contributing' },
       { text: '演示', link: 'https://lens.bh8.ga' },
     ],
@@ -27,6 +28,18 @@ export default defineConfig({
             text: '与上游仓库的差异',
             link: '/zh/guide/fork-differences',
           },
+        ],
+      },
+      {
+        text: 'Wiki',
+        items: [
+          { text: '总览', link: '/zh/wiki/overview' },
+          { text: '部署与升级', link: '/zh/wiki/deployment' },
+          { text: '管理员手册', link: '/zh/wiki/admin-guide' },
+          { text: '访客与普通用户手册', link: '/zh/wiki/user-guide' },
+          { text: '媒体、存储与地图', link: '/zh/wiki/media-storage-map' },
+          { text: '运维、备份与排障', link: '/zh/wiki/operations' },
+          { text: '开发者参考', link: '/zh/wiki/development' },
         ],
       },
       {
