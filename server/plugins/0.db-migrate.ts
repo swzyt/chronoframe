@@ -1,17 +1,15 @@
-import { mkdirSync } from 'node:fs'
-import { dirname, resolve } from 'node:path'
+import { resolve } from 'node:path'
 
 import Database from 'better-sqlite3'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
+import { ensureDatabaseDirectory } from '~~/server/utils/database-path'
 
 let migrationPromise: Promise<void> | null = null
 const migrationLogger = logger.dynamic('db-migrate')
 
 async function runMigrations() {
-  const dbPath = resolve(process.env.DATABASE_URL || './data/app.sqlite3')
-
-  mkdirSync(dirname(dbPath), { recursive: true })
+  const dbPath = ensureDatabaseDirectory()
 
   const sqlite = new Database(dbPath)
 

@@ -1,5 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { readFile, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { z } from 'zod'
 import { exiftool } from 'exiftool-vendored'
@@ -8,6 +7,7 @@ import { and, eq } from 'drizzle-orm'
 import { extractExifData } from '~~/server/services/image/exif'
 import { tables, useDB } from '~~/server/utils/db'
 import { useStorageProvider } from '~~/server/utils/useStorageProvider'
+import { createTempDir } from '~~/server/utils/temp-dir'
 
 const paramsSchema = z.object({
   photoId: z.string().min(1),
@@ -161,9 +161,7 @@ export default eventHandler(async (event) => {
     exifUpdates.Rating = payload.rating !== null ? payload.rating : null
   }
 
-  const tempRoot = tmpdir()
-  await mkdir(tempRoot, { recursive: true })
-  const tempDir = await mkdtemp(path.join(tempRoot, 'cframe-edit-'))
+  const tempDir = await createTempDir('cframe-edit')
   const ext = path.extname(photo.storageKey) || '.jpg'
   const tempFile = path.join(tempDir, `edited${ext}`)
 

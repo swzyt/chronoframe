@@ -20,6 +20,8 @@ RUN find ./.output -type f -name '*.map' -delete
 
 FROM node:22.23.1-alpine AS runtime_deps
 RUN apk add --no-cache ca-certificates perl exiftool ffmpeg \
+	&& mkdir -p /tmp \
+	&& chmod 1777 /tmp \
 	&& install -Dm755 "$(readlink -f /usr/bin/perl)" /opt/runtime-bin/perl \
 	&& install -Dm755 "$(readlink -f /usr/bin/env)" /opt/runtime-bin/env \
 	&& install -Dm755 "$(readlink -f /usr/bin/exiftool)" /opt/runtime-bin/exiftool \
@@ -39,6 +41,7 @@ COPY --from=runtime_deps /usr/lib /usr/lib
 COPY --from=runtime_deps /usr/share /usr/share
 COPY --from=runtime_deps /lib /lib
 COPY --from=runtime_deps /etc/ssl /etc/ssl
+COPY --from=runtime_deps /tmp /tmp
 
 COPY --from=build /usr/src/app/.output ./.output
 COPY --from=build /usr/src/app/server/database/migrations ./server/database/migrations

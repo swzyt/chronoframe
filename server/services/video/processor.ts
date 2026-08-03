@@ -1,11 +1,11 @@
 import { execFile } from 'node:child_process'
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { readFile, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { promisify } from 'node:util'
 import type { ExecFileException } from 'node:child_process'
 import { exiftool } from 'exiftool-vendored'
 import type { NeededExif } from '~~/shared/types/photo'
+import { createTempDir } from '~~/server/utils/temp-dir'
 
 const execFileAsync = promisify(execFile)
 
@@ -94,7 +94,7 @@ export async function processMp4Video(
     throw new Error('FFmpeg binary is unavailable')
   }
 
-  const tempDir = await mkdtemp(path.join(tmpdir(), 'chronoframe-video-'))
+  const tempDir = await createTempDir('chronoframe-video')
   const inputPath = path.join(tempDir, 'input.mp4')
   const thumbnailPath = path.join(tempDir, 'thumbnail.webp')
   const playbackPath = path.join(tempDir, 'playback.mp4')

@@ -10,6 +10,7 @@ import cron from 'node-cron'
 import nodemailer from 'nodemailer'
 
 import { settingsManager } from '~~/server/services/settings/settingsManager'
+import { resolveDatabasePath } from '~~/server/utils/database-path'
 
 const BACKUP_MAGIC = Buffer.from('CFDBENC1')
 const DEFAULT_BACKUP_DIR = 'data/backups'
@@ -36,14 +37,6 @@ export interface DatabaseBackupResult {
   encrypted: boolean
   sentTo: string[]
   createdAt: string
-}
-
-function normalizeDatabasePath(rawPath?: string) {
-  const value = rawPath || './data/app.sqlite3'
-  const withoutFilePrefix = value.startsWith('file:')
-    ? value.slice('file:'.length)
-    : value
-  return resolve(withoutFilePrefix)
 }
 
 function parseRecipients(value: string) {
@@ -177,7 +170,7 @@ async function cleanupOldBackups(retentionDays: number) {
 }
 
 async function createBackupFile(settings: DatabaseBackupSettings) {
-  const dbPath = normalizeDatabasePath(process.env.DATABASE_URL)
+  const dbPath = resolveDatabasePath()
   const backupDir = resolve(DEFAULT_BACKUP_DIR)
   const timestamp = new Date()
     .toISOString()

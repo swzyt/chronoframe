@@ -1,6 +1,5 @@
 import type { ConsolaInstance } from 'consola'
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { readFile, rm, writeFile } from 'node:fs/promises'
 import path from 'path'
 import { asc, desc, eq, sql } from 'drizzle-orm'
 import { exiftool } from 'exiftool-vendored'
@@ -28,6 +27,7 @@ import {
 import { processMotionPhotoFromXmp } from '../video/motion-photo'
 import { processMp4Video } from '../video/processor'
 import { getStorageManager } from '~~/server/plugins/3.storage'
+import { createTempDir } from '~~/server/utils/temp-dir'
 
 const storageProxyUrl = (key: string) =>
   `/image/${key.replace(/^\/+/, '').split('/').map(encodeURIComponent).join('/')}`
@@ -653,9 +653,7 @@ export class QueueManager {
           throw new Error(`Photo file ${photo.storageKey} not found in storage`)
         }
 
-        const tempRoot = tmpdir()
-        await mkdir(tempRoot, { recursive: true })
-        const tempDir = await mkdtemp(path.join(tempRoot, 'cframe-location-'))
+        const tempDir = await createTempDir('cframe-location')
         const ext = path.extname(photo.storageKey) || '.jpg'
         const tempFile = path.join(tempDir, `erase-location${ext}`)
 

@@ -2,6 +2,7 @@ import { drizzle } from 'drizzle-orm/better-sqlite3'
 import Database from 'better-sqlite3'
 
 import * as schema from '../database/schema'
+import { ensureDatabaseDirectory } from './database-path'
 
 export const tables = schema
 export { eq, and, or, inArray } from 'drizzle-orm'
@@ -12,8 +13,10 @@ let sqliteInstance: Database.Database | null = null
 
 export function useDB() {
   if (!dbInstance || !sqliteInstance) {
+    const dbPath = ensureDatabaseDirectory()
+
     // 创建数据库连接，启用WAL模式以提高并发性能
-    sqliteInstance = new Database('data/app.sqlite3', {
+    sqliteInstance = new Database(dbPath, {
       verbose:
         process.env.NODE_ENV === 'development'
           ? logger.dynamic('db').verbose

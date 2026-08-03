@@ -47,6 +47,11 @@ const createClient = (config: S3StorageConfig): S3Client => {
 
 const DEFAULT_S3_TIMEOUT_MS = 30_000
 
+const isObjectNotFoundError = (error: unknown) => {
+  const err = error as any
+  return err?.$metadata?.httpStatusCode === 404 || err?.name === 'NoSuchKey'
+}
+
 const convertToStorageObject = (s3object: _Object): StorageObject => {
   return {
     key: s3object.Key || '',
@@ -84,10 +89,16 @@ export class S3StorageProvider implements StorageProvider {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Unknown S3 provider error'
-      this.logger?.error(
-        `S3 ${operation} failed after ${timeoutMs}ms timeout budget: ${message}`,
-        error,
-      )
+      if (isObjectNotFoundError(error)) {
+        this.logger?.debug?.(`S3 ${operation} not found: ${message}`)
+      } else {
+        this.logger?.error(
+          controller.signal.aborted
+            ? `S3 ${operation} timed out after ${timeoutMs}ms: ${message}`
+            : `S3 ${operation} failed: ${message}`,
+          error,
+        )
+      }
       throw error
     } finally {
       clearTimeout(timeout)
@@ -215,8 +226,7 @@ export class S3StorageProvider implements StorageProvider {
       const stream = resp.Body as NodeJS.ReadableStream
       return await this.readBodyStream(stream, absoluteKey)
     } catch (error) {
-      const statusCode = (error as any)?.$metadata?.httpStatusCode
-      if (statusCode !== 404 && (error as any)?.name !== 'NoSuchKey') {
+      if (!isObjectNotFoundError(error)) {
         this.logger?.error(`Failed to get object with key: ${key}`, error)
       }
       return null
@@ -252,8 +262,7 @@ export class S3StorageProvider implements StorageProvider {
       const stream = resp.Body as NodeJS.ReadableStream
       return await this.readBodyStream(stream, absoluteKey)
     } catch (error) {
-      const statusCode = (error as any)?.$metadata?.httpStatusCode
-      if (statusCode !== 404 && (error as any)?.name !== 'NoSuchKey') {
+      if (!isObjectNotFoundError(error)) {
         this.logger?.error(`Failed to get object range with key: ${key}`, error)
       }
       return null
@@ -346,7 +355,7 @@ export class S3StorageProvider implements StorageProvider {
         etag: resp.ETag,
       }
     } catch (error) {
-      if ((error as any).$metadata?.httpStatusCode === 404) {
+      if (isObjectNotFoundError(error)) {
         return null
       }
       this.logger?.error(`Failed to get metadata for key: ${key}`, error)
