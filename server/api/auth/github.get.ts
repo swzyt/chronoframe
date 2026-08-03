@@ -8,10 +8,11 @@ const _accessDeniedError = createError({
 
 async function onGithubOAuthSuccess(event: any, { user }: { user: any }) {
   const db = useDB()
+  const email = String(user.email || '').trim().toLowerCase()
   const userFromEmail = db
     .select()
     .from(tables.users)
-    .where(eq(tables.users.email, user.email || ''))
+    .where(eq(tables.users.email, email))
     .get()
 
   logger.chrono.info(
@@ -25,7 +26,7 @@ async function onGithubOAuthSuccess(event: any, { user }: { user: any }) {
     db.insert(tables.users)
       .values({
         username: user.name || '',
-        email: user.email || '',
+        email,
         avatar: user.avatar_url || null,
         createdAt: new Date(),
       })
@@ -33,7 +34,7 @@ async function onGithubOAuthSuccess(event: any, { user }: { user: any }) {
       .get()
     // then reject login
     throw _accessDeniedError
-  } else if (userFromEmail.isAdmin === 0) {
+  } else if (!userFromEmail.isActive || userFromEmail.isAdmin === 0) {
     throw _accessDeniedError
   } else {
     await setUserSession(

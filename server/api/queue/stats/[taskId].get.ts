@@ -1,7 +1,8 @@
 import z from 'zod'
+import { and, eq } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
-  await requireUserSession(event)
+  const user = await requireCurrentUser(event)
 
   try {
     const { taskId } = await getValidatedRouterParams(
@@ -11,15 +12,19 @@ export default defineEventHandler(async (event) => {
       }).parse,
     )
 
-    const workerPool = globalThis.__workerPool
-    if (!workerPool) {
-      throw createError({
-        statusCode: 503,
-        statusMessage: 'Worker pool not initialized',
-      })
-    }
-
-    const taskStats = await workerPool.getTaskStatus(Number(taskId))
+    const numericTaskId = Number(taskId)
+    const taskStats = useDB()
+      .select()
+      .from(tables.pipelineQueue)
+      .where(
+        user.isAdmin
+          ? eq(tables.pipelineQueue.id, numericTaskId)
+          : and(
+              eq(tables.pipelineQueue.id, numericTaskId),
+              eq(tables.pipelineQueue.ownerUserId, user.id),
+            ),
+      )
+      .get()
     if (!taskStats) {
       throw createError({
         statusCode: 404,
@@ -28,7 +33,8 @@ export default defineEventHandler(async (event) => {
     }
 
     return taskStats
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.statusCode) throw error
     throw createError({
       statusCode: 500,
       statusMessage:

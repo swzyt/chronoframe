@@ -29,6 +29,8 @@
 
 丝滑的照片展示和管理应用，支持多种图片格式和大尺寸图片渲染。
 
+> 当前 fork 增加了多用户权限、照片及相簿归属、访客预览和媒体访问保护。详见[与上游仓库的差异](docs/zh/guide/fork-differences.md)。
+
 [在线演示: TimoYin's Mems](https://lens.bh8.ga)
 
 ## ✨ 特性

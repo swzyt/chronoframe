@@ -164,6 +164,22 @@ export class SettingsManager {
             enum: config.enum ? [...config.enum] : null,
           })
           .run()
+      } else {
+        // Keep persisted values, but synchronize schema metadata so newly added
+        // enum members and visibility/security changes also apply to upgrades.
+        db.update(tables.settings)
+          .set({
+            type: config.type,
+            defaultValue: this.serialize(config.defaultValue),
+            label: config.label,
+            description: config.description,
+            isPublic: config.isPublic ?? false,
+            isReadonly: config.isReadonly ?? false,
+            isSecret: config.isSecret ?? false,
+            enum: config.enum ? [...config.enum] : null,
+          })
+          .where(eq(tables.settings.id, existing.id))
+          .run()
       }
     }
   }

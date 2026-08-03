@@ -14,14 +14,42 @@ const { photo } = defineProps<PhotoProps>()
 const { $i18n } = useNuxtApp()
 const config = useRuntimeConfig()
 
-const headline = computed(() => (photo ? $i18n.t('title.fallback.photo') : 'ChronoFrame'))
-const title = computed(() => (photo?.title || config.public.app.title).slice(0, 60))
-const description = computed(() => (photo ? photo.description || '' : config.public.app.title).slice(0, 200))
-const thumbnailUrl = computed(() => 
-  photo?.thumbnailKey && photo.thumbnailUrl
-  ? `/thumb/${encodeURIComponent(photo.thumbnailUrl)}`
-  : undefined
+const headline = computed(() =>
+  photo
+    ? photo.mediaType === 'video'
+      ? $i18n.t('dashboard.photos.mediaTypes.video')
+      : $i18n.t('title.fallback.photo')
+    : 'ChronoFrame',
 )
+const title = computed(() =>
+  (photo?.title || config.public.app.title).slice(0, 60),
+)
+const description = computed(() =>
+  (photo ? photo.description || '' : config.public.app.title).slice(0, 200),
+)
+const thumbnailUrl = ref<string>()
+const signedThumbnailUrl = (
+  photo as (Photo & { ogThumbnailUrl?: string | null }) | undefined
+)?.ogThumbnailUrl
+
+if (signedThumbnailUrl) {
+  try {
+    const thumbnail = await useRequestFetch()<ArrayBuffer>(signedThumbnailUrl, {
+      responseType: 'arrayBuffer',
+    })
+    const bytes = new Uint8Array(thumbnail)
+    let binary = ''
+    const chunkSize = 0x8000
+    for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+      binary += String.fromCharCode(
+        ...bytes.subarray(offset, offset + chunkSize),
+      )
+    }
+    thumbnailUrl.value = `data:image/webp;base64,${btoa(binary)}`
+  } catch (error) {
+    console.warn('Failed to load OG image thumbnail:', error)
+  }
+}
 </script>
 
 <template>
@@ -69,9 +97,7 @@ const thumbnailUrl = computed(() =>
             v-if="photo.city"
             class="flex flex-row items-center gap-1"
           >
-            <span
-              class="og-photo__icon og-photo__icon--meta text-neutral-300"
-            >
+            <span class="og-photo__icon og-photo__icon--meta text-neutral-300">
               <IconifyIcon
                 class="og-photo__svg og-photo__svg--meta"
                 icon="tabler:map-pin"
@@ -89,9 +115,7 @@ const thumbnailUrl = computed(() =>
             v-if="photo.exif?.Model"
             class="flex flex-row items-center gap-1"
           >
-            <span
-              class="og-photo__icon og-photo__icon--meta text-neutral-300"
-            >
+            <span class="og-photo__icon og-photo__icon--meta text-neutral-300">
               <IconifyIcon
                 class="og-photo__svg og-photo__svg--meta"
                 icon="tabler:camera"
@@ -114,9 +138,7 @@ const thumbnailUrl = computed(() =>
         <div
           class="og-photo__exif-card rounded-3xl px-6 py-4 flex items-center gap-3"
         >
-          <span
-            class="og-photo__icon og-photo__icon--exif text-amber-400"
-          >
+          <span class="og-photo__icon og-photo__icon--exif text-amber-400">
             <IconifyIcon
               class="og-photo__svg og-photo__svg--exif"
               icon="streamline:image-accessories-lenses-photos-camera-shutter-picture-photography-pictures-photo-lens"
@@ -133,9 +155,7 @@ const thumbnailUrl = computed(() =>
         <div
           class="og-photo__exif-card rounded-3xl px-6 py-4 flex items-center gap-3"
         >
-          <span
-            class="og-photo__icon og-photo__icon--exif text-purple-400"
-          >
+          <span class="og-photo__icon og-photo__icon--exif text-purple-400">
             <IconifyIcon
               class="og-photo__svg og-photo__svg--exif"
               icon="tabler:aperture"
@@ -150,9 +170,7 @@ const thumbnailUrl = computed(() =>
         <div
           class="og-photo__exif-card rounded-3xl px-6 py-4 flex items-center gap-3"
         >
-          <span
-            class="og-photo__icon og-photo__icon--exif text-emerald-400"
-          >
+          <span class="og-photo__icon og-photo__icon--exif text-emerald-400">
             <IconifyIcon
               class="og-photo__svg og-photo__svg--exif"
               icon="material-symbols:shutter-speed"
@@ -167,9 +185,7 @@ const thumbnailUrl = computed(() =>
         <div
           class="og-photo__exif-card rounded-3xl px-6 py-4 flex items-center gap-3"
         >
-          <span
-            class="og-photo__icon og-photo__icon--exif text-sky-400"
-          >
+          <span class="og-photo__icon og-photo__icon--exif text-sky-400">
             <IconifyIcon
               class="og-photo__svg og-photo__svg--exif"
               icon="carbon:iso-outline"
@@ -188,7 +204,7 @@ const thumbnailUrl = computed(() =>
 
 <style scoped>
 .og-photo {
-  font-family: "Rubik", "Noto Sans SC", sans-serif;
+  font-family: 'Rubik', 'Noto Sans SC', sans-serif;
 }
 
 .og-photo__gradient {

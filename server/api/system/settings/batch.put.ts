@@ -4,7 +4,6 @@ import {
   settingNamespaces,
 } from '~~/server/services/settings/contants'
 import { settingsManager } from '~~/server/services/settings/settingsManager'
-import { useDB, tables, eq } from '~~/server/utils/db'
 
 /**
  * PUT /api/system/settings/batch
@@ -25,13 +24,7 @@ import { useDB, tables, eq } from '~~/server/utils/db'
  * }
  */
 export default eventHandler(async (event) => {
-  const session = await requireUserSession(event)
-  if (!session || !session.user.isAdmin) {
-    throw createError({
-      statusCode: 403,
-      statusMessage: 'Admin privileges required',
-    })
-  }
+  const user = await requireAdmin(event)
 
   const body = await readValidatedBody(
     event,
@@ -50,17 +43,6 @@ export default eventHandler(async (event) => {
     let successCount = 0
     const errors: Array<{ namespace: string; key: string; error: string }> = []
 
-    // 获取当前用户ID，如果用户不存在于数据库则返回null
-    const db = useDB()
-    const currentUser = session.user.id
-      ? db
-          .select()
-          .from(tables.users)
-          .where(eq(tables.users.id, session.user.id))
-          .get()
-      : null
-    const updatedBy = currentUser ? currentUser.id : undefined
-
     // 逐个更新设置
     for (const update of body.updates) {
       try {
@@ -68,7 +50,7 @@ export default eventHandler(async (event) => {
           update.namespace,
           update.key,
           update.value,
-          updatedBy,
+          user.id,
         )
         successCount++
       } catch (err) {

@@ -62,12 +62,16 @@ export function useWizardForm(namespace: string) {
           query: { namespace },
         },
       )
-      fields.value = response.fields
+      const availableFields =
+        namespace === 'app'
+          ? response.fields.filter((field) => !field.key.startsWith('access.'))
+          : response.fields
+      fields.value = availableFields
 
       // Initialize state from schema if store is empty
       // We create a temporary object to hold default values
       const defaults: Record<string, any> = {}
-      response.fields.forEach((field) => {
+      availableFields.forEach((field) => {
         defaults[field.key] = field.value ?? field.defaultValue ?? ''
       })
 

@@ -19,6 +19,7 @@ const props = withDefaults(defineProps<WebGLImageViewerProps>(), {
   initialScale: 1,
   minScale: 0.1,
   maxScale: 10,
+  rotation: 0,
   centerOnInit: true,
   debug: false,
   limitToBounds: true,
@@ -59,6 +60,7 @@ const config = computed<EngineConfig>(() => ({
   initialScale: props.initialScale,
   minScale: props.minScale,
   maxScale: props.maxScale,
+  rotation: props.rotation,
   centerOnInit: props.centerOnInit,
   debug: props.debug,
   limitToBounds: props.limitToBounds,
@@ -133,6 +135,7 @@ const initEngine = async (): Promise<void> => {
     // 加载图片
     if (props.src) {
       await engine.value.loadImage(props.src)
+      emit('imageLoaded')
 
       // 初始化调试信息
       if (config.value.debug) {
@@ -142,6 +145,7 @@ const initEngine = async (): Promise<void> => {
   } catch (err) {
     console.error('Failed to initialize WebGL engine:', err)
     error.value = err instanceof Error ? err.message : 'Unknown error'
+    emit('error', error.value)
     throw err
   }
 }
@@ -168,6 +172,22 @@ const zoomOut = (animate = false): void => {
 
 const resetView = (): void => {
   engine.value?.resetView()
+}
+
+const resize = (): void => {
+  engine.value?.resize()
+}
+
+const rotateClockwise = (): void => {
+  engine.value?.rotateClockwise()
+}
+
+const rotateCounterClockwise = (): void => {
+  engine.value?.rotateCounterClockwise()
+}
+
+const setRotation = (degrees: number, animate = true): void => {
+  engine.value?.setRotation(degrees, animate)
 }
 
 const getScale = (): number => {
@@ -205,6 +225,7 @@ watch(
     if (newSrc && engine.value) {
       try {
         await engine.value.loadImage(newSrc)
+        emit('imageLoaded')
 
         if (config.value.debug) {
           updateDebugInfo()
@@ -213,6 +234,7 @@ watch(
         console.error('Failed to load new image:', err)
         error.value =
           err instanceof Error ? err.message : 'Failed to load image'
+        emit('error', error.value)
       }
     }
   },
@@ -220,11 +242,8 @@ watch(
 
 watch(
   config,
-  (_newConfig) => {
-    if (engine.value) {
-      engine.value.destroy()
-      initEngine().catch(console.error)
-    }
+  (newConfig) => {
+    engine.value?.updateConfig(newConfig)
   },
   { deep: true },
 )
@@ -233,6 +252,10 @@ defineExpose<WebGLImageViewerRef>({
   zoomIn,
   zoomOut,
   resetView,
+  resize,
+  rotateClockwise,
+  rotateCounterClockwise,
+  setRotation,
   getScale,
   getRelativeScale,
   copyToClipboard,
@@ -279,7 +302,7 @@ defineExpose<WebGLImageViewerRef>({
   touch-action: none;
   border: none;
   outline: none;
-  image-rendering: pixelated;
+  image-rendering: auto;
 }
 
 .webgl-canvas:active {

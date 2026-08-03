@@ -53,6 +53,20 @@ export const generateSafePhotoId = (s3key: string): string => {
   })
 }
 
+export const generateSafeVideoId = (storageKey: string): string => {
+  const baseId = generateSafePhotoId(storageKey)
+  const ownerScopedHash = crypto
+    .createHash('sha256')
+    .update(storageKey)
+    .digest('hex')
+    .slice(0, 8)
+  return sanitizeFileName(`${baseId}-video-${ownerScopedHash}`, {
+    maxLength: 50,
+    fallbackPrefix: 'video',
+    minLength: 3,
+  })
+}
+
 /**
  * 生成安全的文件键
  * @param s3key 原始存储键

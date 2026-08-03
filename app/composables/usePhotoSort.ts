@@ -13,8 +13,24 @@ interface SortState {
 
 // 全局排序状态
 const globalSortState = ref<SortState>({
-  currentSort: 'dateTaken-desc', // 默认按拍摄时间倒序
+  currentSort: 'lastModified-desc', // 默认按最后更新时间倒序
   availableSorts: [
+    {
+      key: 'lastModified-desc',
+      labelI18n: 'ui.action.sort.options.lastModifiedDesc',
+      icon: 'tabler:sort-descending',
+      value: (photo: Photo) =>
+        photo.lastModified ? new Date(photo.lastModified).getTime() : 0,
+      order: 'desc',
+    },
+    {
+      key: 'lastModified-asc',
+      labelI18n: 'ui.action.sort.options.lastModifiedAsc',
+      icon: 'tabler:sort-ascending',
+      value: (photo: Photo) =>
+        photo.lastModified ? new Date(photo.lastModified).getTime() : 0,
+      order: 'asc',
+    },
     {
       key: 'dateTaken-desc',
       labelI18n: 'ui.action.sort.options.dateTakenDesc',
@@ -133,7 +149,9 @@ export function usePhotoSort() {
 
   // 获取当前排序的显示标签
   const currentSortLabel = computed(
-    () => currentSortOption.value?.labelI18n || 'ui.action.sort.options.dateTakenDesc',
+    () =>
+      currentSortOption.value?.labelI18n ||
+      'ui.action.sort.options.lastModifiedDesc',
   )
 
   // 获取当前排序的显示图标

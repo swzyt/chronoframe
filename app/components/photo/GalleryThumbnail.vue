@@ -182,6 +182,15 @@ watch(isMobile, scrollToActiveThumbnail)
           class="absolute inset-0 w-full h-full object-cover"
           loading="lazy"
         />
+        <span
+          v-if="photo.mediaType === 'video'"
+          class="absolute inset-0 flex items-center justify-center bg-black/15 text-white"
+        >
+          <Icon
+            name="tabler:player-play-filled"
+            class="size-5 drop-shadow"
+          />
+        </span>
         <div
           v-else-if="!photo.thumbnailHash"
           class="absolute inset-0 w-full h-full bg-gray-700 flex items-center justify-center"

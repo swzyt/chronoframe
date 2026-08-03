@@ -13,6 +13,8 @@ export interface WebGLImageViewerProps {
   minScale?: number
   /** Maximum scale */
   maxScale?: number
+  /** Rotation in degrees */
+  rotation?: number
   /** Center on init */
   centerOnInit?: boolean
   /** Debug mode */
@@ -66,6 +68,8 @@ export interface WebGLImageViewerProps {
 export interface WebGLImageViewerEmits {
   zoomChange: [originalScale: number, relativeScale: number]
   imageCopied: []
+  imageLoaded: []
+  error: [message: string]
   loadingStateChange: [
     isLoading: boolean,
     state?: LoadingState,
@@ -77,6 +81,10 @@ export interface WebGLImageViewerRef {
   zoomIn: (animate?: boolean) => void
   zoomOut: (animate?: boolean) => void
   resetView: () => void
+  resize: () => void
+  rotateClockwise: () => void
+  rotateCounterClockwise: () => void
+  setRotation: (degrees: number, animate?: boolean) => void
   getScale: () => number
   getRelativeScale: () => number
   copyToClipboard: () => Promise<void>
@@ -128,6 +136,7 @@ export interface DebugInfo {
   totalTiles: number
   visibleTiles: number
   tileSize: number
+  rotation: number
 }
 
 export interface TouchState {
@@ -148,6 +157,7 @@ export enum LoadingState {
 export interface EngineConfig {
   minScale: number
   maxScale: number
+  rotation: number
   wheelStep: number
   pinchStep: number
   doubleClickStep: number

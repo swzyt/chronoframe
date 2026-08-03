@@ -1,4 +1,32 @@
 {
+  "accessGate": {
+    "title": "アクセスパスワードを入力して続きを表示",
+    "description": "認証後、すべての写真、アルバム、地球儀コンテンツを閲覧できます。",
+    "passwordLabel": "アクセスパスワード",
+    "unlock": "すべてのコンテンツを解除",
+    "internalLogin": "内部ユーザーとしてログイン",
+    "morePhotos": "パスワードを入力して写真をさらに表示",
+    "moreAlbums": "パスワードを入力してアルバムをさらに表示",
+    "moreLocations": "場所をさらに表示",
+    "errors": {
+      "rateLimited": "試行回数が多すぎます。15分後にもう一度お試しください。",
+      "invalidPassword": "アクセスパスワードが正しくありません。"
+    },
+    "settings": {
+      "title": "サイトアクセス保護",
+      "description": "訪問者は指定数のコンテンツをプレビューし、パスワード入力後にすべて閲覧できます。",
+      "enabled": "訪問者にアクセスパスワードを要求する",
+      "photoLimit": "無料プレビュー写真数",
+      "photoLimitDescription": "未認証の訪問者が閲覧できる最新写真の数。",
+      "albumLimit": "無料プレビューアルバム数",
+      "albumLimitDescription": "未認証の訪問者が閲覧できる最新公開アルバムの数。",
+      "passwordConfigured": "パスワード設定済み。空欄の場合は変更しません。",
+      "passwordRequired": "初回有効化時は8文字以上のパスワードが必要です。",
+      "passwordPlaceholder": "8文字以上",
+      "saved": "アクセス保護設定を保存しました",
+      "saveFailed": "保存に失敗しました"
+    }
+  },
   "plural": {
     "photo": "写真がありません | 写真 {count} 枚"
   },
@@ -32,6 +60,8 @@
         "tooltip": "写真の並び替え",
         "title": "並び替え",
         "options": {
+          "lastModifiedDesc": "最終更新（新しい順）",
+          "lastModifiedAsc": "最終更新（古い順）",
           "dateTakenDesc": "撮影日（新しい順）",
           "dateTakenAsc": "撮影日（古い順）",
           "fileSizeAsc": "ファイルサイズ（昇順）",
@@ -112,6 +142,9 @@
       "backtotop": {
         "tooltip": "ページの先頭に戻る",
         "ariaLabel": "トップへ戻る"
+      },
+      "albumFlow": {
+        "tooltip": "フォトフローウォール"
       }
     },
     "stats": {
@@ -186,6 +219,17 @@
       },
       "mobile": "ダブルタップまたはピンチでズーム",
       "desktop": "ダブルクリックまたはマウスホイールでズーム"
+    },
+    "autoplay": {
+      "play": "自動再生",
+      "pause": "自動再生を一時停止"
+    },
+    "rotate": {
+      "clockwise": "時計回りに回転"
+    },
+    "fullscreen": {
+      "enter": "全画面で表示",
+      "exit": "全画面を終了"
     },
     "reaction": {
       "add": "リアクション",
@@ -348,7 +392,8 @@
         "auto": "オート",
         "manual": "マニュアル",
         "auto1": "通常補正、ニュートラル",
-        "auto2": "環境の暖色を保持"
+        "auto2": "環境の暖色を保持",
+        "colorTemperatureColorFilter": "色温度とカラーフィルター"
       },
       "sceneCaptureType": {
         "standard": "標準",
@@ -401,7 +446,16 @@
     "storageSettings": "ストレージ設定",
     "systemSettings": "システム設定",
     "analyticsSettings": "アナリティクスとトラッキング",
-    "siteSettings": "サイト外観とコンプライアンス"
+    "siteSettings": "サイト外観とコンプライアンス",
+    "albumFlow": "フォトフローウォール",
+    "users": "ユーザー管理"
+  },
+  "albumFlow": {
+    "eyebrow": "流れる写真",
+    "title": "写真が画面の中で息づく",
+    "description": "現在表示可能な写真を流れるウォールとして見せるページです。大画面表示や眺める体験に向き、未解除の訪問者には設定されたプレビュー内容だけが表示されます。",
+    "empty": "表示できる公開写真はまだありません。",
+    "photoCount": "{count} 枚の写真"
   },
   "auth": {
     "form": {
@@ -475,13 +529,19 @@
       "continue": "続行",
       "delete": "削除"
     },
-    "unknownError": "不明なエラー"
+    "unknownError": "不明なエラー",
+    "owner": "所有者",
+    "admin": "管理者"
   },
   "dashboard": {
     "photos": {
       "title": "写真をアップロード",
       "subtitle": "アップロードされた写真は自動的に処理され、ライブラリに追加されます。その後、{0}セクションで写真を整理できます。",
-      "supportedFormats": "JPEG / PNG / HEIC / ライブフォト / モーションフォト",
+      "supportedFormats": "JPEG / PNG / HEIC / MP4 / ライブフォト / モーションフォト",
+      "mediaTypes": {
+        "image": "写真",
+        "video": "動画"
+      },
       "maxFileSize": "最大 {size}MB",
       "buttons": {
         "upload": "写真をアップロード",
@@ -489,7 +549,11 @@
       },
       "uploader": {
         "label": "ドラッグアンドドロップするか、クリックして写真を選択します",
-        "description": "JPEG、PNG、HEIC形式の写真、およびMOV形式のライブフォトビデオをサポート。ファイルあたりの最大サイズ：{maxSize}MB"
+        "description": "JPEG、PNG、HEIC写真、Android Motion Photoのオリジナル、MP4動画、iPhone Live PhotoのペアMOVをサポート。ファイルあたりの最大サイズ：{maxSize}MB",
+        "livePhotoGuide": {
+          "title": "Live PhotoとMotion Photo",
+          "description": "Android Motion Photoは通常、元の写真ファイルをそのままアップロードできます。iPhone Live Photoは、IMG_1234.HEICとIMG_1234.MOVのように、写真と同名のMOVを一緒にアップロードしてください。"
+        }
       },
       "toolbar": {
         "title": "写真管理",
@@ -499,7 +563,8 @@
       "photoFilter": {
         "all": "すべての写真",
         "livephoto": "ライブフォト",
-        "static": "静止画"
+        "static": "静止画",
+        "video": "動画"
       },
       "stats": {
         "photos": "枚の写真",
@@ -513,6 +578,8 @@
           },
           "id": "写真ID",
           "title": "写真のタイトル",
+          "mediaType": "メディアタイプ",
+          "albums": "所属アルバム",
           "tags": "キーワード",
           "rating": "評価",
           "isLivePhoto": "ライブフォト",
@@ -522,7 +589,8 @@
           "fileSize": "ファイルサイズ",
           "colorSpace": "カラースペース",
           "reactions": "リアクション",
-          "actions": "操作"
+          "actions": "操作",
+          "owner": "所有者"
         },
         "cells": {
           "noTags": "タグなし",
@@ -530,7 +598,9 @@
           "noGps": "GPS情報なし",
           "unknown": "不明",
           "staticPhoto": "静止画",
-          "noReactions": "リアクションなし"
+          "noReactions": "リアクションなし",
+          "noAlbums": "アルバムなし",
+          "moreAlbums": "+{count}"
         },
         "columnVisibility": {
           "button": "列設定",
@@ -552,6 +622,7 @@
         "selected": "{count} / {total}行選択済み",
         "batchReprocess": "一括再処理",
         "batchEraseLocation": "位置情報を抹消",
+        "batchAlbums": "アルバム設定",
         "batchDownload": "一括ダウンロード",
         "batchDelete": "一括削除"
       },
@@ -649,6 +720,8 @@
         "eraseLocationFailed": "位置情報の抹消タスクの追加に失敗しました",
         "batchEraseLocationQueued": "{count} 件の位置情報抹消タスクをキューに追加しました",
         "batchEraseLocationFailed": "位置情報抹消タスクの一括追加に失敗しました",
+        "batchAlbumsUpdateSuccess": "{count} 枚の写真のアルバム所属を更新しました",
+        "batchAlbumsUpdateFailed": "アルバムの一括設定に失敗しました",
         "taskSubmitFailed": "タスクの送信に失敗しました",
         "taskStatusCheckFailed": "タスク状態の確認に失敗しました",
         "uploadFailed": "アップロードに失敗しました"
@@ -660,7 +733,7 @@
         "allFilesTooLarge": "選択した {count} 件のファイルはすべて最大サイズ制限（{maxSize}MB）を超えています。",
         "filesTooLargeSkipped": "サイズ超過のファイルを {count} 件スキップしました（上限 {maxSize}MB）。残りのファイルはアップロードを続行します。",
         "filesUnsupportedSkipped": "未対応形式のファイルを {count} 件スキップしました。残りのファイルはアップロードを続行します。",
-        "unsupportedFormat": "サポートされていないファイル形式：{type}。JPEG、PNG、またはHEIC写真、またはMOV形式のライブフォトビデオを選択してください。",
+        "unsupportedFormat": "サポートされていないファイル形式：{type}。JPEG、PNG、HEIC写真、MP4動画、またはMOV形式のライブフォトビデオを選択してください。",
         "fileTooLarge": "ファイルが大きすぎます：{size}MB。最大サポート：{maxSize}MB。",
         "uploadFailed": "アップロードに失敗しました",
         "uploadNetworkError": "ネットワーク接続に失敗したか、CORSエラーが発生しました。ネットワークとストレージ設定を確認してください。",
@@ -700,12 +773,29 @@
           "noLocation": "位置情報が未設定です",
           "rating": "評価",
           "ratingHint": "星をクリックして写真の評価を設定します（0～5つ星）。",
-          "noRating": "未評価"
+          "noRating": "未評価",
+          "albums": "所属アルバム",
+          "loadingAlbums": "アルバムを読み込み中...",
+          "noAlbumOptions": "選択できるアルバムがありません"
         },
         "actions": {
           "cancel": "キャンセル",
           "save": "変更を保存"
         }
+      },
+      "batchAlbums": {
+        "title": "アルバムを一括設定",
+        "description": "選択した {count} 枚の写真にアルバム変更を適用します。",
+        "mode": "操作",
+        "modes": {
+          "replace": "選択したアルバムに置き換え",
+          "add": "選択したアルバムに追加",
+          "remove": "選択したアルバムから削除"
+        },
+        "clearWarning": "アルバムが選択されていません。保存すると、これらの写真の管理可能なアルバム所属が解除されます。",
+        "selectAlbumRequired": "アルバムを1つ以上選択してください",
+        "cancel": "キャンセル",
+        "save": "変更を保存"
       },
       "uploadQueueItem": {
         "status": {
@@ -787,8 +877,14 @@
           "title": "タイトル",
           "description": "説明",
           "photoCount": "写真数",
+          "visibility": "公開範囲",
           "createdAt": "作成時刻",
-          "actions": "操作"
+          "actions": "操作",
+          "owner": "所有者"
+        },
+        "visibility": {
+          "public": "公開",
+          "hidden": "非公開"
         }
       },
       "modal": {
@@ -798,6 +894,7 @@
         "searchPlaceholder": "写真を検索...",
         "searchResults": "結果：{current} / {total}",
         "selectAll": "すべて選択",
+        "unassignedOnly": "未所属のみ",
         "setCover": "カバーに設定",
         "noPhotos": "写真がありません",
         "noResults": "一致する写真が見つかりません",
@@ -936,6 +1033,7 @@
       "types": {
         "photo": "写真処理",
         "live-photo-video": "LivePhoto動画",
+        "video": "MP4動画",
         "photo-reverse-geocoding": "写真の逆ジオコーディング",
         "photo-erase-location": "写真位置情報の抹消"
       },
@@ -1003,6 +1101,49 @@
     },
     "nav": {
       "documentation": "ドキュメント"
+    },
+    "users": {
+      "actions": {
+        "createUser": "ユーザーを作成",
+        "create": "作成",
+        "resetPassword": "パスワードをリセット",
+        "promote": "管理者にする",
+        "demote": "一般ユーザーに戻す",
+        "enable": "有効化",
+        "disable": "無効化"
+      },
+      "roles": {
+        "admin": "管理者",
+        "user": "一般ユーザー"
+      },
+      "status": {
+        "inactive": "無効"
+      },
+      "stats": {
+        "summary": "{photos} 枚の写真 · {albums} 個のアルバム"
+      },
+      "fields": {
+        "username": "ユーザー名",
+        "email": "メール",
+        "initialPassword": "初期パスワード",
+        "passwordHint": "8文字以上",
+        "createAsAdmin": "管理者として作成"
+      },
+      "create": {
+        "title": "ユーザーを作成"
+      },
+      "prompts": {
+        "resetPassword": "{username} の新しいパスワードを設定してください（8文字以上）",
+        "deleteUser": "{username} を削除しますか？コンテンツはあなたに移管されます。"
+      },
+      "messages": {
+        "created": "ユーザーを作成しました",
+        "createFailed": "ユーザーの作成に失敗しました",
+        "operationFailed": "操作に失敗しました",
+        "passwordReset": "パスワードをリセットしました",
+        "deleted": "ユーザーを削除しました",
+        "deleteFailed": "ユーザーの削除に失敗しました"
+      }
     }
   },
   "settings": {
@@ -1047,7 +1188,8 @@
       "sections": {
         "thirdPartyLogin": "外部ログイン",
         "fileProcessing": "ファイル処理",
-        "debugSettings": "デバッグ設定"
+        "debugSettings": "デバッグ設定",
+        "databaseBackup": "データベースバックアップ"
       },
       "upload": {
         "duplicateCheck": {
@@ -1089,6 +1231,72 @@
           }
         }
       },
+      "backup": {
+        "enabled": {
+          "label": "定期データベースバックアップを有効化",
+          "description": "スケジュールに従って SQLite データベースのバックアップをメール送信します。",
+          "help": "バックアップ対象はデータベースのみで、ローカル保存された元ファイルは含まれません。"
+        },
+        "cron": {
+          "label": "バックアップ Cron スケジュール",
+          "description": "定期バックアップ送信に使う cron 式です。",
+          "help": "既定の 0 3 * * * は毎日 03:00 に実行します。"
+        },
+        "timezone": {
+          "label": "バックアップのタイムゾーン",
+          "description": "cron 式で使用するタイムゾーンです。",
+          "help": "例: Asia/Shanghai、UTC、America/Los_Angeles。"
+        },
+        "retentionDays": {
+          "label": "ローカルバックアップ保持日数",
+          "description": "この日数を超えたローカルバックアップファイルは自動削除されます。",
+          "help": "メール送信後もバックアップはサーバーの data/backups に保持されます。"
+        },
+        "smtpHost": {
+          "label": "SMTP ホスト",
+          "description": "バックアップメール送信に使う SMTP サーバーです。",
+          "help": "例: smtp.gmail.com、smtp.qq.com、smtp.example.com。"
+        },
+        "smtpPort": {
+          "label": "SMTP ポート",
+          "description": "SMTP サーバーのポートです。一般的には 465 または 587 です。"
+        },
+        "smtpSecure": {
+          "label": "SSL/TLS を使用",
+          "description": "通常 465 では有効、587 では無効にして STARTTLS を使用します。"
+        },
+        "smtpUser": {
+          "label": "SMTP ユーザー名",
+          "description": "SMTP 認証に使うメールアドレスまたはアカウントです。"
+        },
+        "smtpPassword": {
+          "label": "SMTP パスワード",
+          "description": "SMTP パスワードまたはメールのアプリパスワードです。"
+        },
+        "mailFrom": {
+          "label": "送信者",
+          "description": "バックアップメールの送信者アドレスです。",
+          "help": "ChronoFrame, your-email(at)example.com の形式も使えます。空の場合は SMTP ユーザー名を使用します。"
+        },
+        "mailTo": {
+          "label": "宛先",
+          "description": "データベースバックアップを受け取るメールアドレスです。",
+          "help": "複数の宛先はカンマ、セミコロン、改行で区切れます。"
+        },
+        "encryptionPassphrase": {
+          "label": "バックアップ暗号化パスフレーズ",
+          "description": "入力すると、添付ファイルは送信前に暗号化されます。",
+          "help": "パスフレーズは安全に保管してください。失うと暗号化バックアップを復元できません。"
+        },
+        "actions": {
+          "runNow": "今すぐバックアップを送信"
+        },
+        "messages": {
+          "runSuccess": "バックアップメールを送信しました",
+          "runSuccessDescription": "{fileName} を {recipients} に送信しました",
+          "runFailed": "バックアップ送信に失敗しました"
+        }
+      },
       "sectionDescription": "システムレベルの動作パラメーターを設定します。ここでの変更はグローバルなアップロードとサービスの動作に影響します。"
     },
     "map": {
@@ -1118,9 +1326,33 @@
           "description": "MapLibre 地図スタイル URL"
         }
       },
+      "amap": {
+        "key": {
+          "label": "AMap JS API キー",
+          "description": "ブラウザーで地図を表示するための AMap Web キー",
+          "help": "AMap コンソールで Web（JS API）キーを作成し、サイトのドメインを制限してください"
+        },
+        "securityJsCode": {
+          "label": "AMap セキュリティコード",
+          "description": "AMap JavaScript API のセキュリティコード",
+          "help": "2021年12月2日以降に作成したキーにはセキュリティコードが必要です"
+        },
+        "missingConfig": "管理画面の地図設定で AMap JS API キーとセキュリティコードの両方を設定してください",
+        "loadError": "AMap を読み込めませんでした。キー、セキュリティコード、ドメイン許可リスト、ネットワーク接続を確認してください。"
+      },
       "sectionDescription": "地図の表示と地理コーディングサービスを設定します。地図プロバイダーは地図のスタイルとアクセス認証情報に影響します。"
     },
     "location": {
+      "provider": {
+        "label": "位置情報プロバイダー",
+        "description": "写真の逆ジオコーディングサービスを選択",
+        "options": {
+          "auto": "自動（旧設定互換）",
+          "amap": "AMap（高徳地図）",
+          "mapbox": "Mapbox",
+          "nominatim": "Nominatim"
+        }
+      },
       "language": {
         "label": "位置情報の言語",
         "description": "場所名を逆ジオコーディングする際の言語",
@@ -1138,6 +1370,13 @@
           "label": "Nominatim ベース URL",
           "description": "Nominatim リバースジオコーディング API のベース URL",
           "help": "空のままにすると、デフォルトで公開 Nominatim サービスを使用します"
+        }
+      },
+      "amap": {
+        "webServiceKey": {
+          "label": "AMap Web サービスキー",
+          "description": "サーバー側の逆ジオコーディングに使用するキー",
+          "help": "Web サービス用の別キーを作成してください。このキーはブラウザーへ送信されません"
         }
       }
     },
@@ -1382,6 +1621,10 @@
         "maplibre": {
           "label": "MapLibre",
           "description": "Mapbox GL JS のオープンソースフォーク。"
+        },
+        "amap": {
+          "label": "AMap（高徳地図）",
+          "description": "中国本土での利用に適した Web 地図サービス。"
         }
       }
     },

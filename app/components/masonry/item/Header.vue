@@ -13,6 +13,7 @@ defineProps<{
 }>()
 
 const router = useRouter()
+const { accessEntitlement, unlockUrl } = useAccessEntitlement()
 // const config = useRuntimeConfig()
 const colorMode = useColorMode()
 
@@ -27,6 +28,11 @@ const isDark = computed({
 
 const handleOpenLogin = () => {
   router.push('/signin')
+}
+
+const handleLogout = async (clearSession: () => Promise<void>) => {
+  await clearSession()
+  window.location.assign('/')
 }
 
 const { hasActiveFilters, selectedCounts } = usePhotoFilters()
@@ -138,6 +144,16 @@ const isRepoLinkHovering = ref(false)
                 to="/albums"
               />
             </UTooltip>
+            <UTooltip :text="$t('ui.action.albumFlow.tooltip')">
+              <UButton
+                variant="soft"
+                color="neutral"
+                class="bg-transparent rounded-full cursor-pointer"
+                icon="tabler:album"
+                size="sm"
+                to="/album-flow"
+              />
+            </UTooltip>
             <UPopover>
               <UTooltip :text="$t('ui.action.filter.tooltip')">
                 <UChip
@@ -167,7 +183,7 @@ const isRepoLinkHovering = ref(false)
                 <UButton
                   variant="soft"
                   :color="
-                    currentSortOption?.key === 'dateTaken-desc'
+                    currentSortOption?.key === 'lastModified-desc'
                       ? 'neutral'
                       : 'info'
                   "
@@ -243,9 +259,18 @@ const isRepoLinkHovering = ref(false)
                 variant="soft"
                 class="bg-transparent rounded-full cursor-pointer"
                 icon="tabler:logout"
-                @click="clear"
+                @click="handleLogout(clear)"
             /></UTooltip>
           </div>
+          <UButton
+            v-if="accessEntitlement.hasMorePhotos"
+            class="mt-2"
+            size="sm"
+            variant="soft"
+            icon="tabler:lock-open"
+            :label="$t('accessGate.morePhotos')"
+            :to="unlockUrl('/')"
+          />
         </template>
       </AuthState>
       <div

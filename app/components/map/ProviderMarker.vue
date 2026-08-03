@@ -19,8 +19,16 @@ const provider = computed(() => mapConfig.value.provider || 'maplibre')
 </script>
 
 <template>
+  <MapAmapMarker
+    v-if="provider === 'amap'"
+    :lnglat
+  >
+    <template #marker>
+      <slot name="marker" />
+    </template>
+  </MapAmapMarker>
   <MapboxDefaultMarker
-    v-if="provider === 'mapbox'"
+    v-else-if="provider === 'mapbox'"
     :marker-id
     :lnglat
   >

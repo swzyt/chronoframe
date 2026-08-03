@@ -29,6 +29,8 @@
 
 A smooth photo display and management application, supporting multiple image formats and large-size image rendering.
 
+> This fork adds multi-user authorization, owned photos and albums, controlled visitor previews, and protected media access. See [Differences from Upstream](docs/guide/fork-differences.md).
+
 [Live Demo: TimoYin's Mems](https://lens.bh8.ga)
 
 ## ✨ Features

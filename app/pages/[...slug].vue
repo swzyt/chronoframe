@@ -11,7 +11,8 @@ const router = useRouter()
 const { switchToIndex, closeViewer, openViewer } = useViewerState()
 const { isViewerOpen, scopedPhotos } = storeToRefs(useViewerState())
 
-const { photos } = usePhotos()
+const { photos, status } = usePhotos()
+const { accessEntitlement, unlockUrl } = useAccessEntitlement()
 
 const slug = computed(() => (route.params.slug as string[]) || [])
 const photoId = computed(() => slug.value[0] || null)
@@ -35,6 +36,22 @@ watch(
       toggleFilter('tags', tagParam)
 
       router.replace('/')
+    }
+  },
+  { immediate: true },
+)
+
+watch(
+  [photoId, currentPhoto, status, accessEntitlement],
+  async ([requestedPhotoId, photo, requestStatus, entitlement]) => {
+    if (
+      requestedPhotoId &&
+      !photo &&
+      requestStatus === 'success' &&
+      entitlement.required &&
+      !entitlement.granted
+    ) {
+      await navigateTo(unlockUrl(route.fullPath))
     }
   },
   { immediate: true },

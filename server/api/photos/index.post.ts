@@ -1,7 +1,10 @@
 import path from 'path'
 import { useStorageProvider } from '~~/server/utils/useStorageProvider'
 import { eq } from 'drizzle-orm'
-import { generateSafePhotoId } from '~~/server/utils/file-utils'
+import {
+  generateSafePhotoId,
+  generateSafeVideoId,
+} from '~~/server/utils/file-utils'
 import { settingsManager } from '~~/server/services/settings/settingsManager'
 
 const VIDEO_EXTENSIONS = new Set(['.mov', '.mp4'])
@@ -42,7 +45,7 @@ const isLikelyImageKey = (storageKey?: string | null): boolean => {
 }
 
 export default eventHandler(async (event) => {
-  await requireUserSession(event)
+  const user = await requireCurrentUser(event)
   const { storageProvider } = useStorageProvider(event)
   const t = await useTranslation(event)
 
@@ -58,18 +61,31 @@ export default eventHandler(async (event) => {
   }
 
   try {
-    const objectKey = `${(storageProvider.config?.prefix || '').replace(/\/+$/, '')}/${fileName}`
+    const prefix =
+      storageProvider.config && 'prefix' in storageProvider.config
+        ? (storageProvider.config.prefix || '')
+            .replace(/^\/+/, '')
+            .replace(/\/+$/, '')
+        : ''
+    const objectKey = [prefix, 'users', String(user.id), fileName]
+      .filter(Boolean)
+      .join('/')
 
     // 重复文件检测
     const duplicateCheckEnabled =
       ((await settingsManager.get<boolean>(
         'system',
         'upload.duplicateCheck.enabled',
-      )) ?? true) && !skipDuplicateCheck
+      )) ??
+        true) &&
+      !skipDuplicateCheck
     let existingPhoto = null
 
     if (duplicateCheckEnabled) {
-      const photoId = generateSafePhotoId(objectKey)
+      const photoId =
+        path.extname(fileName).toLowerCase() === '.mp4'
+          ? generateSafeVideoId(objectKey)
+          : generateSafePhotoId(objectKey)
       const db = useDB()
 
       existingPhoto = await db
@@ -131,8 +147,17 @@ export default eventHandler(async (event) => {
       }
     }
 
-    // 若存储提供商支持预签名 URL，返回外部直传地址
-    if (storageProvider.getSignedUrl) {
+    const isTencentCos =
+      storageProvider.config &&
+      'endpoint' in storageProvider.config &&
+      typeof storageProvider.config.endpoint === 'string' &&
+      storageProvider.config.endpoint.includes('myqcloud.com')
+
+    // 若存储提供商支持预签名 URL，返回外部直传地址。
+    // Tencent COS often blocks browser PUT requests unless bucket CORS is
+    // configured explicitly. Use the internal upload endpoint by default for
+    // COS so uploads work out-of-the-box after switching storage providers.
+    if (storageProvider.getSignedUrl && !isTencentCos) {
       const signedUrl = await storageProvider.getSignedUrl(objectKey, 3600, {
         contentType: contentType || 'application/octet-stream',
       })

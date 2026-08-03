@@ -8,7 +8,7 @@ import { getStorageManager } from '~~/server/plugins/3.storage'
 import { batchTestLivePhotoDetection } from '~~/server/services/video/test-utils'
 
 export default eventHandler(async (event) => {
-  await requireUserSession(event)
+  await requireAdmin(event)
 
   const body = await readBody(event)
   const { action, videoKey, photoId, photoIds } = body

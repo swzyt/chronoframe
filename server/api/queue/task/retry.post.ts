@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm'
  * 重试指定的失败任务
  */
 export default defineEventHandler(async (event) => {
-  await requireUserSession(event)
+  await requireAdmin(event)
 
   try {
     const { taskId } = await readValidatedBody(

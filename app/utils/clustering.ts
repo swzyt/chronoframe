@@ -1,90 +1,108 @@
 import type { PhotoMarker, ClusterPoint } from '~~/shared/types/map'
 
+interface MarkerBucket {
+  markers: PhotoMarker[]
+  longitudeSum: number
+  latitudeSum: number
+}
+
+interface ClusterOptions {
+  maxRenderedPoints?: number
+}
+
+const toSinglePoint = (marker: PhotoMarker): ClusterPoint => ({
+  type: 'Feature',
+  properties: { marker },
+  geometry: {
+    type: 'Point',
+    coordinates: [marker.longitude, marker.latitude],
+  },
+})
+
+const buildMarkerBuckets = (markers: PhotoMarker[], cellSize: number) => {
+  const buckets = new Map<string, MarkerBucket>()
+
+  for (const marker of markers) {
+    const cellX = Math.floor((marker.longitude + 180) / cellSize)
+    const cellY = Math.floor((marker.latitude + 90) / cellSize)
+    const key = `${cellX}:${cellY}`
+    const bucket = buckets.get(key)
+
+    if (bucket) {
+      bucket.markers.push(marker)
+      bucket.longitudeSum += marker.longitude
+      bucket.latitudeSum += marker.latitude
+    } else {
+      buckets.set(key, {
+        markers: [marker],
+        longitudeSum: marker.longitude,
+        latitudeSum: marker.latitude,
+      })
+    }
+  }
+
+  return buckets
+}
+
+const bucketsToClusterPoints = (buckets: Map<string, MarkerBucket>) => {
+  return Array.from(buckets.values()).map((bucket) => {
+    if (bucket.markers.length === 1) {
+      return toSinglePoint(bucket.markers[0]!)
+    }
+
+    return {
+      type: 'Feature',
+      properties: {
+        cluster: true,
+        point_count: bucket.markers.length,
+        point_count_abbreviated: bucket.markers.length.toString(),
+        marker: bucket.markers[0],
+        clusteredPhotos: bucket.markers,
+      },
+      geometry: {
+        type: 'Point',
+        coordinates: [
+          bucket.longitudeSum / bucket.markers.length,
+          bucket.latitudeSum / bucket.markers.length,
+        ],
+      },
+    } satisfies ClusterPoint
+  })
+}
+
 /**
- * Simple clustering algorithm for small datasets
- * @param markers Array of photo markers to cluster
- * @param zoom Current zoom level
- * @returns Array of cluster points
+ * Grid-based clustering for map markers.
+ *
+ * The old implementation compared every marker with every other marker. That
+ * gets expensive very quickly on the globe page because zoom changes and
+ * timeline playback can recompute clusters often. A grid bucket keeps the
+ * result stable enough for map pins while making clustering roughly linear.
  */
 export function clusterMarkers(
   markers: PhotoMarker[],
   zoom: number,
+  options: ClusterOptions = {},
 ): ClusterPoint[] {
   if (markers.length === 0) return []
 
-  // At high zoom levels, don't cluster
-  if (zoom >= 15) {
-    return markers.map((marker) => ({
-      type: 'Feature' as const,
-      properties: { marker },
-      geometry: {
-        type: 'Point' as const,
-        coordinates: [marker.longitude, marker.latitude],
-      },
-    }))
+  if (markers.length === 1) {
+    return [toSinglePoint(markers[0]!)]
   }
 
-  const clusters: ClusterPoint[] = []
-  const processed = new Set<string>()
+  const maxRenderedPoints = options.maxRenderedPoints ?? 600
+  let cellSize = Math.max(0.00025, 0.01 / Math.pow(2, zoom - 10))
+  let buckets = buildMarkerBuckets(markers, cellSize)
 
-  const threshold = Math.max(0.001, 0.01 / Math.pow(2, zoom - 10))
-
-  for (const marker of markers) {
-    if (processed.has(marker.id)) continue
-
-    const nearby = [marker]
-    processed.add(marker.id)
-
-    // Find nearby markers
-    for (const other of markers) {
-      if (processed.has(other.id)) continue
-
-      const distance = Math.sqrt(
-        Math.pow(marker.longitude - other.longitude, 2) +
-          Math.pow(marker.latitude - other.latitude, 2),
-      )
-
-      if (distance < threshold) {
-        nearby.push(other)
-        processed.add(other.id)
-      }
-    }
-
-    if (nearby.length === 1) {
-      // Single marker
-      clusters.push({
-        type: 'Feature',
-        properties: { marker },
-        geometry: {
-          type: 'Point',
-          coordinates: [marker.longitude, marker.latitude],
-        },
-      })
-    } else {
-      // Cluster
-      const centerLng =
-        nearby.reduce((sum, m) => sum + m.longitude, 0) / nearby.length
-      const centerLat =
-        nearby.reduce((sum, m) => sum + m.latitude, 0) / nearby.length
-
-      clusters.push({
-        type: 'Feature',
-        properties: {
-          cluster: true,
-          point_count: nearby.length,
-          point_count_abbreviated: nearby.length.toString(),
-          marker: nearby[0], // Representative marker for the cluster
-          clusteredPhotos: nearby, // All photos in the cluster
-        },
-        geometry: {
-          type: 'Point',
-          coordinates: [centerLng, centerLat],
-        },
-      })
-    }
+  for (
+    let attempts = 0;
+    buckets.size > maxRenderedPoints && attempts < 8;
+    attempts += 1
+  ) {
+    cellSize *= 1.8
+    buckets = buildMarkerBuckets(markers, cellSize)
   }
 
-  return clusters
+  return bucketsToClusterPoints(buckets)
 }
 
 export function photosToMarkers(photos: Photo[]): PhotoMarker[] {

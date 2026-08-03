@@ -1,10 +1,25 @@
 /**
  * 处理相机品牌和型号的显示，避免品牌名称重复
  */
-export function formatCameraInfo(make?: string, model?: string): string {
-  if (!make && !model) return ''
-  if (!make) return model || ''
-  if (!model) return make
+const stringifyExifValue = (value: unknown): string => {
+  if (value === null || value === undefined) return ''
+  if (typeof value === 'string') return value.trim()
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value)
+  }
+  if (Array.isArray(value)) {
+    return value.map(stringifyExifValue).filter(Boolean).join(' ')
+  }
+  return ''
+}
+
+export function formatCameraInfo(make?: unknown, model?: unknown): string {
+  const makeText = stringifyExifValue(make)
+  const modelText = stringifyExifValue(model)
+
+  if (!makeText && !modelText) return ''
+  if (!makeText) return modelText
+  if (!modelText) return makeText
 
   // 常见品牌名称映射（包括各种可能的变体）
   const brandMap: Record<string, string[]> = {
@@ -32,31 +47,37 @@ export function formatCameraInfo(make?: string, model?: string): string {
     Honor: ['honor'],
   }
 
-  const makeNormalized = make.toLowerCase().trim()
-  const modelNormalized = model.toLowerCase().trim()
+  const makeNormalized = makeText.toLowerCase().trim()
+  const modelNormalized = modelText.toLowerCase().trim()
 
   // 检查型号中是否已经包含品牌信息
-  const brandKeywords = brandMap[make] || [makeNormalized]
+  const brandKeywords = brandMap[makeText] || [makeNormalized]
   const modelContainsBrand = brandKeywords.some((keyword) =>
     modelNormalized.includes(keyword.toLowerCase()),
   )
 
   if (modelContainsBrand) {
     // 如果型号已包含品牌信息，只返回型号
-    return model
+    return modelText
   } else {
     // 如果型号不包含品牌信息，返回品牌+型号
-    return `${make} ${model}`
+    return `${makeText} ${modelText}`
   }
 }
 
 /**
  * 格式化镜头信息，处理品牌和型号
  */
-export function formatLensInfo(lensMake?: string, lensModel?: string): string {
-  if (!lensMake && !lensModel) return ''
-  if (!lensMake) return lensModel || ''
-  if (!lensModel) return lensMake
+export function formatLensInfo(
+  lensMake?: unknown,
+  lensModel?: unknown,
+): string {
+  const lensMakeText = stringifyExifValue(lensMake)
+  const lensModelText = stringifyExifValue(lensModel)
+
+  if (!lensMakeText && !lensModelText) return ''
+  if (!lensMakeText) return lensModelText
+  if (!lensModelText) return lensMakeText
 
   // 镜头品牌映射
   const lensBrandMap: Record<string, string[]> = {
@@ -75,18 +96,18 @@ export function formatLensInfo(lensMake?: string, lensModel?: string): string {
     Fujifilm: ['fujifilm', 'fujinon', 'xf', 'xc'],
   }
 
-  const lensMakeNormalized = lensMake.toLowerCase().trim()
-  const lensModelNormalized = lensModel.toLowerCase().trim()
+  const lensMakeNormalized = lensMakeText.toLowerCase().trim()
+  const lensModelNormalized = lensModelText.toLowerCase().trim()
 
   // 检查镜头型号中是否已经包含品牌信息
-  const brandKeywords = lensBrandMap[lensMake] || [lensMakeNormalized]
+  const brandKeywords = lensBrandMap[lensMakeText] || [lensMakeNormalized]
   const modelContainsBrand = brandKeywords.some((keyword) =>
     lensModelNormalized.includes(keyword.toLowerCase()),
   )
 
   if (modelContainsBrand) {
-    return lensModel
+    return lensModelText
   } else {
-    return `${lensMake} ${lensModel}`
+    return `${lensMakeText} ${lensModelText}`
   }
 }

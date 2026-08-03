@@ -5,7 +5,7 @@ import { desc, sql, eq, and } from 'drizzle-orm'
  * 获取所有队列任务记录列表
  */
 export default defineEventHandler(async (event) => {
-  await requireUserSession(event)
+  await requireAdmin(event)
 
   try {
     const query = getQuery(event)

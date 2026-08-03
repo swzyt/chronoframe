@@ -1,6 +1,54 @@
 import path from 'path'
 import { eq } from 'drizzle-orm'
 import { getStorageManager } from '~~/server/plugins/3.storage'
+import type { Photo } from '~~/server/utils/db'
+
+export const livePhotoImageKeysForVideo = (videoKey: string) => {
+  const videoBaseName = path.basename(videoKey, path.extname(videoKey))
+  const videoDir = path.dirname(videoKey)
+
+  return [
+    path.join(videoDir, `${videoBaseName}.HEIC`).replace(/\\/g, '/'),
+    path.join(videoDir, `${videoBaseName}.heic`).replace(/\\/g, '/'),
+    path.join(videoDir, `${videoBaseName}.HEIF`).replace(/\\/g, '/'),
+    path.join(videoDir, `${videoBaseName}.heif`).replace(/\\/g, '/'),
+    path.join(videoDir, `${videoBaseName}.JPG`).replace(/\\/g, '/'),
+    path.join(videoDir, `${videoBaseName}.jpg`).replace(/\\/g, '/'),
+    path.join(videoDir, `${videoBaseName}.JPEG`).replace(/\\/g, '/'),
+    path.join(videoDir, `${videoBaseName}.jpeg`).replace(/\\/g, '/'),
+  ]
+}
+
+export const livePhotoVideoKeysForImage = (imageKey: string) => {
+  const imageBaseName = path.basename(imageKey, path.extname(imageKey))
+  const imageDir = path.dirname(imageKey)
+
+  return [
+    path.join(imageDir, `${imageBaseName}.MOV`).replace(/\\/g, '/'),
+    path.join(imageDir, `${imageBaseName}.mov`).replace(/\\/g, '/'),
+  ]
+}
+
+export const findPhotoForLivePhotoVideo = async (
+  videoKey: string,
+): Promise<Photo | null> => {
+  const db = useDB()
+
+  for (const photoKey of livePhotoImageKeysForVideo(videoKey)) {
+    const matched = await db
+      .select()
+      .from(tables.photos)
+      .where(eq(tables.photos.storageKey, photoKey))
+      .get()
+
+    if (matched) {
+      logger.chrono.info(`Found matching photo: ${photoKey}`)
+      return matched
+    }
+  }
+
+  return null
+}
 
 /**
  * 处理 LivePhoto MOV 文件，匹配相同文件名的照片并更新 LivePhoto 信息
@@ -13,40 +61,9 @@ export const processLivePhotoVideo = async (
   const db = useDB()
 
   try {
-    // 从视频文件名提取基础名称（去除扩展名）
-    const videoBaseName = path.basename(videoKey, path.extname(videoKey))
-    const videoDir = path.dirname(videoKey)
+    logger.chrono.info(`Processing LivePhoto video: ${videoKey}`)
 
-    logger.chrono.info(
-      `Processing LivePhoto video: ${videoKey}, looking for photo with base name: ${videoBaseName}`,
-    )
-
-    // 查找可能匹配的照片文件名模式
-    // LivePhoto 通常会有相同的基础文件名，但照片可能是 .HEIC/.JPG 等格式
-    const possiblePhotoKeys = [
-      path.join(videoDir, `${videoBaseName}.HEIC`).replace(/\\/g, '/'),
-      path.join(videoDir, `${videoBaseName}.heic`).replace(/\\/g, '/'),
-      path.join(videoDir, `${videoBaseName}.JPG`).replace(/\\/g, '/'),
-      path.join(videoDir, `${videoBaseName}.jpg`).replace(/\\/g, '/'),
-      path.join(videoDir, `${videoBaseName}.JPEG`).replace(/\\/g, '/'),
-      path.join(videoDir, `${videoBaseName}.jpeg`).replace(/\\/g, '/'),
-    ]
-
-    // 在数据库中查找匹配的照片
-    let matchedPhoto = null
-    for (const photoKey of possiblePhotoKeys) {
-      const photos = await db
-        .select()
-        .from(tables.photos)
-        .where(eq(tables.photos.storageKey, photoKey))
-        .limit(1)
-
-      if (photos.length > 0) {
-        matchedPhoto = photos[0]
-        logger.chrono.info(`Found matching photo: ${photoKey}`)
-        break
-      }
-    }
+    const matchedPhoto = await findPhotoForLivePhotoVideo(videoKey)
 
     if (!matchedPhoto) {
       logger.chrono.warn(
@@ -87,22 +104,10 @@ export const findLivePhotoVideoForImage = async (
   const storageProvider = getStorageManager().getProvider()
 
   try {
-    // 从图片文件名提取基础名称（去除扩展名）
-    const imageBaseName = path.basename(imageKey, path.extname(imageKey))
-    const imageDir = path.dirname(imageKey)
-
-    logger.chrono.info(
-      `Checking for LivePhoto video for image: ${imageKey}, base name: ${imageBaseName}`,
-    )
-
-    // 查找可能匹配的视频文件名模式
-    const possibleVideoKeys = [
-      path.join(imageDir, `${imageBaseName}.MOV`).replace(/\\/g, '/'),
-      path.join(imageDir, `${imageBaseName}.mov`).replace(/\\/g, '/'),
-    ]
+    logger.chrono.info(`Checking for LivePhoto video for image: ${imageKey}`)
 
     // 检查存储中是否存在对应的视频文件
-    for (const videoKey of possibleVideoKeys) {
+    for (const videoKey of livePhotoVideoKeysForImage(imageKey)) {
       try {
         const videoBuffer = await storageProvider.get(videoKey)
         if (videoBuffer) {
@@ -148,7 +153,7 @@ export const isVideoFile = (fileName: string): boolean => {
 
 /**
  * 检查文件是否可能是 LivePhoto 的 MOV 文件
- * LivePhoto 的 MOV 文件通常很小（几MB以内）
+ * LivePhoto 的 MOV 文件通常较小，但高分辨率/较长片段可能超过十几 MB。
  */
 export const isLivePhotoVideo = (
   fileName: string,
@@ -161,6 +166,6 @@ export const isLivePhotoVideo = (
     return false
   }
 
-  const maxLivePhotoSize = 12 * 1024 * 1024 // 12MB
+  const maxLivePhotoSize = 100 * 1024 * 1024 // 100MB
   return fileSize <= maxLivePhotoSize
 }

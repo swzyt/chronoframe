@@ -21,9 +21,16 @@ import {
   parseGPSCoordinates,
 } from '../location/geocoding'
 import { settingsManager } from '../settings/settingsManager'
-import { findLivePhotoVideoForImage } from '../video/livephoto'
+import {
+  findLivePhotoVideoForImage,
+  findPhotoForLivePhotoVideo,
+} from '../video/livephoto'
 import { processMotionPhotoFromXmp } from '../video/motion-photo'
+import { processMp4Video } from '../video/processor'
 import { getStorageManager } from '~~/server/plugins/3.storage'
+
+const storageProxyUrl = (key: string) =>
+  `/image/${key.replace(/^\/+/, '').split('/').map(encodeURIComponent).join('/')}`
 
 const EXIF_LOCATION_KEYS = [
   'GPSAltitude',
@@ -327,7 +334,7 @@ export class QueueManager {
             setImmediate(async () => {
               try {
                 const result = await storageProvider.create(
-                  `thumbnails/${photoId}.webp`,
+                  `thumbnails/${task.ownerUserId}/${photoId}.webp`,
                   thumbnailBuffer,
                   'image/webp',
                 )
@@ -388,6 +395,7 @@ export class QueueManager {
                 rawImageBuffer: imageBuffers.raw,
                 exifData: normalizedExifData,
                 storageProvider,
+                ownerUserId: task.ownerUserId,
                 logger: this.logger,
               })
             : null
@@ -434,16 +442,19 @@ export class QueueManager {
             width: metadata.width,
             height: metadata.height,
             aspectRatio: metadata.width / metadata.height,
+            mediaType: 'image',
+            duration: null,
+            videoCodec: null,
+            audioCodec: null,
+            videoPlaybackKey: null,
             storageKey: storageKey,
             thumbnailKey: thumbnailObject.key,
             fileSize: storageObject.size || null,
             lastModified:
               storageObject.lastModified?.toISOString() ||
               new Date().toISOString(),
-            originalUrl: imageBuffers.jpegKey
-              ? storageProvider.getPublicUrl(imageBuffers.jpegKey) // 使用 JPEG 版本作为 originalUrl
-              : storageProvider.getPublicUrl(storageKey),
-            thumbnailUrl: storageProvider.getPublicUrl(thumbnailObject.key),
+            originalUrl: storageProxyUrl(imageBuffers.jpegKey || storageKey),
+            thumbnailUrl: storageProxyUrl(thumbnailObject.key),
             thumbnailHash: thumbnailHash
               ? compressUint8Array(thumbnailHash)
               : null,
@@ -467,6 +478,7 @@ export class QueueManager {
               motionPhotoInfo?.livePhotoVideoKey ||
               livePhotoInfo?.livePhotoVideoKey ||
               null,
+            ownerUserId: task.ownerUserId,
           }
 
           const db = useDB()
@@ -699,6 +711,104 @@ export class QueueManager {
           await rm(tempDir, { recursive: true, force: true })
         }
       },
+      video: async (task: PipelineQueueItem) => {
+        const { id: taskId, payload } = task
+        if (payload.type !== 'video') {
+          throw new Error(
+            `Invalid payload type for video task: ${payload.type}`,
+          )
+        }
+
+        const storageProvider = getStorageManager().getProvider()
+        const storageObject = await storageProvider.getFileMeta(
+          payload.storageKey,
+        )
+        const videoBuffer = await storageProvider.get(payload.storageKey)
+        if (!videoBuffer) throw new Error('Storage object not found')
+
+        await this.updateTaskStage(taskId, 'metadata')
+        const processed = await processMp4Video(videoBuffer, payload.storageKey)
+        const videoExif =
+          (await extractExifData(videoBuffer, undefined, this.logger)) ||
+          processed.exif
+
+        await this.updateTaskStage(taskId, 'thumbnail')
+        const { thumbnailBuffer, thumbnailHash } =
+          await generateThumbnailAndHash(processed.thumbnailBuffer, this.logger)
+        const videoId = generateSafeVideoId(payload.storageKey)
+        let videoPlaybackKey: string | null = null
+        if (processed.playbackBuffer) {
+          videoPlaybackKey = `videos/${task.ownerUserId}/${videoId}-playback.mp4`
+          await storageProvider.create(
+            videoPlaybackKey,
+            processed.playbackBuffer,
+            'video/mp4',
+          )
+        }
+        const thumbnailObject = await storageProvider.create(
+          `thumbnails/${task.ownerUserId}/${videoId}.webp`,
+          thumbnailBuffer,
+          'image/webp',
+        )
+
+        await this.updateTaskStage(taskId, 'reverse-geocoding')
+        const coordinates = parseGPSCoordinates(videoExif)
+        const hasCoordinates =
+          coordinates.latitude != null && coordinates.longitude != null
+        const locationInfo = hasCoordinates
+          ? await extractLocationFromGPS(
+              coordinates.latitude!,
+              coordinates.longitude!,
+            )
+          : null
+
+        const baseName = path.basename(
+          payload.storageKey,
+          path.extname(payload.storageKey),
+        )
+        const result: Photo = {
+          id: videoId,
+          title: baseName,
+          description: '',
+          width: processed.width,
+          height: processed.height,
+          aspectRatio: processed.width / processed.height,
+          mediaType: 'video',
+          duration: processed.duration,
+          videoCodec: processed.videoCodec,
+          audioCodec: processed.audioCodec,
+          videoPlaybackKey,
+          dateTaken: processed.dateTaken,
+          storageKey: payload.storageKey,
+          thumbnailKey: thumbnailObject.key,
+          fileSize: storageObject?.size || videoBuffer.length,
+          lastModified:
+            storageObject?.lastModified?.toISOString() ||
+            new Date().toISOString(),
+          originalUrl: storageProxyUrl(videoPlaybackKey || payload.storageKey),
+          thumbnailUrl: storageProxyUrl(thumbnailObject.key),
+          thumbnailHash: thumbnailHash
+            ? compressUint8Array(thumbnailHash)
+            : null,
+          tags: [],
+          exif: videoExif,
+          latitude: coordinates.latitude || null,
+          longitude: coordinates.longitude || null,
+          country: locationInfo?.country || null,
+          city: locationInfo?.city || null,
+          locationName: locationInfo?.locationName || null,
+          isLivePhoto: 0,
+          livePhotoVideoUrl: null,
+          livePhotoVideoKey: null,
+          ownerUserId: task.ownerUserId,
+        }
+
+        await useDB()
+          .insert(tables.photos)
+          .values(result)
+          .onConflictDoUpdate({ target: tables.photos.id, set: result })
+        this.logger.success(`Video task ${taskId} processed successfully`)
+      },
       livePhotoDetect: async (task: PipelineQueueItem) => {
         const db = useDB()
         const storageProvider = getStorageManager().getProvider()
@@ -731,44 +841,13 @@ export class QueueManager {
             throw new Error(`Storage object not found`)
           }
 
-          // 寻找是否有同名的照片文件
-          const videoDir = path.dirname(videoKey)
-          const videoBaseName = path.basename(videoKey, path.extname(videoKey))
-
-          const possiblePhotoKeys = [
-            path.join(videoDir, `${videoBaseName}.HEIC`).replace(/\\/g, '/'),
-            path.join(videoDir, `${videoBaseName}.heic`).replace(/\\/g, '/'),
-            path.join(videoDir, `${videoBaseName}.JPG`).replace(/\\/g, '/'),
-            path.join(videoDir, `${videoBaseName}.jpg`).replace(/\\/g, '/'),
-            path.join(videoDir, `${videoBaseName}.JPEG`).replace(/\\/g, '/'),
-            path.join(videoDir, `${videoBaseName}.jpeg`).replace(/\\/g, '/'),
-          ]
-
-          let matchedPhoto: Photo | null = null
-          for (const photoKey of possiblePhotoKeys) {
-            const photos = await db
-              .select()
-              .from(tables.photos)
-              .where(eq(tables.photos.storageKey, photoKey))
-              .limit(1)
-
-            const matched = photos[0]
-            if (matched) {
-              matchedPhoto = matched
-              this.logger.info(
-                `Found matching photo for LivePhoto video: ${photoKey}`,
-              )
-              break
-            }
-          }
+          const matchedPhoto = await findPhotoForLivePhotoVideo(videoKey)
 
           if (!matchedPhoto) {
             this.logger.warn(
-              `No matching photo found for LivePhoto video: ${videoKey}`,
+              `No matching photo found for LivePhoto video yet: ${videoKey}. The photo task will pair it when the image arrives.`,
             )
-            throw new Error(
-              `No matching photo found for LivePhoto video: ${videoKey}`,
-            )
+            return
           }
 
           const livePhotoVideoUrl = storageProvider.getPublicUrl(videoKey)
@@ -817,6 +896,9 @@ export class QueueManager {
         const { type } = task.payload
 
         switch (type) {
+          case 'video':
+            await this.processors.video(task)
+            break
           case 'live-photo-video':
             await this.processors.livePhotoDetect(task)
             break

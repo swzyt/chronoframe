@@ -13,6 +13,136 @@ export interface GeocodingProvider {
   reverseGeocode(lat: number, lon: number): Promise<LocationInfo | null>
 }
 
+const wgs84ToGcj02 = (lng: number, lat: number): [number, number] => {
+  if (lng < 72.004 || lng > 137.8347 || lat < 0.8293 || lat > 55.8271) {
+    return [lng, lat]
+  }
+  const pi = Math.PI
+  const a = 6378245
+  const ee = 0.006693421622965943
+  const transformLat = (x: number, y: number) => {
+    let value =
+      -100 +
+      2 * x +
+      3 * y +
+      0.2 * y * y +
+      0.1 * x * y +
+      0.2 * Math.sqrt(Math.abs(x))
+    value +=
+      ((20 * Math.sin(6 * x * pi) + 20 * Math.sin(2 * x * pi)) * 2) / 3
+    value +=
+      ((20 * Math.sin(y * pi) + 40 * Math.sin((y / 3) * pi)) * 2) / 3
+    value +=
+      ((160 * Math.sin((y / 12) * pi) +
+        320 * Math.sin((y * pi) / 30)) *
+        2) /
+      3
+    return value
+  }
+  const transformLng = (x: number, y: number) => {
+    let value =
+      300 +
+      x +
+      2 * y +
+      0.1 * x * x +
+      0.1 * x * y +
+      0.1 * Math.sqrt(Math.abs(x))
+    value +=
+      ((20 * Math.sin(6 * x * pi) + 20 * Math.sin(2 * x * pi)) * 2) / 3
+    value +=
+      ((20 * Math.sin(x * pi) + 40 * Math.sin((x / 3) * pi)) * 2) / 3
+    value +=
+      ((150 * Math.sin((x / 12) * pi) +
+        300 * Math.sin((x / 30) * pi)) *
+        2) /
+      3
+    return value
+  }
+  let deltaLat = transformLat(lng - 105, lat - 35)
+  let deltaLng = transformLng(lng - 105, lat - 35)
+  const radLat = (lat / 180) * pi
+  let magic = Math.sin(radLat)
+  magic = 1 - ee * magic * magic
+  const sqrtMagic = Math.sqrt(magic)
+  deltaLat =
+    (deltaLat * 180) /
+    (((a * (1 - ee)) / (magic * sqrtMagic)) * pi)
+  deltaLng =
+    (deltaLng * 180) / ((a / sqrtMagic) * Math.cos(radLat) * pi)
+  return [lng + deltaLng, lat + deltaLat]
+}
+
+export class AMapGeocodingProvider implements GeocodingProvider {
+  private readonly baseUrl = 'https://restapi.amap.com'
+  private lastRequestTime = 0
+  private readonly rateLimitMs = 100
+
+  constructor(private readonly webServiceKey: string) {}
+
+  async reverseGeocode(lat: number, lon: number): Promise<LocationInfo | null> {
+    try {
+      return await withRetry(
+        async () => {
+          const elapsed = Date.now() - this.lastRequestTime
+          if (elapsed < this.rateLimitMs) {
+            await new Promise((resolve) =>
+              setTimeout(resolve, this.rateLimitMs - elapsed),
+            )
+          }
+          this.lastRequestTime = Date.now()
+
+          const [gcjLng, gcjLat] = wgs84ToGcj02(lon, lat)
+          const url = new URL('/v3/geocode/regeo', this.baseUrl)
+          url.searchParams.set('key', this.webServiceKey)
+          url.searchParams.set('location', `${gcjLng},${gcjLat}`)
+          url.searchParams.set('extensions', 'base')
+          url.searchParams.set('output', 'JSON')
+
+          const response = await fetch(url)
+          if (!response.ok) {
+            throw new Error(
+              `AMap API error: ${response.status} ${response.statusText}`,
+            )
+          }
+          const data = await response.json()
+          if (data?.status !== '1' || !data.regeocode) {
+            throw new Error(
+              `AMap API error: ${data?.infocode || 'unknown'} ${data?.info || ''}`,
+            )
+          }
+
+          const address = data.regeocode.addressComponent || {}
+          const cityValue = Array.isArray(address.city)
+            ? address.province
+            : address.city
+          const city =
+            cityValue || address.district || address.province || undefined
+
+          return {
+            latitude: lat,
+            longitude: lon,
+            country: address.country || undefined,
+            city,
+            locationName: data.regeocode.formatted_address || undefined,
+          }
+        },
+        {
+          ...RetryPresets.network,
+          timeout: 10000,
+          delayStrategy: 'exponential',
+        },
+        logger.location,
+      )
+    } catch (error) {
+      logger.location.error(
+        'AMap reverse geocoding failed after all retries:',
+        error,
+      )
+      return null
+    }
+  }
+}
+
 /**
  * Mapbox 地理编码提供者
  * 高精度商业地理编码服务，支持全球范围和多语言
@@ -237,24 +367,41 @@ export class NominatimGeocodingProvider implements GeocodingProvider {
 
 /**
  * 创建地理编码提供者实例
- * @description 优先使用 Mapbox，如果没有配置则回退到 Nominatim
+ * @description 按配置选择提供者；auto 保持旧版本的 Mapbox/Nominatim 回退行为
  */
 async function createGeocodingProvider(): Promise<GeocodingProvider> {
-  // const mapboxToken = useRuntimeConfig().mapbox?.accessToken
+  const provider =
+    (await settingsManager.get<string>('location', 'provider')) || 'auto'
   const mapboxToken = await settingsManager.get<string>(
     'location',
     'mapbox.token',
   )
+  const amapKey = await settingsManager.get<string>(
+    'location',
+    'amap.webServiceKey',
+  )
+  const nominatimBaseUrl =
+    (await settingsManager.get<string>('location', 'nominatim.baseUrl')) ||
+    undefined
 
-  if (mapboxToken) {
+  if (provider === 'amap') {
+    if (!amapKey) {
+      throw new Error('AMap Web Service key is required')
+    }
+    return new AMapGeocodingProvider(amapKey)
+  }
+  if (provider === 'mapbox') {
+    if (!mapboxToken) {
+      throw new Error('Mapbox token is required')
+    }
     return new MapboxGeocodingProvider(mapboxToken)
   }
+  if (provider === 'nominatim') {
+    return new NominatimGeocodingProvider(nominatimBaseUrl)
+  }
 
-  // 回退到 Nominatim 提供者
-  return new NominatimGeocodingProvider(
-    (await settingsManager.get<string>('location', 'nominatim.baseUrl')) ||
-      undefined,
-  )
+  if (mapboxToken) return new MapboxGeocodingProvider(mapboxToken)
+  return new NominatimGeocodingProvider(nominatimBaseUrl)
 }
 
 export async function extractLocationFromGPS(

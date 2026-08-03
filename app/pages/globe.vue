@@ -11,6 +11,7 @@ const router = useRouter()
 const dayjs = useDayjs()
 
 const { photos } = usePhotos()
+const { accessEntitlement, unlockUrl } = useAccessEntitlement()
 
 const photosWithLocation = computed(() => {
   return photos.value.filter(
@@ -54,7 +55,8 @@ const timelineRange = computed(() => {
   }
 
   const first = datedPhotosWithLocation.value[0]!
-  const last = datedPhotosWithLocation.value[datedPhotosWithLocation.value.length - 1]!
+  const last =
+    datedPhotosWithLocation.value[datedPhotosWithLocation.value.length - 1]!
   return {
     min: first.timestamp,
     max: last.timestamp,
@@ -230,39 +232,156 @@ const toggleTimelineEnabled = () => {
 }
 
 const currentClusterPointId = ref<string | null>(null)
-const mapInstance = ref<any>(null)
+const mapInstance = shallowRef<any | null>(null)
+const visibleMapBounds = shallowRef<MapBounds | null>(null)
 const currentZoom = ref<number>(4)
 const analysisMode = ref<'none' | 'focalLength' | 'shutterSpeed' | 'altitude'>(
   'none',
 )
 const parameterAnnotationOpen = ref(false)
+const globeMapId = 'cframe-globe-map'
+const mapEventHandlers: Array<[string, (...args: any[]) => void]> = []
 
-const analysisModeOptions = computed(() => [
-  {
-    value: 'none',
-    label: $t('globe.analysis.mode.none.label'),
-    icon: 'tabler:circle-off',
-    description: $t('globe.analysis.mode.none.description'),
-  },
-  {
-    value: 'focalLength',
-    label: $t('globe.analysis.mode.focalLength.label'),
-    icon: 'tabler:zoom-scan',
-    description: $t('globe.analysis.mode.focalLength.description'),
-  },
-  {
-    value: 'shutterSpeed',
-    label: $t('globe.analysis.mode.shutterSpeed.label'),
-    icon: 'tabler:clock-hour-4',
-    description: $t('globe.analysis.mode.shutterSpeed.description'),
-  },
-  {
-    value: 'altitude',
-    label: $t('globe.analysis.mode.altitude.label'),
-    icon: 'tabler:mountain',
-    description: $t('globe.analysis.mode.altitude.description'),
-  },
-] as const)
+interface MapBounds {
+  west: number
+  east: number
+  south: number
+  north: number
+}
+
+const toMapBounds = (rawBounds: any): MapBounds | null => {
+  if (!rawBounds) return null
+
+  if (Array.isArray(rawBounds) && rawBounds.length >= 2) {
+    const southWest = rawBounds[0]
+    const northEast = rawBounds[1]
+    if (Array.isArray(southWest) && Array.isArray(northEast)) {
+      return {
+        west: Number(southWest[0]),
+        south: Number(southWest[1]),
+        east: Number(northEast[0]),
+        north: Number(northEast[1]),
+      }
+    }
+  }
+
+  if (
+    typeof rawBounds.getWest === 'function' &&
+    typeof rawBounds.getEast === 'function' &&
+    typeof rawBounds.getSouth === 'function' &&
+    typeof rawBounds.getNorth === 'function'
+  ) {
+    return {
+      west: rawBounds.getWest(),
+      east: rawBounds.getEast(),
+      south: rawBounds.getSouth(),
+      north: rawBounds.getNorth(),
+    }
+  }
+
+  return null
+}
+
+const updateMapViewportState = () => {
+  const map = mapInstance.value
+  if (!map) return
+  currentZoom.value = map.getZoom?.() ?? currentZoom.value
+  visibleMapBounds.value = toMapBounds(map.getBounds?.())
+}
+
+const scheduleMapViewportStateUpdate = useThrottleFn(
+  updateMapViewportState,
+  120,
+  true,
+  true,
+)
+
+const bindMapViewportListeners = (map: any) => {
+  const eventNames = ['moveend', 'zoomend', 'dragend', 'resize']
+  for (const eventName of eventNames) {
+    const handler = () => scheduleMapViewportStateUpdate()
+    map.on?.(eventName, handler)
+    mapEventHandlers.push([eventName, handler])
+  }
+}
+
+const unbindMapViewportListeners = () => {
+  const map = mapInstance.value
+  if (!map) {
+    mapEventHandlers.length = 0
+    return
+  }
+
+  for (const [eventName, handler] of mapEventHandlers) {
+    map.off?.(eventName, handler)
+  }
+  mapEventHandlers.length = 0
+}
+
+const longitudeInBounds = (longitude: number, west: number, east: number) => {
+  if (west <= east) {
+    return longitude >= west && longitude <= east
+  }
+  return longitude >= west || longitude <= east
+}
+
+const isPhotoNearVisibleBounds = (photo: Photo, bounds: MapBounds) => {
+  const longitude = photo.longitude
+  const latitude = photo.latitude
+  if (longitude == null || latitude == null) return false
+
+  const latSpan = Math.max(0.01, Math.abs(bounds.north - bounds.south))
+  const rawLngSpan =
+    bounds.west <= bounds.east
+      ? bounds.east - bounds.west
+      : 360 - bounds.west + bounds.east
+  const lngSpan = Math.max(0.01, rawLngSpan)
+  const latPadding = Math.min(30, Math.max(0.2, latSpan * 0.35))
+  const lngPadding = Math.min(60, Math.max(0.2, lngSpan * 0.35))
+
+  const south = Math.max(-90, bounds.south - latPadding)
+  const north = Math.min(90, bounds.north + latPadding)
+  const west = bounds.west - lngPadding
+  const east = bounds.east + lngPadding
+  const normalizedWest = west < -180 ? west + 360 : west
+  const normalizedEast = east > 180 ? east - 360 : east
+
+  return (
+    latitude >= south &&
+    latitude <= north &&
+    longitudeInBounds(longitude, normalizedWest, normalizedEast)
+  )
+}
+
+const analysisModeOptions = computed(
+  () =>
+    [
+      {
+        value: 'none',
+        label: $t('globe.analysis.mode.none.label'),
+        icon: 'tabler:circle-off',
+        description: $t('globe.analysis.mode.none.description'),
+      },
+      {
+        value: 'focalLength',
+        label: $t('globe.analysis.mode.focalLength.label'),
+        icon: 'tabler:zoom-scan',
+        description: $t('globe.analysis.mode.focalLength.description'),
+      },
+      {
+        value: 'shutterSpeed',
+        label: $t('globe.analysis.mode.shutterSpeed.label'),
+        icon: 'tabler:clock-hour-4',
+        description: $t('globe.analysis.mode.shutterSpeed.description'),
+      },
+      {
+        value: 'altitude',
+        label: $t('globe.analysis.mode.altitude.label'),
+        icon: 'tabler:mountain',
+        description: $t('globe.analysis.mode.altitude.description'),
+      },
+    ] as const,
+)
 
 const analysisLegend = computed(() => {
   if (analysisMode.value === 'focalLength') {
@@ -337,10 +456,42 @@ const analysisLegend = computed(() => {
   return null
 })
 
+const visiblePhotosWithLocation = computed(() => {
+  const bounds = visibleMapBounds.value
+  if (!bounds || currentZoom.value <= 2.2) {
+    return filteredPhotosWithLocation.value
+  }
+
+  const visiblePhotos = filteredPhotosWithLocation.value.filter((photo) =>
+    isPhotoNearVisibleBounds(photo, bounds),
+  )
+
+  if (!currentClusterPointId.value) {
+    return visiblePhotos
+  }
+
+  const selectedPhoto = filteredPhotosWithLocation.value.find(
+    (photo) => photo.id === currentClusterPointId.value,
+  )
+  if (
+    !selectedPhoto ||
+    visiblePhotos.some((photo) => photo.id === selectedPhoto.id)
+  ) {
+    return visiblePhotos
+  }
+
+  return [...visiblePhotos, selectedPhoto]
+})
+
+const visiblePhotoMarkers = computed(() =>
+  photosToMarkers(visiblePhotosWithLocation.value),
+)
+
 // Convert photos to markers and apply clustering
 const clusteredMarkers = computed(() => {
-  const markers = photosToMarkers(filteredPhotosWithLocation.value)
-  return clusterMarkers(markers, currentZoom.value)
+  return clusterMarkers(visiblePhotoMarkers.value, currentZoom.value, {
+    maxRenderedPoints: 520,
+  })
 })
 
 // Separate clusters and single markers
@@ -370,7 +521,9 @@ watch(filteredPhotosWithLocation, (currentPhotos) => {
     return
   }
 
-  const exists = currentPhotos.some((photo) => photo.id === currentClusterPointId.value)
+  const exists = currentPhotos.some(
+    (photo) => photo.id === currentClusterPointId.value,
+  )
   if (!exists) {
     currentClusterPointId.value = null
   }
@@ -462,7 +615,10 @@ const onMarkerPinClose = () => {
 }
 
 const onMapLoaded = (map: any) => {
+  unbindMapViewportListeners()
   mapInstance.value = map
+  bindMapViewportListeners(map)
+  updateMapViewportState()
 
   const { photoId } = route.query
   if (photoId && typeof photoId === 'string') {
@@ -484,12 +640,11 @@ const onMapLoaded = (map: any) => {
     }
   }
 
-  currentZoom.value = map.getZoom()
+  updateMapViewportState()
 }
 
 const onMapZoom = useThrottleFn(() => {
-  if (!mapInstance.value) return
-  currentZoom.value = mapInstance.value.getZoom()
+  updateMapViewportState()
 }, 100)
 
 // Map control functions
@@ -517,13 +672,10 @@ const resetMap = () => {
   })
 }
 
-const generateRandomKey = () => {
-  return Math.random().toString(36).substring(2, 15)
-}
-
 onBeforeRouteLeave(() => {
   stopTimelineDragging()
   stopTimelinePlayback()
+  unbindMapViewportListeners()
   if (mapInstance.value) {
     mapInstance.value.remove()
     mapInstance.value = null
@@ -533,6 +685,7 @@ onBeforeRouteLeave(() => {
 onBeforeUnmount(() => {
   stopTimelineDragging()
   stopTimelinePlayback()
+  unbindMapViewportListeners()
 })
 </script>
 
@@ -542,6 +695,15 @@ onBeforeUnmount(() => {
       class="absolute top-4 left-4 z-10"
       icon="tabler:home"
       @click="$router.push('/')"
+    />
+    <UButton
+      v-if="accessEntitlement.hasMorePhotos"
+      class="absolute top-4 left-16 z-10"
+      size="sm"
+      variant="soft"
+      icon="tabler:lock-open"
+      :label="$t('accessGate.moreLocations')"
+      :to="unlockUrl('/globe')"
     />
 
     <div class="absolute top-4 right-4 z-10 flex flex-col items-end">
@@ -701,7 +863,9 @@ onBeforeUnmount(() => {
           >
             <GlassButton
               size="sm"
-              :icon="isTimelinePlaying ? 'tabler:player-pause' : 'tabler:player-play'"
+              :icon="
+                isTimelinePlaying ? 'tabler:player-pause' : 'tabler:player-play'
+              "
               :class="
                 !hasTimelineData || !isTimelineEnabled
                   ? 'opacity-40 pointer-events-none'
@@ -714,7 +878,9 @@ onBeforeUnmount(() => {
             <div class="flex items-center justify-between gap-2 text-[11px]">
               <span class="font-medium">{{ $t('globe.timeline.title') }}</span>
               <span class="text-neutral-600 dark:text-white/60">
-                {{ filteredPhotosWithLocation.length }}/{{ photosWithLocation.length }}
+                {{ filteredPhotosWithLocation.length }}/{{
+                  photosWithLocation.length
+                }}
               </span>
             </div>
             <div
@@ -763,7 +929,7 @@ onBeforeUnmount(() => {
         <!-- mapbox://styles/hoshinosuzumi/cmev0eujf01dw01pje3g9cmlg -->
         <MapProvider
           class="w-full h-full"
-          :map-id="generateRandomKey()"
+          :map-id="globeMapId"
           :zoom="mapViewState.zoom"
           :center="[mapViewState.longitude, mapViewState.latitude]"
           :attribution-control="false"
@@ -777,7 +943,7 @@ onBeforeUnmount(() => {
               v-for="clusterPoint in clusterGroups"
               :key="`cluster-${clusterPoint.properties.marker?.id}`"
               :cluster-point="clusterPoint"
-              :marker-id="generateRandomKey()"
+              :marker-id="`cluster-${clusterPoint.properties.marker?.id}`"
               @click="onMarkerPinClick"
               @close="onMarkerPinClose"
             />
@@ -793,7 +959,7 @@ onBeforeUnmount(() => {
                 clusterPoint.properties.marker?.id === currentClusterPointId
               "
               :analysis-mode="analysisMode"
-              :marker-id="generateRandomKey()"
+              :marker-id="`single-${clusterPoint.properties.marker?.id}`"
               @click="onMarkerPinClick"
               @close="onMarkerPinClose"
             />

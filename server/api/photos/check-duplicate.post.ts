@@ -1,13 +1,22 @@
 import { z } from 'zod'
-import { eq } from 'drizzle-orm'
-import { generateSafePhotoId } from '~~/server/utils/file-utils'
+import { and, eq } from 'drizzle-orm'
+import path from 'node:path'
+import {
+  generateSafePhotoId,
+  generateSafeVideoId,
+} from '~~/server/utils/file-utils'
+
+const generateMediaId = (storageKey: string) =>
+  path.extname(storageKey).toLowerCase() === '.mp4'
+    ? generateSafeVideoId(storageKey)
+    : generateSafePhotoId(storageKey)
 
 /**
  * 检查照片是否已存在
  * 可以检查单个或多个文件
  */
 export default defineEventHandler(async (event) => {
-  await requireUserSession(event)
+  const user = await requireCurrentUser(event)
 
   const t = await useTranslation(event)
 
@@ -41,8 +50,14 @@ export default defineEventHandler(async (event) => {
       for (const fileName of fileNames) {
         // 生成 photoId（与上传时的逻辑相同）
         const { storageProvider } = useStorageProvider(event)
-        const storageKey = `${(storageProvider.config?.prefix || '').replace(/\/+$/, '')}/${fileName}`
-        const photoId = generateSafePhotoId(storageKey)
+        const prefix = (storageProvider.config?.prefix || '').replace(
+          /\/+$/,
+          '',
+        )
+        const storageKey = [prefix, 'users', user.id, fileName]
+          .filter((part) => part !== '')
+          .join('/')
+        const photoId = generateMediaId(storageKey)
 
         // 查询数据库
         const existingPhoto = await db
@@ -58,7 +73,14 @@ export default defineEventHandler(async (event) => {
             height: tables.photos.height,
           })
           .from(tables.photos)
-          .where(eq(tables.photos.id, photoId))
+          .where(
+            user.isAdmin
+              ? eq(tables.photos.id, photoId)
+              : and(
+                  eq(tables.photos.id, photoId),
+                  eq(tables.photos.ownerUserId, user.id),
+                ),
+          )
           .get()
 
         results.push({
@@ -74,7 +96,7 @@ export default defineEventHandler(async (event) => {
     // 检查 storageKey
     if (storageKeys && storageKeys.length > 0) {
       for (const storageKey of storageKeys) {
-        const photoId = generateSafePhotoId(storageKey)
+        const photoId = generateMediaId(storageKey)
 
         const existingPhoto = await db
           .select({
@@ -89,7 +111,14 @@ export default defineEventHandler(async (event) => {
             height: tables.photos.height,
           })
           .from(tables.photos)
-          .where(eq(tables.photos.id, photoId))
+          .where(
+            user.isAdmin
+              ? eq(tables.photos.id, photoId)
+              : and(
+                  eq(tables.photos.id, photoId),
+                  eq(tables.photos.ownerUserId, user.id),
+                ),
+          )
           .get()
 
         results.push({

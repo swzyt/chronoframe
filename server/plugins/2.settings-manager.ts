@@ -36,7 +36,12 @@ async function migrateRuntimeConfigToSettings() {
 
   try {
     // Migrate app settings
-    if (config.public.app) {
+    if (
+      process.env.NUXT_PUBLIC_APP_TITLE ||
+      process.env.NUXT_PUBLIC_APP_SLOGAN ||
+      process.env.NUXT_PUBLIC_APP_AUTHOR ||
+      process.env.NUXT_PUBLIC_APP_AVATAR_URL
+    ) {
       _logger.info('Migrating app settings')
       const appSettings = {
         title: config.public.app.title,
@@ -58,7 +63,14 @@ async function migrateRuntimeConfigToSettings() {
     }
 
     // Migrate map settings
-    if (config.public.map) {
+    if (
+      process.env.NUXT_PUBLIC_MAP_PROVIDER ||
+      process.env.NUXT_PUBLIC_MAPBOX_ACCESS_TOKEN ||
+      process.env.NUXT_MAPBOX_ACCESS_TOKEN ||
+      process.env.NUXT_PUBLIC_MAP_MAPBOX_STYLE ||
+      process.env.NUXT_PUBLIC_MAP_MAPLIBRE_TOKEN ||
+      process.env.NUXT_PUBLIC_MAP_MAPLIBRE_STYLE
+    ) {
       _logger.info('Migrating map settings')
       const mapSettings = {
         provider: config.public.map.provider,

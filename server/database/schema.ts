@@ -20,6 +20,10 @@ type PipelineQueuePayload =
       storageKey: string
     }
   | {
+      type: 'video'
+      storageKey: string
+    }
+  | {
       type: 'photo-reverse-geocoding'
       photoId: string
       latitude?: number | null
@@ -38,6 +42,7 @@ export const users = sqliteTable('users', {
   avatar: text('avatar'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
   isAdmin: integer('is_admin').default(0).notNull(),
+  isActive: integer('is_active', { mode: 'boolean' }).default(true).notNull(),
 })
 
 export const photos = sqliteTable('photos', {
@@ -47,6 +52,13 @@ export const photos = sqliteTable('photos', {
   width: integer('width'),
   height: integer('height'),
   aspectRatio: real('aspect_ratio'),
+  mediaType: text('media_type', { enum: ['image', 'video'] })
+    .default('image')
+    .notNull(),
+  duration: real('duration'),
+  videoCodec: text('video_codec'),
+  audioCodec: text('audio_codec'),
+  videoPlaybackKey: text('video_playback_key'),
   dateTaken: text('date_taken'),
   storageKey: text('storage_key'),
   thumbnailKey: text('thumbnail_key'),
@@ -67,6 +79,9 @@ export const photos = sqliteTable('photos', {
   isLivePhoto: integer('is_live_photo').default(0).notNull(),
   livePhotoVideoUrl: text('live_photo_video_url'),
   livePhotoVideoKey: text('live_photo_video_key'),
+  ownerUserId: integer('owner_user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'restrict' }),
 })
 
 export const pipelineQueue = sqliteTable('pipeline_queue', {
@@ -108,6 +123,9 @@ export const pipelineQueue = sqliteTable('pipeline_queue', {
     .notNull()
     .default(sql`(unixepoch())`),
   completedAt: integer('completed_at', { mode: 'timestamp' }),
+  ownerUserId: integer('owner_user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'restrict' }),
 })
 
 // 照片表态表
@@ -146,6 +164,9 @@ export const albums = sqliteTable('albums', {
   updatedAt: integer('updated_at', { mode: 'timestamp' })
     .notNull()
     .default(sql`(unixepoch())`),
+  ownerUserId: integer('owner_user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'restrict' }),
 })
 
 // 相簿-照片 多对多关系表

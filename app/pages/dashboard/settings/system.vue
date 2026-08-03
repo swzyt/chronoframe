@@ -15,6 +15,8 @@ const {
   submit: submitSystem,
   loading: systemLoading,
 } = useSettingsForm('system')
+const toast = useToast()
+const backupRunning = ref(false)
 
 const systemFields = computed(() =>
   rawSystemFields.value.filter((field) => !field.isReadonly),
@@ -53,6 +55,24 @@ const SYSTEM_SECTION_ORDER: SystemSection[] = [
     id: 'debug',
     titleKey: 'settings.system.sections.debugSettings',
     keys: ['webglImageViewerDebug'],
+  },
+  {
+    id: 'backup',
+    titleKey: 'settings.system.sections.databaseBackup',
+    keys: [
+      'backup.enabled',
+      'backup.cron',
+      'backup.timezone',
+      'backup.retentionDays',
+      'backup.smtpHost',
+      'backup.smtpPort',
+      'backup.smtpSecure',
+      'backup.smtpUser',
+      'backup.smtpPassword',
+      'backup.mailFrom',
+      'backup.mailTo',
+      'backup.encryptionPassphrase',
+    ],
   },
 ] as const
 
@@ -100,6 +120,41 @@ const handleSectionSettingsSubmit = async (
     await submitSystem(systemData)
   } catch {
     /* empty */
+  }
+}
+
+const handleRunBackup = async () => {
+  backupRunning.value = true
+  try {
+    const response = await $fetch<{
+      success: boolean
+      result: {
+        fileName: string
+        sentTo: string[]
+      }
+    }>('/api/system/backup/run', {
+      method: 'POST',
+    })
+
+    toast.add({
+      color: 'success',
+      title: $t('settings.system.backup.messages.runSuccess'),
+      description: $t('settings.system.backup.messages.runSuccessDescription', {
+        fileName: response.result.fileName,
+        recipients: response.result.sentTo.join(', '),
+      }),
+    })
+  } catch (error) {
+    toast.add({
+      color: 'error',
+      title: $t('settings.system.backup.messages.runFailed'),
+      description:
+        (error as any)?.data?.statusMessage ||
+        (error as Error).message ||
+        $t('common.unknown'),
+    })
+  } finally {
+    backupRunning.value = false
   }
 }
 </script>
@@ -183,6 +238,16 @@ const handleSectionSettingsSubmit = async (
             </div>
 
             <div class="flex items-center justify-end gap-2">
+              <UButton
+                v-if="section.id === 'backup'"
+                color="neutral"
+                variant="soft"
+                icon="tabler:mail-forward"
+                :loading="backupRunning"
+                @click="handleRunBackup"
+              >
+                {{ $t('settings.system.backup.actions.runNow') }}
+              </UButton>
               <UButton
                 color="neutral"
                 variant="outline"

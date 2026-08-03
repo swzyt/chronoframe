@@ -28,8 +28,11 @@ const emit = defineEmits<{
 }>()
 
 const toast = useToast()
+const requestFetch = useRequestFetch()
+const route = useRoute()
+const { accessEntitlement, unlockUrl } = useAccessEntitlement()
 
-const containerRef = ref<HTMLDivElement>()
+const fullscreenContainerRef = ref<HTMLDivElement>()
 const swiperRef = ref<SwiperType>()
 const loadingIndicatorRef = ref<LoadingIndicatorRef>()
 
@@ -40,6 +43,15 @@ const currentBlobSrc = ref<string | null>(null)
 const zoomLevel = ref(0)
 const showZoomLevel = ref(false)
 const zoomLevelTimer = ref<NodeJS.Timeout | null>(null)
+const imageRotation = ref(0)
+const isAutoPlaying = ref(false)
+const autoPlayTimer = ref<ReturnType<typeof setTimeout> | null>(null)
+const autoPlayDelay = 5000
+const isFullscreen = ref(false)
+const viewerLayoutRefreshKey = ref(0)
+let viewerLayoutRefreshFrame: number | null = null
+let viewerLayoutRefreshTimers: ReturnType<typeof setTimeout>[] = []
+const preloadedMediaUrls = new Set<string>()
 
 const showReactionPicker = ref(false)
 const reactionButtonRef = ref<HTMLButtonElement | null>(null)
@@ -67,7 +79,7 @@ const totalReactions = computed(() => {
 // 加载照片表态数据
 const loadPhotoReactions = async (photoId: string) => {
   try {
-    const data = (await $fetch(`/api/photos/${photoId}/reactions`)) as any
+    const data = (await requestFetch(`/api/photos/${photoId}/reactions`)) as any
     selectedReaction.value = data.userReaction || null
     reactionCounts.value = data.reactions || {}
   } catch (error) {
@@ -93,12 +105,58 @@ const { convertMovToMp4, getProcessingState } = useLivePhotoProcessor()
 const currentPhoto = computed(() => props.photos[props.currentIndex])
 const isMobile = useMediaQuery('(max-width: 768px)')
 
+const canScheduleAutoPlay = computed(() => {
+  return (
+    props.isOpen &&
+    isAutoPlaying.value &&
+    props.photos.length > 1 &&
+    !isImageZoomed.value &&
+    !isLivePhotoPlaying.value &&
+    !showShareModal.value &&
+    !showReactionPicker.value
+  )
+})
+
 // LivePhoto processing state
 const livePhotoProcessingState = computed(() => {
   return currentPhoto.value
     ? getProcessingState(currentPhoto.value.id)
     : ref(null)
 })
+
+function clearAutoPlayTimer() {
+  if (!autoPlayTimer.value) return
+  clearTimeout(autoPlayTimer.value)
+  autoPlayTimer.value = null
+}
+
+const preloadPhotoMedia = (photo?: Photo) => {
+  if (!import.meta.client || !photo?.originalUrl) return
+  if (preloadedMediaUrls.has(photo.originalUrl)) return
+
+  preloadedMediaUrls.add(photo.originalUrl)
+
+  if (photo.mediaType === 'video') {
+    const video = document.createElement('video')
+    video.preload = 'metadata'
+    video.src = photo.originalUrl
+    return
+  }
+
+  const image = new Image()
+  image.decoding = 'async'
+  image.src = photo.originalUrl
+}
+
+const preloadNearbyPhotos = () => {
+  if (!props.isOpen) return
+
+  preloadPhotoMedia(props.photos[props.currentIndex])
+  preloadPhotoMedia(props.photos[props.currentIndex - 1])
+  preloadPhotoMedia(props.photos[props.currentIndex + 1])
+  preloadPhotoMedia(props.photos[props.currentIndex - 2])
+  preloadPhotoMedia(props.photos[props.currentIndex + 2])
+}
 
 // 当 PhotoViewer 关闭时重置状态
 watch(
@@ -111,6 +169,16 @@ watch(
       currentBlobSrc.value = null
       zoomLevel.value = 0
       showZoomLevel.value = false
+      isAutoPlaying.value = false
+      isFullscreen.value = false
+      imageRotation.value = 0
+      clearAutoPlayTimer()
+      if (
+        import.meta.client &&
+        document.fullscreenElement === fullscreenContainerRef.value
+      ) {
+        document.exitFullscreen().catch(() => {})
+      }
 
       // Reset reaction state
       showReactionPicker.value = false
@@ -160,6 +228,7 @@ watch(
     // 切换图片时重置缩放状态
     isImageZoomed.value = false
     zoomLevel.value = 0
+    imageRotation.value = 0
 
     // Reset reaction state when switching photos
     showReactionPicker.value = false
@@ -204,6 +273,134 @@ const handleNext = () => {
   }
 }
 
+const advanceAutoPlay = () => {
+  if (props.photos.length <= 1) return
+
+  const nextIndex = (props.currentIndex + 1) % props.photos.length
+  emit('indexChange', nextIndex)
+  swiperRef.value?.slideTo(nextIndex, 300)
+}
+
+const scheduleAutoPlay = () => {
+  clearAutoPlayTimer()
+
+  if (!import.meta.client || !canScheduleAutoPlay.value) return
+
+  // Videos keep their native playback rhythm. Continue after the video ends
+  // instead of cutting away on the fixed photo timer.
+  if (currentPhoto.value?.mediaType === 'video') return
+
+  autoPlayTimer.value = setTimeout(() => {
+    autoPlayTimer.value = null
+    advanceAutoPlay()
+  }, autoPlayDelay)
+}
+
+const toggleAutoPlay = () => {
+  isAutoPlaying.value = !isAutoPlaying.value
+}
+
+const handleStandaloneVideoEnded = () => {
+  if (isAutoPlaying.value) {
+    advanceAutoPlay()
+  }
+}
+
+const syncFullscreenState = () => {
+  if (!import.meta.client) return
+
+  // The viewer uses an app-level fullscreen mode instead of relying on the
+  // browser Fullscreen API. Native fullscreen changes the visual viewport while
+  // Swiper and the zoom layer are recalculating, which can leave the image
+  // offset until another interaction forces a relayout. Keep this listener only
+  // as a defensive escape hatch for older sessions that may still be in native
+  // fullscreen.
+  if (
+    isFullscreen.value &&
+    document.fullscreenElement &&
+    document.fullscreenElement !== fullscreenContainerRef.value
+  ) {
+    isFullscreen.value = false
+  }
+
+  scheduleViewerLayoutRefresh()
+}
+
+const clearViewerLayoutRefresh = () => {
+  if (viewerLayoutRefreshFrame !== null) {
+    cancelAnimationFrame(viewerLayoutRefreshFrame)
+    viewerLayoutRefreshFrame = null
+  }
+
+  for (const timer of viewerLayoutRefreshTimers) {
+    clearTimeout(timer)
+  }
+  viewerLayoutRefreshTimers = []
+}
+
+const runViewerLayoutRefresh = () => {
+  swiperRef.value?.update()
+  isImageZoomed.value = false
+  zoomLevel.value = 0
+  viewerLayoutRefreshKey.value += 1
+}
+
+const scheduleViewerLayoutRefresh = () => {
+  if (!import.meta.client) return
+
+  clearViewerLayoutRefresh()
+  runViewerLayoutRefresh()
+
+  viewerLayoutRefreshFrame = requestAnimationFrame(() => {
+    viewerLayoutRefreshFrame = requestAnimationFrame(() => {
+      runViewerLayoutRefresh()
+      viewerLayoutRefreshFrame = null
+    })
+  })
+
+  viewerLayoutRefreshTimers = [120, 360, 700].map((delay) =>
+    setTimeout(runViewerLayoutRefresh, delay),
+  )
+}
+
+const toggleFullscreen = async () => {
+  if (!import.meta.client) return
+
+  try {
+    if (document.fullscreenElement === fullscreenContainerRef.value) {
+      await document.exitFullscreen()
+    }
+
+    stopLivePhotoVideo()
+    isFullscreen.value = !isFullscreen.value
+    scheduleViewerLayoutRefresh()
+  } catch (error) {
+    console.warn('Failed to toggle fullscreen viewer:', error)
+  }
+}
+
+watch(
+  [
+    () => props.isOpen,
+    isAutoPlaying,
+    () => props.currentIndex,
+    () => props.photos.length,
+    () => currentPhoto.value?.mediaType,
+    isImageZoomed,
+    isLivePhotoPlaying,
+    showShareModal,
+    showReactionPicker,
+  ],
+  scheduleAutoPlay,
+  { flush: 'post' },
+)
+
+watch(
+  [() => props.isOpen, () => props.currentIndex, () => props.photos.length],
+  preloadNearbyPhotos,
+  { immediate: true, flush: 'post' },
+)
+
 // Handle Swiper events
 const handleSwiperInit = (swiper: SwiperType) => {
   swiperRef.value = swiper
@@ -235,6 +432,11 @@ const handleBlobSrcChange = (blobSrc: string | null) => {
   currentBlobSrc.value = blobSrc
 }
 
+const rotateCurrentImage = () => {
+  if (currentPhoto.value?.mediaType === 'video') return
+  imageRotation.value = (imageRotation.value + 90) % 360
+}
+
 const handleImageLoaded = () => {
   // 图片加载完成时显示缩放倍率 2 秒
   showZoomLevel.value = true
@@ -245,6 +447,21 @@ const handleImageLoaded = () => {
     showZoomLevel.value = false
     zoomLevelTimer.value = null
   }, 2000)
+}
+
+const handleCurrentMediaError = async () => {
+  if (!props.isOpen || !currentPhoto.value) return
+
+  try {
+    const status = await $fetch<AccessEntitlement>('/api/access/status')
+    accessEntitlement.value = status
+  } catch {
+    // Fall through to the current client-side entitlement state.
+  }
+
+  if (accessEntitlement.value.required && !accessEntitlement.value.granted) {
+    await navigateTo(unlockUrl(route.fullPath))
+  }
 }
 
 // LivePhoto processing and playback functions
@@ -475,7 +692,8 @@ const handleReactionSelect = async (reactionId: string, iconName: string) => {
       toast.add({
         icon: 'tabler:alert-circle',
         title: $t('viewer.reaction.error.title'),
-        description: error instanceof Error ? error.message : $t('common.unknownError'),
+        description:
+          error instanceof Error ? error.message : $t('common.unknownError'),
         color: 'warning',
       })
     }
@@ -515,12 +733,29 @@ defineShortcuts({
   },
 })
 
+onMounted(() => {
+  document.addEventListener('fullscreenchange', syncFullscreenState)
+  window.addEventListener('resize', scheduleViewerLayoutRefresh)
+  window.visualViewport?.addEventListener('resize', scheduleViewerLayoutRefresh)
+})
+
 // 清理定时器
 onUnmounted(() => {
+  document.removeEventListener('fullscreenchange', syncFullscreenState)
+  window.removeEventListener('resize', scheduleViewerLayoutRefresh)
+  window.visualViewport?.removeEventListener(
+    'resize',
+    scheduleViewerLayoutRefresh,
+  )
+
+  clearViewerLayoutRefresh()
+
   if (zoomLevelTimer.value) {
     clearTimeout(zoomLevelTimer.value)
     zoomLevelTimer.value = null
   }
+
+  clearAutoPlayTimer()
 
   if (longPressTimer.value) {
     clearTimeout(longPressTimer.value)
@@ -575,7 +810,6 @@ const swiperModules = [Navigation, Keyboard, Virtual]
     <AnimatePresence>
       <motion.div
         v-if="isOpen"
-        ref="containerRef"
         :initial="{ opacity: 0 }"
         :animate="{ opacity: 1 }"
         :exit="{ opacity: 0 }"
@@ -585,6 +819,7 @@ const swiperModules = [Navigation, Keyboard, Virtual]
         @click.self="emit('close')"
       >
         <div
+          ref="fullscreenContainerRef"
           class="flex w-full h-full"
           :class="isMobile ? 'flex-col' : 'flex-row'"
         >
@@ -635,7 +870,7 @@ const swiperModules = [Navigation, Keyboard, Virtual]
                 <div class="flex items-center gap-2">
                   <!-- 信息按钮 - 在移动设备上显示 -->
                   <GlassButton
-                    v-if="isMobile"
+                    v-if="isMobile && !isFullscreen"
                     icon="tabler:info-circle"
                     :class="
                       !showExifPanel
@@ -645,6 +880,63 @@ const swiperModules = [Navigation, Keyboard, Virtual]
                     size="sm"
                     rounded
                     @click="showExifPanel = !showExifPanel"
+                  />
+
+                  <!-- 自动播放按钮 -->
+                  <GlassButton
+                    :icon="
+                      isAutoPlaying
+                        ? 'tabler:player-pause'
+                        : 'tabler:player-play'
+                    "
+                    :active="isAutoPlaying"
+                    :title="
+                      isAutoPlaying
+                        ? $t('viewer.autoplay.pause')
+                        : $t('viewer.autoplay.play')
+                    "
+                    :aria-label="
+                      isAutoPlaying
+                        ? $t('viewer.autoplay.pause')
+                        : $t('viewer.autoplay.play')
+                    "
+                    size="sm"
+                    rounded
+                    @click="toggleAutoPlay"
+                  />
+
+                  <!-- 旋转按钮 -->
+                  <GlassButton
+                    v-if="currentPhoto?.mediaType !== 'video'"
+                    icon="tabler:rotate-clockwise"
+                    :title="$t('viewer.rotate.clockwise')"
+                    :aria-label="$t('viewer.rotate.clockwise')"
+                    size="sm"
+                    rounded
+                    @click="rotateCurrentImage"
+                  />
+
+                  <!-- 全屏按钮 -->
+                  <GlassButton
+                    :icon="
+                      isFullscreen
+                        ? 'tabler:arrows-minimize'
+                        : 'tabler:arrows-maximize'
+                    "
+                    :active="isFullscreen"
+                    :title="
+                      isFullscreen
+                        ? $t('viewer.fullscreen.exit')
+                        : $t('viewer.fullscreen.enter')
+                    "
+                    :aria-label="
+                      isFullscreen
+                        ? $t('viewer.fullscreen.exit')
+                        : $t('viewer.fullscreen.enter')
+                    "
+                    size="sm"
+                    rounded
+                    @click="toggleFullscreen"
                   />
 
                   <!-- 分享按钮 -->
@@ -668,8 +960,62 @@ const swiperModules = [Navigation, Keyboard, Virtual]
               <!-- 加载指示器 -->
               <LoadingIndicator ref="loadingIndicatorRef" />
 
+              <!-- Fullscreen media is rendered outside Swiper. Swiper's
+              translate/virtual layout can briefly lose the active slide when
+              the side panel and thumbnail rail disappear, so fullscreen uses a
+              deterministic single-media layer. -->
+              <div
+                v-if="isFullscreen && currentPhoto"
+                class="absolute inset-0 z-10 flex min-h-0 min-w-0 items-center justify-center"
+                @touchstart="handleLivePhotoTouchStart"
+                @touchmove="handleLivePhotoTouchMove"
+                @touchend="handleLivePhotoTouchEnd"
+                @touchcancel="handleLivePhotoTouchEnd"
+                @contextmenu.prevent=""
+              >
+                <video
+                  v-if="currentPhoto.mediaType === 'video'"
+                  :key="`fullscreen-video-${currentPhoto.id}`"
+                  :src="currentPhoto.originalUrl || undefined"
+                  :poster="currentPhoto.thumbnailUrl || undefined"
+                  class="h-full w-full object-contain"
+                  controls
+                  playsinline
+                  preload="metadata"
+                  @ended="handleStandaloneVideoEnded"
+                  @contextmenu.prevent=""
+                />
+
+                <ProgressiveImage
+                  v-else
+                  :key="`fullscreen-image-${currentPhoto.id}`"
+                  class="h-full w-full object-contain"
+                  :loading-indicator-ref="loadingIndicatorRef || null"
+                  :is-current-image="true"
+                  :src="currentPhoto.originalUrl!"
+                  :thumbnail-src="currentPhoto.thumbnailUrl!"
+                  :thumbhash="currentPhoto.thumbnailHash"
+                  :alt="currentPhoto.title || ''"
+                  :width="currentPhoto.width ?? undefined"
+                  :height="currentPhoto.height ?? undefined"
+                  :enable-pan="true"
+                  :enable-zoom="true"
+                  :rotation="imageRotation"
+                  :on-zoom-change="handleZoomChange"
+                  :on-blob-src-change="handleBlobSrcChange"
+                  :on-image-loaded="handleImageLoaded"
+                  :on-error="handleCurrentMediaError"
+                  :is-live-photo="currentPhoto.isLivePhoto === 1"
+                  :live-photo-video-url="
+                    currentPhoto.livePhotoVideoUrl || undefined
+                  "
+                  :layout-refresh-key="viewerLayoutRefreshKey"
+                />
+              </div>
+
               <!-- Swiper 容器 -->
               <Swiper
+                v-else
                 :modules="swiperModules"
                 :space-between="0"
                 :slides-per-view="1"
@@ -690,11 +1036,7 @@ const swiperModules = [Navigation, Keyboard, Virtual]
                   :virtual-index="index"
                   class="flex items-center justify-center"
                 >
-                  <motion.div
-                    :initial="{ opacity: 0.5, scale: 0.95 }"
-                    :animate="{ opacity: 1, scale: 1 }"
-                    :exit="{ opacity: 0, scale: 0.95 }"
-                    :transition="{ type: 'spring', duration: 0.4, bounce: 0 }"
+                  <div
                     class="relative flex h-full w-full items-center justify-center"
                     style="
                       user-select: none;
@@ -708,8 +1050,22 @@ const swiperModules = [Navigation, Keyboard, Virtual]
                     @touchcancel="handleLivePhotoTouchEnd"
                     @contextmenu.prevent=""
                   >
+                    <!-- Standalone video -->
+                    <video
+                      v-if="photo.mediaType === 'video'"
+                      :src="photo.originalUrl || undefined"
+                      :poster="photo.thumbnailUrl || undefined"
+                      class="h-full w-full object-contain"
+                      controls
+                      playsinline
+                      preload="metadata"
+                      @ended="handleStandaloneVideoEnded"
+                      @contextmenu.prevent=""
+                    />
+
                     <!-- Main Image -->
                     <ProgressiveImage
+                      v-else
                       class="h-full w-full object-contain transition-opacity duration-400"
                       :class="{
                         'opacity-0':
@@ -737,6 +1093,7 @@ const swiperModules = [Navigation, Keyboard, Virtual]
                           : true
                       "
                       :enable-zoom="true"
+                      :rotation="index === currentIndex ? imageRotation : 0"
                       :on-zoom-change="
                         index === currentIndex ? handleZoomChange : undefined
                       "
@@ -746,10 +1103,16 @@ const swiperModules = [Navigation, Keyboard, Virtual]
                       :on-image-loaded="
                         index === currentIndex ? handleImageLoaded : undefined
                       "
+                      :on-error="
+                        index === currentIndex
+                          ? handleCurrentMediaError
+                          : undefined
+                      "
                       :is-live-photo="photo.isLivePhoto === 1"
                       :live-photo-video-url="
                         photo.livePhotoVideoUrl || undefined
                       "
+                      :layout-refresh-key="viewerLayoutRefreshKey"
                     />
 
                     <!-- LivePhoto Video -->
@@ -928,7 +1291,7 @@ const swiperModules = [Navigation, Keyboard, Virtual]
                         </div>
                       </motion.div>
                     </AnimatePresence>
-                  </motion.div>
+                  </div>
                 </SwiperSlide>
               </Swiper>
 
@@ -962,6 +1325,7 @@ const swiperModules = [Navigation, Keyboard, Virtual]
 
             <!-- 缩略图导航 -->
             <GalleryThumbnail
+              v-if="!isFullscreen"
               :current-index="currentIndex"
               :photos="photos"
               @index-change="emit('indexChange', $event)"
@@ -971,14 +1335,14 @@ const swiperModules = [Navigation, Keyboard, Virtual]
           <!-- EXIF 面板 - 在桌面端始终显示，在移动端根据状态显示 -->
           <AnimatePresence v-if="isMobile">
             <InfoPanel
-              v-if="showExifPanel && currentPhoto"
+              v-if="!isFullscreen && showExifPanel && currentPhoto"
               :current-photo="currentPhoto"
               :exif-data="currentPhoto?.exif"
               :on-close="() => (showExifPanel = false)"
             />
           </AnimatePresence>
           <InfoPanel
-            v-else-if="currentPhoto"
+            v-else-if="!isFullscreen && currentPhoto"
             :current-photo="currentPhoto"
             :exif-data="currentPhoto?.exif"
           />

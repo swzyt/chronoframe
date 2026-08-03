@@ -7,13 +7,14 @@ const _invalidCredentialsError = createError({
 
 export default eventHandler(async (event) => {
   const db = useDB()
-  const { email, password } = await readValidatedBody(
+  const { email: rawEmail, password } = await readValidatedBody(
     event,
     z.object({
       email: z.email(),
       password: z.string().min(6),
     }).parse,
   )
+  const email = rawEmail.trim().toLowerCase()
 
   const user = db
     .select()
@@ -21,7 +22,7 @@ export default eventHandler(async (event) => {
     .where(eq(tables.users.email, email))
     .get()
 
-  if (!user) {
+  if (!user?.isActive) {
     throw _invalidCredentialsError
   }
 

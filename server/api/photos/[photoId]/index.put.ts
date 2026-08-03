@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { z } from 'zod'
 import { exiftool } from 'exiftool-vendored'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 
 import { extractExifData } from '~~/server/services/image/exif'
 import { tables, useDB } from '~~/server/utils/db'
@@ -45,7 +45,7 @@ const normalizeTags = (tags: string[] | undefined) => {
 }
 
 export default eventHandler(async (event) => {
-  await requireUserSession(event)
+  const user = await requireCurrentUser(event)
 
   const t = await useTranslation(event)
   const { photoId } = paramsSchema.parse(event.context.params ?? {})
@@ -68,7 +68,14 @@ export default eventHandler(async (event) => {
   const photo = await db
     .select()
     .from(tables.photos)
-    .where(eq(tables.photos.id, photoId))
+    .where(
+      user.isAdmin
+        ? eq(tables.photos.id, photoId)
+        : and(
+            eq(tables.photos.id, photoId),
+            eq(tables.photos.ownerUserId, user.id),
+          ),
+    )
     .get()
 
   if (!photo) {

@@ -1,0 +1,1 @@
+ALTER TABLE `photos` ADD `video_playback_key` text;

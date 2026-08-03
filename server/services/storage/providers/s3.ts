@@ -23,10 +23,15 @@ const createClient = (config: S3StorageConfig): S3Client => {
     throw new Error('Missing required accessKeyId or secretAccessKey')
   }
 
+  const isTencentCos = endpoint?.includes('myqcloud.com')
   const clientConfig: S3ClientConfig = {
     endpoint,
     region,
-    forcePathStyle: config.forcePathStyle,
+    // Tencent COS buckets created after 2024-01-01 no longer support
+    // path-style domains (`cos.<region>.myqcloud.com/<bucket>/<key>`).
+    // Always use virtual-hosted-style for COS even if a stale config still has
+    // forcePathStyle enabled.
+    forcePathStyle: isTencentCos ? false : config.forcePathStyle,
     responseChecksumValidation: 'WHEN_REQUIRED',
     requestChecksumCalculation: 'WHEN_REQUIRED',
     credentials: {
@@ -58,17 +63,26 @@ export class S3StorageProvider implements StorageProvider {
     this.client = createClient(config)
   }
 
+  private getAbsoluteKey(key: string): string {
+    const normalizedKey = key.replace(/^\/+/, '')
+    const normalizedPrefix = (this.config.prefix || '')
+      .replace(/^\/+/, '')
+      .replace(/\/+$/, '')
+
+    if (!normalizedPrefix || normalizedKey.startsWith(`${normalizedPrefix}/`)) {
+      return normalizedKey
+    }
+
+    return `${normalizedPrefix}/${normalizedKey}`
+  }
+
   async create(
     key: string,
     data: Buffer,
     contentType?: string,
   ): Promise<StorageObject> {
     try {
-      const absoluteKey =
-        `${(this.config.prefix || '').replace(/\/+$/, '')}/${key}`.replace(
-          /^\/+/,
-          '',
-        )
+      const absoluteKey = this.getAbsoluteKey(key)
       const cmd = new PutObjectCommand({
         Bucket: this.config.bucket,
         Key: absoluteKey,
@@ -94,13 +108,14 @@ export class S3StorageProvider implements StorageProvider {
 
   async delete(key: string): Promise<void> {
     try {
+      const absoluteKey = key.replace(/^\/+/, '')
       const cmd = new DeleteObjectCommand({
         Bucket: this.config.bucket,
-        Key: key,
+        Key: absoluteKey,
       })
 
       await this.client.send(cmd)
-      this.logger?.success(`Deleted object with key: ${key}`)
+      this.logger?.success(`Deleted object with key: ${absoluteKey}`)
     } catch (error) {
       this.logger?.error(`Failed to delete object with key: ${key}`, error)
       throw error
@@ -109,9 +124,10 @@ export class S3StorageProvider implements StorageProvider {
 
   async get(key: string): Promise<Buffer | null> {
     try {
+      const absoluteKey = key.replace(/^\/+/, '')
       const cmd = new GetObjectCommand({
         Bucket: this.config.bucket,
-        Key: key,
+        Key: absoluteKey,
       })
 
       const resp = await this.client.send(cmd)
@@ -147,17 +163,18 @@ export class S3StorageProvider implements StorageProvider {
 
   getPublicUrl(key: string): string {
     const { cdnUrl, bucket, region, endpoint } = this.config
+    const absoluteKey = key.replace(/^\/+/, '')
 
     // CDN URL
     if (cdnUrl) {
-      return `${cdnUrl.replace(/\/$/, '')}/${key}`
+      return `${cdnUrl.replace(/\/$/, '')}/${absoluteKey}`
     }
 
     // Default AWS S3 endpoint
     if (!endpoint) {
-      return `https://${bucket}.s3.${region}.amazonaws.com/${key}`
+      return `https://${bucket}.s3.${region}.amazonaws.com/${absoluteKey}`
     } else if (endpoint.includes('amazonaws.com')) {
-      return `https://${bucket}.s3.${region}.amazonaws.com/${key}`
+      return `https://${bucket}.s3.${region}.amazonaws.com/${absoluteKey}`
     }
 
     // Alibaba Cloud OSS
@@ -168,11 +185,22 @@ export class S3StorageProvider implements StorageProvider {
       }
       const protocol = baseUrl.split('//')[0]
       const remainder = baseUrl.split('//')[1]
-      return `${protocol}//${bucket}.${remainder}/${key}`
+      return `${protocol}//${bucket}.${remainder}/${absoluteKey}`
+    }
+
+    // Tencent Cloud COS
+    if (endpoint.includes('myqcloud.com')) {
+      const baseUrl = endpoint.replace(/\/$/, '')
+      if (baseUrl.indexOf('//') === -1) {
+        throw new Error('Invalid endpoint URL')
+      }
+      const protocol = baseUrl.split('//')[0]
+      const remainder = baseUrl.split('//')[1]
+      return `${protocol}//${bucket}.${remainder}/${absoluteKey}`
     }
 
     // Custom endpoint
-    return `${endpoint.replace(/\/$/, '')}/${bucket}/${key}`
+    return `${endpoint.replace(/\/$/, '')}/${bucket}/${absoluteKey}`
   }
 
   async getSignedUrl(
@@ -180,9 +208,10 @@ export class S3StorageProvider implements StorageProvider {
     expiresIn: number = 3600,
     options?: UploadOptions,
   ): Promise<string> {
+    const absoluteKey = key.replace(/^\/+/, '')
     const cmd = new PutObjectCommand({
       Bucket: this.config.bucket,
-      Key: key,
+      Key: absoluteKey,
       ContentType: options?.contentType || 'application/octet-stream',
     })
 
@@ -196,9 +225,10 @@ export class S3StorageProvider implements StorageProvider {
 
   async getFileMeta(key: string): Promise<StorageObject | null> {
     try {
+      const absoluteKey = key.replace(/^\/+/, '')
       const cmd = new GetObjectCommand({
         Bucket: this.config.bucket,
-        Key: key,
+        Key: absoluteKey,
       })
 
       const resp = await this.client.send(cmd)
@@ -208,7 +238,7 @@ export class S3StorageProvider implements StorageProvider {
       }
 
       return {
-        key,
+        key: absoluteKey,
         size: resp.ContentLength || 0,
         lastModified: resp.LastModified,
         etag: resp.ETag,

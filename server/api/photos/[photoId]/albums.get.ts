@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { and, eq, or } from 'drizzle-orm'
 import z from 'zod'
 
 export default eventHandler(async (event) => {
@@ -10,6 +10,18 @@ export default eventHandler(async (event) => {
   )
 
   const db = useDB()
+  await requirePublicPhotoAccess(event, photoId)
+  const session = await getUserSession(event)
+  const user = session.user ? await requireCurrentUser(event) : null
+  const visibilityScope =
+    user?.isAdmin
+      ? undefined
+      : user
+        ? or(
+            eq(tables.albums.isHidden, false),
+            eq(tables.albums.ownerUserId, user.id),
+          )
+        : eq(tables.albums.isHidden, false)
 
   // 获取包含该照片的所有相册
   const albums = await db
@@ -26,7 +38,11 @@ export default eventHandler(async (event) => {
       tables.albumPhotos,
       eq(tables.albums.id, tables.albumPhotos.albumId),
     )
-    .where(eq(tables.albumPhotos.photoId, photoId))
+    .where(
+      visibilityScope
+        ? and(eq(tables.albumPhotos.photoId, photoId), visibilityScope)
+        : eq(tables.albumPhotos.photoId, photoId),
+    )
     .all()
 
   return albums

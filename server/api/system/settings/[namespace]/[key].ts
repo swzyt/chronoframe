@@ -4,9 +4,10 @@ import {
   settingNamespaces,
 } from '~~/server/services/settings/contants'
 import { settingsManager } from '~~/server/services/settings/settingsManager'
-import { useDB, tables, eq } from '~~/server/utils/db'
 
 export default eventHandler(async (event) => {
+  const user = await requireAdmin(event)
+
   const { namespace, key } = await getValidatedRouterParams(
     event,
     z.object({
@@ -28,14 +29,6 @@ export default eventHandler(async (event) => {
   }
 
   if (event.method === 'PUT') {
-    const session = await requireUserSession(event)
-    if (!session || !session.user.isAdmin) {
-      throw createError({
-        statusCode: 403,
-        statusMessage: 'Admin privileges required',
-      })
-    }
-
     const { value } = await readValidatedBody(
       event,
       z.object({
@@ -43,19 +36,8 @@ export default eventHandler(async (event) => {
       }).parse,
     )
 
-    // 获取当前用户ID，如果用户不存在于数据库则返回null
-    const db = useDB()
-    const currentUser = session.user.id
-      ? db
-          .select()
-          .from(tables.users)
-          .where(eq(tables.users.id, session.user.id))
-          .get()
-      : null
-    const updatedBy = currentUser ? currentUser.id : undefined
-
     try {
-      await settingsManager.set(namespace, key, value, updatedBy)
+      await settingsManager.set(namespace, key, value, user.id)
       return { namespace, key, value }
     } catch (err) {
       throw createError({

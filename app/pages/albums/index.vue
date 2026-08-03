@@ -3,13 +3,22 @@ import { motion } from 'motion-v'
 import type { Album } from '~~/server/utils/db'
 interface AlbumWithPhotos extends Album {
   photoIds?: string[]
+  previewPhotos?: Photo[]
+  owner?: {
+    id: number
+    username: string
+    avatar?: string | null
+    isAdmin: number
+  } | null
 }
 const config = useRuntimeConfig()
 const { photos } = usePhotos()
 const { loggedIn } = useUserSession()
+const { accessEntitlement, unlockUrl } = useAccessEntitlement()
+const requestFetch = useRequestFetch()
 const { data: albums } = useAsyncData<AlbumWithPhotos[]>(
   'albums',
-  () => $fetch('/api/albums'),
+  () => requestFetch('/api/albums'),
   {
     watch: [],
   },
@@ -65,8 +74,12 @@ const columns = computed(() => {
   return cols
 })
 
-const getPhotoById = (photoId: string) => {
-  return photos.value.find((p) => p.id === photoId) || null
+const getPhotoById = (album: AlbumWithPhotos, photoId: string) => {
+  return (
+    album.previewPhotos?.find((photo) => photo.id === photoId) ||
+    photos.value.find((photo) => photo.id === photoId) ||
+    null
+  )
 }
 
 const getAlbumDisplayPhotos = (album: AlbumWithPhotos) => {
@@ -76,7 +89,7 @@ const getAlbumDisplayPhotos = (album: AlbumWithPhotos) => {
 
   // 第一张：优先使用封面照片
   if (album.coverPhotoId) {
-    const coverPhoto = getPhotoById(album.coverPhotoId)
+    const coverPhoto = getPhotoById(album, album.coverPhotoId)
     if (coverPhoto) {
       displayPhotos.push(coverPhoto)
     }
@@ -84,7 +97,7 @@ const getAlbumDisplayPhotos = (album: AlbumWithPhotos) => {
 
   // 如果没有封面照片或封面照片不存在，使用第一张
   if (displayPhotos.length === 0 && album.photoIds[0]) {
-    const firstPhoto = getPhotoById(album.photoIds[0])
+    const firstPhoto = getPhotoById(album, album.photoIds[0])
     if (firstPhoto) {
       displayPhotos.push(firstPhoto)
     }
@@ -93,7 +106,7 @@ const getAlbumDisplayPhotos = (album: AlbumWithPhotos) => {
   // 添加其他照片（最多3张）
   for (const photoId of album.photoIds) {
     if (displayPhotos.length >= 3) break
-    const photo = getPhotoById(photoId)
+    const photo = getPhotoById(album, photoId)
     if (photo && !displayPhotos.find((p) => p.id === photo.id)) {
       displayPhotos.push(photo)
     }
@@ -292,36 +305,75 @@ const hoveredAlbum = ref<number | null>(null)
 
           <!-- Album Info -->
           <div class="px-2">
-            <div class="flex flex-col gap-0">
-              <div class="flex items-center gap-8">
+            <div class="flex flex-col gap-2">
+              <div class="flex items-start gap-4">
                 <h2
-                  class="flex-1 truncate text-lg font-semibold text-neutral-800 dark:text-neutral-200 transition-colors"
+                  class="min-w-0 flex-1 text-lg font-semibold leading-tight text-neutral-800 transition-colors dark:text-neutral-200"
                   :class="{
                     'text-primary-600 dark:text-primary-400':
                       hoveredAlbum === album.id,
                   }"
                 >
-                  {{ album.title }}
+                  <span class="line-clamp-2">{{ album.title }}</span>
                 </h2>
 
                 <p
-                  class="flex items-center gap-0.5 text-sm text-neutral-600 dark:text-neutral-400"
+                  class="mt-0.5 flex shrink-0 items-center gap-1 text-xs font-medium text-neutral-500 dark:text-neutral-500"
                 >
                   <Icon
                     name="tabler:clock"
-                    class="h-lh size-4"
+                    class="size-3.5"
                   />
                   {{ $dayjs(album.createdAt).fromNow() }}
                 </p>
               </div>
+
               <p
-                class="text-sm text-neutral-600 dark:text-neutral-400 line-clamp-2"
+                class="line-clamp-2 text-sm leading-5 text-neutral-600 dark:text-neutral-400"
               >
                 {{ album.description || $t('ui.album.noDescription') }}
               </p>
+
+              <div
+                v-if="album.owner"
+                class="flex items-center justify-between gap-3 pt-0.5"
+              >
+                <div
+                  class="inline-flex min-w-0 items-center gap-2 rounded-full bg-white/70 px-2 py-1 text-xs text-neutral-600 shadow-sm ring-1 ring-neutral-200/70 transition-colors group-hover:bg-white dark:bg-neutral-900/60 dark:text-neutral-300 dark:ring-white/10 dark:group-hover:bg-neutral-900/80"
+                  :title="`${$t('common.owner')}: ${album.owner.username}`"
+                >
+                  <UAvatar
+                    :src="album.owner.avatar || undefined"
+                    :alt="album.owner.username"
+                    icon="tabler:user"
+                    size="3xs"
+                    class="shrink-0"
+                  />
+                  <span class="truncate font-medium">
+                    {{ album.owner.username }}
+                  </span>
+                  <span
+                    v-if="album.owner.isAdmin"
+                    class="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-amber-700 dark:bg-amber-400/15 dark:text-amber-300"
+                  >
+                    {{ $t('common.admin') }}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </NuxtLink>
+      </div>
+      <div
+        v-if="accessEntitlement.hasMoreAlbums"
+        class="mt-16 flex justify-center"
+      >
+        <UButton
+          size="lg"
+          icon="tabler:lock-open"
+          :label="$t('accessGate.moreAlbums')"
+          :to="unlockUrl('/albums')"
+        />
       </div>
     </div>
   </div>

@@ -6,6 +6,9 @@ import i18n, { dayjsLocales } from './i18n/i18n.options'
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
+  site: {
+    url: process.env.NUXT_PUBLIC_SITE_URL || 'http://127.0.0.1:3000',
+  },
 
   modules: [
     'reka-ui/nuxt',
@@ -42,7 +45,7 @@ export default defineNuxtConfig({
         avatarUrl: '',
       },
       map: {
-        provider: 'maplibre' as 'mapbox' | 'maplibre',
+        provider: 'maplibre' as 'mapbox' | 'maplibre' | 'amap',
         mapbox: {
           style: '',
         },
@@ -132,6 +135,9 @@ export default defineNuxtConfig({
 
   nitro: {
     preset: 'node_server',
+    externals: {
+      inline: ['unhead'],
+    },
     experimental: {
       websocket: true,
       tasks: true,

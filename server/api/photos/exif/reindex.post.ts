@@ -3,9 +3,35 @@ import {
   extractExifData,
   extractPhotoInfo,
 } from '~~/server/services/image/exif'
+import {
+  extractLocationFromGPS,
+  parseGPSCoordinates,
+} from '~~/server/services/location/geocoding'
+
+const getLocationUpdate = async (exifData: unknown) => {
+  const { latitude, longitude } = parseGPSCoordinates(exifData)
+  if (latitude === undefined || longitude === undefined) {
+    return {
+      latitude: null,
+      longitude: null,
+      country: null,
+      city: null,
+      locationName: null,
+    }
+  }
+
+  const locationInfo = await extractLocationFromGPS(latitude, longitude)
+  return {
+    latitude,
+    longitude,
+    country: locationInfo?.country ?? null,
+    city: locationInfo?.city ?? null,
+    locationName: locationInfo?.locationName ?? null,
+  }
+}
 
 export default eventHandler(async (event) => {
-  await requireUserSession(event)
+  await requireAdmin(event)
 
   const body = await readBody(event)
   const { action, photoId } = body
@@ -46,7 +72,11 @@ export default eventHandler(async (event) => {
         undefined,
         logger.chrono,
       )
+      if (!exifData) {
+        throw new Error(`No EXIF data could be extracted from photo ${photoId}`)
+      }
       const photoInfo = extractPhotoInfo(photo.storageKey!, exifData)
+      const locationUpdate = await getLocationUpdate(exifData)
 
       // 更新数据库中的 EXIF 数据
       await useDB()
@@ -56,8 +86,8 @@ export default eventHandler(async (event) => {
           title: photoInfo.title,
           dateTaken: photoInfo.dateTaken,
           tags: photoInfo.tags,
+          ...locationUpdate,
           lastModified: new Date().toISOString(),
-          thumbnailKey: `${storageProvider.config?.prefix?.replace(/\/$/, '')}/thumbnails/${photoId}.webp`,
         })
         .where(eq(tables.photos.id, photoId))
 
@@ -144,7 +174,13 @@ export default eventHandler(async (event) => {
             undefined,
             logger.chrono,
           )
+          if (!exifData) {
+            throw new Error(
+              `No EXIF data could be extracted from photo ${photo.id}`,
+            )
+          }
           const photoInfo = extractPhotoInfo(photo.storageKey!, exifData)
+          const locationUpdate = await getLocationUpdate(exifData)
 
           // 更新数据库
           await useDB()
@@ -154,8 +190,8 @@ export default eventHandler(async (event) => {
               title: photoInfo.title,
               dateTaken: photoInfo.dateTaken,
               tags: photoInfo.tags,
+              ...locationUpdate,
               lastModified: new Date().toISOString(),
-              thumbnailKey: `${storageProvider.config?.prefix?.replace(/\/$/, '')}/thumbnails/${photo.id}.webp`,
             })
             .where(eq(tables.photos.id, photo.id))
 

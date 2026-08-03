@@ -47,6 +47,12 @@ export default defineEventHandler(async (event) => {
     .replace(/\/+/g, '/')
     .replace(/^\/+/, '')
 
+  const mediaPhoto = findPhotoByMediaKey(relPath)
+  if (!mediaPhoto) {
+    throw createError({ statusCode: 404, statusMessage: 'Not Found' })
+  }
+  await requirePublicPhotoAccess(event, mediaPhoto.id)
+
   // 阻止路径穿越
   if (relPath.includes('..')) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid path' })

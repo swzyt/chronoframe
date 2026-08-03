@@ -58,6 +58,17 @@ const componentName = computed(() => {
   }
 })
 
+const getTranslatedOptions = () =>
+  props.field.ui.options
+    ? Array.from(props.field.ui.options).map((option) => ({
+        ...option,
+        label: $t(option.label),
+        description: option.description
+          ? $t(option.description)
+          : undefined,
+      }))
+    : []
+
 /**
  * Get extra props for the component
  */
@@ -76,25 +87,15 @@ const getComponentProps = (): Record<string, any> => {
       propsMap.type = type
       break
     case 'select':
-      propsMap.items = props.field.ui.options
-        ? Array.from(props.field.ui.options)
-        : []
+      propsMap.items = getTranslatedOptions()
       propsMap['label-key'] = 'label'
       propsMap['value-key'] = 'value'
       break
     case 'radio':
-      propsMap.options = props.field.ui.options
-        ? Array.from(props.field.ui.options)
-        : []
+      propsMap.options = getTranslatedOptions()
       break
     case 'tabs':
-      propsMap.items = props.field.ui.options
-        ? Array.from(props.field.ui.options).map((opt: any) => ({
-            label: $t(opt.label),
-            value: opt.value,
-            icon: opt.icon,
-          }))
-        : []
+      propsMap.items = getTranslatedOptions()
       break
     case 'textarea':
       propsMap.rows = props.field.ui.rows ?? 3

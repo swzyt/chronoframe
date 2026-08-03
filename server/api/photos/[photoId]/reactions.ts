@@ -61,6 +61,7 @@ export default defineEventHandler(async (event) => {
 
   const db = useDB()
   const method = event.method
+  await requirePublicPhotoAccess(event, photoId)
 
   // GET: 获取照片的表态统计
   if (method === 'GET') {

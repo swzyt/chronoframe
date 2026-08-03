@@ -31,6 +31,17 @@ const visibleMapFields = computed(() => {
   })
 })
 
+const visibleLocationFields = computed(() => {
+  const provider = locationState.provider
+  return locationFields.value.filter((field) => {
+    if (!field.ui.visibleIf) return true
+    if (field.ui.visibleIf.fieldKey === 'provider') {
+      return field.ui.visibleIf.value === provider
+    }
+    return true
+  })
+})
+
 const sameValue = (left: any, right: any) =>
   JSON.stringify(left ?? null) === JSON.stringify(right ?? null)
 
@@ -44,7 +55,7 @@ const isMapDirty = computed(() =>
 )
 
 const isLocationDirty = computed(() =>
-  locationFields.value.some(
+  visibleLocationFields.value.some(
     (field) =>
       !sameValue(
         locationState[field.key],
@@ -60,7 +71,7 @@ const resetMapSettings = () => {
 }
 
 const resetLocationSettings = () => {
-  locationFields.value.forEach((field) => {
+  visibleLocationFields.value.forEach((field) => {
     locationState[field.key] = field.value ?? field.defaultValue ?? null
   })
 }
@@ -78,7 +89,7 @@ const handleMapSettingsSubmit = async () => {
 
 const handleLocationSettingsSubmit = async () => {
   const locationData = Object.fromEntries(
-    locationFields.value.map((f) => [f.key, locationState[f.key]]),
+    visibleLocationFields.value.map((f) => [f.key, locationState[f.key]]),
   )
   try {
     await submitLocation(locationData)
@@ -191,7 +202,7 @@ const handleLocationSettingsSubmit = async () => {
             @submit="handleLocationSettingsSubmit"
           >
             <SettingField
-              v-for="field in locationFields"
+              v-for="field in visibleLocationFields"
               :key="field.key"
               :field="field"
               :model-value="locationState[field.key]"

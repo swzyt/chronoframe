@@ -8,6 +8,7 @@ interface MotionPhotoProcessParams {
   rawImageBuffer: Buffer
   exifData?: NeededExif | null
   storageProvider: StorageProvider
+  ownerUserId?: number
   logger?: ConsolaInstance
 }
 
@@ -111,6 +112,48 @@ const extractXmpAttributeNumber = (
   return toNumber(match[1])
 }
 
+const extractXmpAttributeString = (
+  xmp: string,
+  attrName: string,
+): string | null => {
+  const regex = new RegExp(`${buildAttrPattern(attrName)}="([^"]+)"`, 'i')
+  const match = xmp.match(regex)
+  return match?.[1] || null
+}
+
+const extractMotionPhotoContainerItems = (xmp: string) => {
+  const items: Array<{
+    semantic?: string
+    mime?: string
+    length?: number | null
+    padding?: number | null
+  }> = []
+  const itemRegex = /<[^>]*Item\b([^>]*)\/?>/gi
+  let match: RegExpExecArray | null
+
+  while ((match = itemRegex.exec(xmp)) !== null) {
+    const attrs = match[1] || ''
+    items.push({
+      semantic:
+        extractXmpAttributeString(attrs, 'Semantic') ||
+        extractXmpAttributeString(attrs, 'Item:Semantic') ||
+        undefined,
+      mime:
+        extractXmpAttributeString(attrs, 'Mime') ||
+        extractXmpAttributeString(attrs, 'Item:Mime') ||
+        undefined,
+      length:
+        extractXmpAttributeNumber(attrs, 'Length') ??
+        extractXmpAttributeNumber(attrs, 'Item:Length'),
+      padding:
+        extractXmpAttributeNumber(attrs, 'Padding') ??
+        extractXmpAttributeNumber(attrs, 'Item:Padding'),
+    })
+  }
+
+  return items
+}
+
 const validateMp4Buffer = (buffer: Buffer): boolean => {
   if (buffer.length < MIN_VIDEO_SIZE_BYTES) {
     return false
@@ -127,6 +170,7 @@ export const processMotionPhotoFromXmp = async ({
   rawImageBuffer,
   exifData,
   storageProvider,
+  ownerUserId,
   logger,
 }: MotionPhotoProcessParams): Promise<MotionPhotoProcessResult | null> => {
   try {
@@ -180,6 +224,27 @@ export const processMotionPhotoFromXmp = async ({
         extractXmpAttributeNumber(xmpSegment, 'MicroVideoOffset'),
         extractXmpAttributeNumber(xmpSegment, 'GCamera:MicroVideoOffset'),
       ].forEach((candidate) => addOffsetCandidate(candidate))
+
+      const containerItems = extractMotionPhotoContainerItems(xmpSegment)
+      const videoItems = containerItems.filter((item) => {
+        const semantic = item.semantic?.toLowerCase() || ''
+        const mime = item.mime?.toLowerCase() || ''
+        return semantic.includes('motionphoto') || mime.startsWith('video/')
+      })
+      const motionVideoItem = videoItems.at(-1)
+
+      if (motionVideoItem) {
+        detectedMotion = true
+        const length = motionVideoItem.length
+        const padding = motionVideoItem.padding || 0
+        if (length && length > 0 && length < rawLength) {
+          addOffsetCandidate(rawLength - length - padding)
+          addOffsetCandidate(rawLength - length)
+        }
+        logger?.info(
+          `[motion-photo] XMP container detected video item for ${storageKey}`,
+        )
+      }
 
       if (presentationTimestampUs === null) {
         presentationTimestampUs =
@@ -236,7 +301,7 @@ export const processMotionPhotoFromXmp = async ({
     }
 
     if (!videoBuffer) {
-      const searchWindowStart = Math.max(0, rawLength - 8 * 1024 * 1024)
+      const searchWindowStart = 0
       let cursor = rawImageBuffer.indexOf(MP4_FTYP, searchWindowStart)
       while (cursor !== -1) {
         const potentialStart = cursor - 4
@@ -265,9 +330,9 @@ export const processMotionPhotoFromXmp = async ({
       return null
     }
 
-    // todo: consider storing in a dedicated subfolder
-    // const targetKey = `motion-videos/${photoId}.mp4`
-    const targetKey = `${photoId}.mp4`
+    const targetKey = ownerUserId
+      ? `live-photos/${ownerUserId}/${photoId}.mp4`
+      : `live-photos/${photoId}.mp4`
     let storedObject
     try {
       storedObject = await storageProvider.create(

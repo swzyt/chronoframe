@@ -28,58 +28,67 @@ const navItems = computed<NavigationMenuItem[][]>(() => [
       icon: 'tabler:album',
       to: '/dashboard/albums',
     },
-    {
-      label: $t('title.queue'),
-      icon: 'tabler:list-check',
-      to: '/dashboard/queue',
-    },
-    {
-      label: $t('title.logs'),
-      icon: 'tabler:file-text',
-      to: '/dashboard/logs',
-    },
-    {
-      label: $t('title.siteAdministration'),
-      icon: 'tabler:settings',
-      defaultOpen: route.path.startsWith('/dashboard/settings'),
-      children: [
+    ...(user.value?.isAdmin
+      ? [
         {
-          label: $t('title.generalSettings'),
-          icon: 'tabler:settings-2',
-          to: '/dashboard/settings/general',
+          label: $t('title.queue'),
+          icon: 'tabler:list-check',
+          to: '/dashboard/queue',
         },
         {
-          label: $t('title.storageSettings'),
-          icon: 'tabler:database',
-          to: '/dashboard/settings/storage',
+          label: '用户管理',
+          icon: 'tabler:users',
+          to: '/dashboard/users',
         },
         {
-          label: $t('title.privacySettings'),
-          icon: 'tabler:shield-lock',
-          to: '/dashboard/settings/privacy',
+          label: $t('title.logs'),
+          icon: 'tabler:file-text',
+          to: '/dashboard/logs',
         },
         {
-          label: $t('title.mapAndLocation'),
-          icon: 'tabler:map-pin',
-          to: '/dashboard/settings/map',
+          label: $t('title.siteAdministration'),
+          icon: 'tabler:settings',
+          defaultOpen: route.path.startsWith('/dashboard/settings'),
+          children: [
+            {
+              label: $t('title.generalSettings'),
+              icon: 'tabler:settings-2',
+              to: '/dashboard/settings/general',
+            },
+            {
+              label: $t('title.storageSettings'),
+              icon: 'tabler:database',
+              to: '/dashboard/settings/storage',
+            },
+            {
+              label: $t('title.privacySettings'),
+              icon: 'tabler:shield-lock',
+              to: '/dashboard/settings/privacy',
+            },
+            {
+              label: $t('title.mapAndLocation'),
+              icon: 'tabler:map-pin',
+              to: '/dashboard/settings/map',
+            },
+            {
+              label: $t('title.systemSettings'),
+              icon: 'tabler:cpu',
+              to: '/dashboard/settings/system',
+            },
+            {
+              label: $t('title.analyticsSettings'),
+              icon: 'tabler:chart-bar',
+              to: '/dashboard/settings/analytics',
+            },
+            {
+              label: $t('title.siteSettings'),
+              icon: 'tabler:building-cog',
+              to: '/dashboard/settings/site',
+            },
+          ],
         },
-        {
-          label: $t('title.systemSettings'),
-          icon: 'tabler:cpu',
-          to: '/dashboard/settings/system',
-        },
-        {
-          label: $t('title.analyticsSettings'),
-          icon: 'tabler:chart-bar',
-          to: '/dashboard/settings/analytics',
-        },
-        {
-          label: $t('title.siteSettings'),
-          icon: 'tabler:building-cog',
-          to: '/dashboard/settings/site',
-        },
-      ],
-    },
+      ]
+      : []),
   ],
   [
     {
@@ -119,7 +128,7 @@ const handleLogin = () => {
 <template>
   <!-- TODO: unified error page -->
   <div
-    v-if="!loggedIn || !user?.isAdmin"
+    v-if="!loggedIn"
     class="h-svh flex flex-col gap-4 items-center justify-center px-4"
   >
     <Icon
@@ -128,9 +137,7 @@ const handleLogin = () => {
     />
     <p class="text-gray-500 text-center">
       {{
-        !user?.isAdmin
-          ? $t('dashboard.access.pleaseLogin')
-          : $t('dashboard.access.noAccess')
+        $t('dashboard.access.pleaseLogin')
       }}
     </p>
     <UButton @click="handleLogin">{{ $t('auth.form.signin.title') }}</UButton>

@@ -111,7 +111,55 @@ export function createTransformMatrix(
   scale: number,
   translateX: number,
   translateY: number,
+  rotation = 0,
+  sourceWidth = 0,
+  sourceHeight = 0,
 ): Float32Array {
+  const normalizedRotation =
+    (((Math.round(rotation / 90) * 90) % 360) + 360) % 360
+
+  if (normalizedRotation === 90) {
+    return new Float32Array([
+      0,
+      scale,
+      0,
+      -scale,
+      0,
+      0,
+      translateX + sourceHeight * scale,
+      translateY,
+      1,
+    ])
+  }
+
+  if (normalizedRotation === 180) {
+    return new Float32Array([
+      -scale,
+      0,
+      0,
+      0,
+      -scale,
+      0,
+      translateX + sourceWidth * scale,
+      translateY + sourceHeight * scale,
+      1,
+    ])
+  }
+
+  if (normalizedRotation === 270) {
+    return new Float32Array([
+      0,
+      -scale,
+      0,
+      scale,
+      0,
+      0,
+      translateX,
+      translateY + sourceWidth * scale,
+      1,
+    ])
+  }
+
   return new Float32Array([scale, 0, 0, 0, scale, 0, translateX, translateY, 1])
 }
 

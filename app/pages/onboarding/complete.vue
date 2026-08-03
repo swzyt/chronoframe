@@ -39,14 +39,18 @@ async function onComplete() {
     // 4. Prepare Map Data
     const mapState = store.map
     const mapProvider = mapState.provider
-    const mapTokenKey = `${mapProvider}.token`
-    const mapStyleKey = `${mapProvider}.style`
-
-    const mapData = {
-      provider: mapProvider,
-      token: mapState[mapTokenKey],
-      style: mapState[mapStyleKey],
-    }
+    const mapData =
+      mapProvider === 'amap'
+        ? {
+            provider: mapProvider,
+            key: mapState['amap.key'],
+            securityJsCode: mapState['amap.securityJsCode'],
+          }
+        : {
+            provider: mapProvider,
+            token: mapState[`${mapProvider}.token`],
+            style: mapState[`${mapProvider}.style`],
+          }
 
     // 5. Submit All
     await $fetch('/api/wizard/submit', {

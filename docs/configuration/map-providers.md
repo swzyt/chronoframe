@@ -1,11 +1,27 @@
 # Map Providers
 
-ChronoFrame supports two types of map providers. You can choose the one that best fits your needs.
+ChronoFrame supports three map providers. You can choose the one that best fits your needs.
 
 | Provider              | Supported | Extra Configuration   | Features                                     |
 | --------------------- | :-------: | --------------------- | -------------------------------------------- |
 | [MapLibre](#maplibre) |    ✅     | MapTiler Access Token | Free and open-source, supports custom styles |
 | [Mapbox](#mapbox)     |    ✅     | Mapbox Access Token   | Free tier, better renderer performance       |
+| [AMap](#amap)         |    ✅     | JS API Key + security code | Optimized for mainland China             |
+
+Map providers are configured in **Dashboard → Settings → Map & Location**.
+
+## AMap
+
+AMap is recommended for deployments whose users are primarily in mainland China.
+
+1. Complete developer verification in the [AMap Open Platform](https://lbs.amap.com/).
+2. Create an application and add a **Web (JS API)** key.
+3. Configure the key's domain allowlist.
+4. Copy both the JS API Key and its security code into ChronoFrame.
+
+ChronoFrame keeps photo coordinates as WGS-84 and converts them to GCJ-02 only at the AMap display boundary. Switching providers therefore does not rewrite or repeatedly offset stored GPS data.
+
+The browser key and security code are required for the globe, photo mini maps, and location picker. Reverse geocoding uses a separate Web Service key described in [Location Providers](./location-providers.md).
 
 ## MapLibre
 

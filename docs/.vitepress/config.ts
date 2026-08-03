@@ -46,6 +46,10 @@ export default defineConfig({
           { text: 'Getting Started', link: '/guide/getting-started' },
           { text: 'Configuration', link: '/guide/configuration' },
           { text: 'Update Guide', link: '/guide/updates' },
+          {
+            text: 'Differences from Upstream',
+            link: '/guide/fork-differences',
+          },
         ],
       },
       {

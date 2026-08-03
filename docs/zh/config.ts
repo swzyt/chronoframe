@@ -19,6 +19,10 @@ export default defineConfig({
           { text: '快速开始', link: '/zh/guide/getting-started' },
           { text: '配置说明', link: '/zh/guide/configuration' },
           { text: '升级指南', link: '/zh/guide/updates' },
+          {
+            text: '与上游仓库的差异',
+            link: '/zh/guide/fork-differences',
+          },
         ],
       },
       {

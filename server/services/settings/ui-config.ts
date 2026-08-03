@@ -59,6 +59,7 @@ export const MAP_SETTINGS_UI: Record<string, FieldUIConfig> = {
     options: [
       { label: 'MapBox', value: 'mapbox' },
       { label: 'MapLibre', value: 'maplibre' },
+      { label: 'AMap', value: 'amap' },
     ],
   },
   'mapbox.token': {
@@ -85,9 +86,35 @@ export const MAP_SETTINGS_UI: Record<string, FieldUIConfig> = {
     placeholder: 'https://example.com/style.json',
     visibleIf: { fieldKey: 'provider', value: 'maplibre' },
   },
+  'amap.key': {
+    type: 'password',
+    placeholder: 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+    required: true,
+    visibleIf: { fieldKey: 'provider', value: 'amap' },
+    help: 'settings.map.amap.key.help',
+  },
+  'amap.securityJsCode': {
+    type: 'password',
+    placeholder: 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+    required: true,
+    visibleIf: { fieldKey: 'provider', value: 'amap' },
+    help: 'settings.map.amap.securityJsCode.help',
+  },
 }
 
 export const LOCATION_SETTINGS_UI: Record<string, FieldUIConfig> = {
+  provider: {
+    type: 'select',
+    options: [
+      { label: 'settings.location.provider.options.auto', value: 'auto' },
+      { label: 'settings.location.provider.options.amap', value: 'amap' },
+      { label: 'settings.location.provider.options.mapbox', value: 'mapbox' },
+      {
+        label: 'settings.location.provider.options.nominatim',
+        value: 'nominatim',
+      },
+    ],
+  },
   language: {
     type: 'select',
     options: i18nOptions.locales.map((locale) => ({
@@ -100,11 +127,20 @@ export const LOCATION_SETTINGS_UI: Record<string, FieldUIConfig> = {
     type: 'password',
     placeholder: 'pk.xxxxxx',
     help: 'settings.location.mapbox.token.help',
+    visibleIf: { fieldKey: 'provider', value: 'mapbox' },
   },
   'nominatim.baseUrl': {
     type: 'url',
     placeholder: 'https://nominatim.openstreetmap.org',
     help: 'settings.location.nominatim.baseUrl.help',
+    visibleIf: { fieldKey: 'provider', value: 'nominatim' },
+  },
+  'amap.webServiceKey': {
+    type: 'password',
+    placeholder: 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+    required: true,
+    help: 'settings.location.amap.webServiceKey.help',
+    visibleIf: { fieldKey: 'provider', value: 'amap' },
   },
 }
 
@@ -120,7 +156,7 @@ export const ANALYTICS_SETTINGS_UI: Record<string, FieldUIConfig> = {
     type: 'textarea',
     rows: 12,
     placeholder:
-      '<!-- Google Analytics -->\n<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXX"></script>\n<script>\n  window.dataLayer = window.dataLayer || [];\n  function gtag(){dataLayer.push(arguments);}\n  gtag(\'js\', new Date());\n  gtag(\'config\', \'G-XXXX\');\n</script>',
+      "<!-- Google Analytics -->\n<script async src=\"https://www.googletagmanager.com/gtag/js?id=G-XXXX\"></script>\n<script>\n  window.dataLayer = window.dataLayer || [];\n  function gtag(){dataLayer.push(arguments);}\n  gtag('js', new Date());\n  gtag('config', 'G-XXXX');\n</script>",
     help: 'settings.analytics.headScripts.help',
   },
   bodyScripts: {
@@ -205,6 +241,62 @@ export const SYSTEM_SETTINGS_UI: Record<string, FieldUIConfig> = {
     type: 'password',
     placeholder: 'github_oauth_client_secret',
     visibleIf: { fieldKey: 'auth.github.enabled', value: true },
+  },
+  'backup.enabled': {
+    type: 'toggle',
+    help: 'settings.system.backup.enabled.help',
+  },
+  'backup.cron': {
+    type: 'input',
+    placeholder: '0 3 * * *',
+    help: 'settings.system.backup.cron.help',
+  },
+  'backup.timezone': {
+    type: 'input',
+    placeholder: 'Asia/Shanghai',
+    help: 'settings.system.backup.timezone.help',
+  },
+  'backup.retentionDays': {
+    type: 'number',
+    min: 1,
+    max: 3650,
+    help: 'settings.system.backup.retentionDays.help',
+  },
+  'backup.smtpHost': {
+    type: 'input',
+    placeholder: 'smtp.example.com',
+    help: 'settings.system.backup.smtpHost.help',
+  },
+  'backup.smtpPort': {
+    type: 'number',
+    min: 1,
+    max: 65535,
+  },
+  'backup.smtpSecure': {
+    type: 'toggle',
+  },
+  'backup.smtpUser': {
+    type: 'input',
+    placeholder: 'your-email@example.com',
+  },
+  'backup.smtpPassword': {
+    type: 'password',
+    placeholder: 'SMTP password or app password',
+  },
+  'backup.mailFrom': {
+    type: 'input',
+    placeholder: 'ChronoFrame <your-email@example.com>',
+    help: 'settings.system.backup.mailFrom.help',
+  },
+  'backup.mailTo': {
+    type: 'input',
+    placeholder: 'your-email@example.com',
+    help: 'settings.system.backup.mailTo.help',
+  },
+  'backup.encryptionPassphrase': {
+    type: 'password',
+    placeholder: 'Optional encryption passphrase',
+    help: 'settings.system.backup.encryptionPassphrase.help',
   },
 }
 

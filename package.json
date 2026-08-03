@@ -46,6 +46,7 @@
     "@nuxtjs/i18n": "10.5.0",
     "@pinia/nuxt": "^0.11.3",
     "@tailwindcss/vite": "^4.3.3",
+    "@takumi-rs/core": "2.0.0-rc.16",
     "@unhead/vue": "^2.1.16",
     "@vingle/bmp-js": "^0.2.5",
     "@vueuse/nuxt": "14.3.0",
@@ -59,6 +60,8 @@
     "heic-convert": "^2.1.0",
     "maplibre-gl": "^5.24.0",
     "motion-v": "^2.3.0",
+    "node-cron": "^4.6.0",
+    "nodemailer": "^9.0.3",
     "nuxt": "^4.5.1",
     "nuxt-auth-utils": "0.5.29",
     "nuxt-gtag": "4.1.0",
@@ -94,6 +97,7 @@
     "@nuxt/test-utils": "4.1.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/heic-convert": "^2.1.1",
+    "@types/nodemailer": "^8.0.1",
     "@vueuse/core": "^14.3.0",
     "baseline-browser-mapping": "^2.11.5",
     "consola": "^3.4.2",
@@ -106,26 +110,5 @@
     "sass-embedded": "^1.100.0",
     "typescript": "^5.9.3",
     "vitepress": "2.0.0-alpha.18"
-  },
-  "pnpm": {
-    "peerDependencyRules": {
-      "ignoreMissing": [
-        "@nuxt/kit"
-      ]
-    },
-    "overrides": {
-      "sharp": "0.35.3"
-    },
-    "ignoredBuiltDependencies": [
-      "@parcel/watcher",
-      "@tailwindcss/oxide",
-      "esbuild",
-      "unrs-resolver",
-      "vue-demi"
-    ],
-    "onlyBuiltDependencies": [
-      "better-sqlite3",
-      "sharp"
-    ]
   }
 }

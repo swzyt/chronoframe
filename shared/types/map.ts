@@ -3,8 +3,12 @@ import type { Map as _MapboxMap } from 'mapbox-gl'
 
 export type MaplibreMap = _MaplibreMap
 export type MapboxMap = _MapboxMap
+export type AMapAdapter = {
+  __provider: 'amap'
+  [key: string]: any
+}
 
-export type MapInstance = MaplibreMap | MapboxMap
+export type MapInstance = MaplibreMap | MapboxMap | AMapAdapter
 
 export const isMaplibreMap = (
   map: MapInstance,

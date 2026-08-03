@@ -19,6 +19,7 @@ const histogramData = ref<HistogramDataCompressed | null>(null)
 
 // 跟踪当前加载的缩略图，以便在切换时打断加载
 let currentImage: HTMLImageElement | null = null
+let stopThumbnailWatch: (() => void) | null = null
 
 // 清理当前正在加载的缩略图
 const cleanup = () => {
@@ -30,7 +31,7 @@ const cleanup = () => {
   }
 }
 
-watchEffect(() => {
+const loadHistogram = (thumbnailUrl: string) => {
   isLoading.value = true
   isError.value = false
   histogramData.value = null
@@ -38,17 +39,35 @@ watchEffect(() => {
   // 如果有正在加载的缩略图，打断
   cleanup()
 
-  const img = new Image()
-  currentImage = img
-  img.crossOrigin = 'anonymous'
+  if (!thumbnailUrl) {
+    isLoading.value = false
+    isError.value = true
+    return
+  }
 
-  const url = new URL(props.thumbnailUrl, window.location.origin)
-  url.searchParams.set('_cors', Date.now().toString())
+  const img = document.createElement('img')
+  currentImage = img
+  img.decoding = 'async'
+
+  const url = new URL(thumbnailUrl, window.location.origin)
+  if (url.origin !== window.location.origin) {
+    img.crossOrigin = 'anonymous'
+  }
+  url.searchParams.set('_histogram', Date.now().toString())
   img.src = url.toString()
 
   img.onload = () => {
     // 检查这是否还是当前的缩略图
     if (img !== currentImage) {
+      return
+    }
+
+    const imageWidth = img.naturalWidth || img.width
+    const imageHeight = img.naturalHeight || img.height
+    if (!imageWidth || !imageHeight) {
+      isError.value = true
+      isLoading.value = false
+      currentImage = null
       return
     }
 
@@ -60,10 +79,10 @@ watchEffect(() => {
       return
     }
 
-    const scale = 360 / Math.max(img.width, img.height)
+    const scale = 360 / Math.max(imageWidth, imageHeight)
     const [w, h] = [
-      Math.floor(img.width * scale),
-      Math.floor(img.height * scale),
+      Math.max(1, Math.floor(imageWidth * scale)),
+      Math.max(1, Math.floor(imageHeight * scale)),
     ]
     canvas.width = w
     canvas.height = h
@@ -90,6 +109,14 @@ watchEffect(() => {
     isLoading.value = false
     currentImage = null
   }
+}
+
+onMounted(() => {
+  stopThumbnailWatch = watch(
+    () => props.thumbnailUrl,
+    (thumbnailUrl) => loadHistogram(thumbnailUrl),
+    { immediate: true },
+  )
 })
 
 watchEffect(() => {
@@ -99,7 +126,11 @@ watchEffect(() => {
 })
 
 // 组件卸载时清理正在加载的缩略图
-onUnmounted(cleanup)
+onUnmounted(() => {
+  stopThumbnailWatch?.()
+  stopThumbnailWatch = null
+  cleanup()
+})
 </script>
 
 <template>
@@ -115,7 +146,9 @@ onUnmounted(cleanup)
           name="tabler:loader"
           class="text-xl animate-spin"
         />
-        <span class="text-xs font-medium">{{ $t('ui.histogram.rendering') }}</span>
+        <span class="text-xs font-medium">{{
+          $t('ui.histogram.rendering')
+        }}</span>
       </div>
     </Transition>
     <Transition name="fade">
@@ -127,7 +160,9 @@ onUnmounted(cleanup)
           name="tabler:alert-triangle"
           class="text-xl"
         />
-        <span class="text-xs font-medium">{{ $t('ui.histogram.loadError') }}</span>
+        <span class="text-xs font-medium">{{
+          $t('ui.histogram.loadError')
+        }}</span>
       </div>
     </Transition>
     <Transition name="fade">

@@ -4,6 +4,7 @@ import { motion } from 'motion-v'
 const route = useRoute()
 const router = useRouter()
 const dayjs = useDayjs()
+const { unlockUrl } = useAccessEntitlement()
 
 const albumId = computed(() => {
   const id = route.params.albumId as string
@@ -19,13 +20,24 @@ const {
 })
 
 if (error.value) {
-  throw createError({
-    statusCode: 404,
-    statusMessage: $t('album.notFound'),
-  })
+  if (error.value.statusCode === 401) {
+    await navigateTo({
+      path: '/access',
+      query: { redirect: route.fullPath },
+    })
+  } else {
+    throw createError({
+      statusCode: 404,
+      statusMessage: $t('album.notFound'),
+    })
+  }
 }
 
 const albumData = computed(() => album.value)
+const albumOwner = computed(() => (albumData.value as any)?.owner)
+const hasMoreAlbumPhotos = computed(() =>
+  Boolean((albumData.value as any)?.hasMorePhotos),
+)
 
 const albumStats = computed(() => {
   if (!albumData.value) return null
@@ -266,7 +278,36 @@ onBeforeMount(() => {
                     {{ $dayjs(albumData.createdAt).fromNow() }}
                   </span>
                 </div>
+
+                <!-- Owner -->
+                <div
+                  v-if="albumOwner"
+                  class="flex items-center gap-1"
+                >
+                  <UAvatar
+                    :src="albumOwner.avatar || undefined"
+                    :alt="albumOwner.username"
+                    icon="tabler:user"
+                    size="3xs"
+                  />
+                  <span class="text-neutral-700 dark:text-neutral-200">
+                    {{ $t('common.owner') }}
+                    <span class="text-neutral-900 dark:text-white">
+                      {{ albumOwner.username }}
+                    </span>
+                  </span>
+                </div>
               </div>
+
+              <UButton
+                v-if="hasMoreAlbumPhotos"
+                class="self-start"
+                size="sm"
+                variant="soft"
+                icon="tabler:lock-open"
+                :label="$t('accessGate.morePhotos')"
+                :to="unlockUrl(route.fullPath)"
+              />
             </div>
           </motion.div>
         </AnimatePresence>

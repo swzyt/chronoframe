@@ -71,7 +71,9 @@ const clearNonActiveTasks = async () => {
 
     toast.add({
       title: $t('dashboard.queue.messages.clearSuccess'),
-      description: $t('dashboard.queue.messages.clearSuccessDescription', { count: result.deletedCount }),
+      description: $t('dashboard.queue.messages.clearSuccessDescription', {
+        count: result.deletedCount,
+      }),
       color: 'success',
     })
 
@@ -123,7 +125,9 @@ const retryAllFailedTasks = async () => {
 
     toast.add({
       title: $t('dashboard.queue.messages.batchRetrySuccess'),
-      description: $t('dashboard.queue.messages.batchRetrySuccessDescription', { count: result.retriedCount }),
+      description: $t('dashboard.queue.messages.batchRetrySuccessDescription', {
+        count: result.retriedCount,
+      }),
       color: 'success',
     })
 
@@ -132,7 +136,8 @@ const retryAllFailedTasks = async () => {
     console.error('Batch retry failed:', error)
     toast.add({
       title: $t('dashboard.queue.messages.operationFailed'),
-      description: error?.message || $t('dashboard.queue.messages.batchRetryFailed'),
+      description:
+        error?.message || $t('dashboard.queue.messages.batchRetryFailed'),
       color: 'error',
     })
   } finally {
@@ -157,7 +162,8 @@ const deleteTask = async (taskId: number) => {
     console.error('Delete task failed:', error)
     toast.add({
       title: $t('dashboard.queue.messages.operationFailed'),
-      description: error?.message || $t('dashboard.queue.messages.deleteFailed'),
+      description:
+        error?.message || $t('dashboard.queue.messages.deleteFailed'),
       color: 'error',
     })
   }
@@ -194,6 +200,7 @@ const statusOptions = computed(() => [
 const typeOptions = computed(() => [
   { label: $t('dashboard.queue.filters.all'), value: 'all' },
   { label: $t('dashboard.queue.types.photo'), value: 'photo' },
+  { label: $t('dashboard.queue.types.video'), value: 'video' },
   {
     label: $t('dashboard.queue.types.live-photo-video'),
     value: 'live-photo-video',
@@ -344,7 +351,9 @@ onBeforeUnmount(() => {
         <UCard>
           <template #header>
             <div class="flex items-center justify-between pb-2">
-              <h2 class="text-lg font-semibold">{{ $t('dashboard.queue.taskListTitle') }}</h2>
+              <h2 class="text-lg font-semibold">
+                {{ $t('dashboard.queue.taskListTitle') }}
+              </h2>
               <div class="flex items-center gap-2">
                 <USelectMenu
                   v-model="statusFilter"
@@ -476,7 +485,9 @@ onBeforeUnmount(() => {
                     <!-- 任务ID和类型 -->
                     <div class="flex gap-4">
                       <div>
-                        <p class="text-xs text-neutral-500">{{ $t('dashboard.queue.table.detail.photoId') }}</p>
+                        <p class="text-xs text-neutral-500">
+                          {{ $t('dashboard.queue.table.detail.photoId') }}
+                        </p>
                         <p class="text-sm capitalize">
                           {{ row.original.payload.photoId || '-' }}
                         </p>
@@ -524,13 +535,14 @@ onBeforeUnmount(() => {
                       v-if="row.original.payload"
                       class="mt-3"
                     >
-                      <p class="text-xs text-gray-500 mb-1">{{ $t('dashboard.queue.table.detail.payload') }}</p>
+                      <p class="text-xs text-gray-500 mb-1">
+                        {{ $t('dashboard.queue.table.detail.payload') }}
+                      </p>
                       <pre
                         class="text-xs bg-neutral-100/50 dark:bg-neutral-800/50 p-2 rounded overflow-x-auto text-neutral-700 dark:text-neutral-300"
                         >{{
                           JSON.stringify(row.original.payload, null, 2)
-                        }}</pre
-                      >
+                        }}</pre>
                     </div>
                   </div>
                 </div>

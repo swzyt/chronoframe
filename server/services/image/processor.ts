@@ -240,7 +240,11 @@ export const preprocessImageWithJpegUpload = async (
 
         // 生成 JPEG 版本的 key（替换扩展名为 .jpg）
         const baseName = path.basename(s3key, path.extname(s3key))
-        jpegKey = `${baseName}.jpeg`
+        const directory = path.dirname(s3key)
+        jpegKey =
+          directory === '.'
+            ? `${baseName}.jpeg`
+            : `${directory}/${baseName}.jpeg`
 
         // 上传 JPEG 版本到存储
         jpegStorageKey = (

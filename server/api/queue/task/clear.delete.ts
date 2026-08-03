@@ -5,7 +5,7 @@ import { or, eq, sql } from 'drizzle-orm'
  * 清理非进行中的任务（已完成和失败的任务）
  */
 export default defineEventHandler(async (event) => {
-  await requireUserSession(event)
+  await requireAdmin(event)
 
   try {
     const query = getQuery(event)

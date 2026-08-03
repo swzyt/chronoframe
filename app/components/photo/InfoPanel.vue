@@ -20,6 +20,8 @@ interface Album {
   updatedAt: Date
 }
 
+const photoOwner = computed(() => (props.currentPhoto as any).owner)
+
 const dayjs = useDayjs()
 const router = useRouter()
 const { localizeExif } = useExifLocalization()
@@ -508,6 +510,35 @@ const onAlbumClick = (albumId: number) => {
       }"
     >
       <!-- 照片描述 -->
+      <div
+        v-if="photoOwner"
+        class="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white"
+      >
+        <UAvatar
+          :src="photoOwner.avatar || undefined"
+          :alt="photoOwner.username"
+          icon="tabler:user"
+          size="xs"
+        />
+        <div class="min-w-0">
+          <p class="text-[11px] uppercase tracking-wide text-white/50">
+            {{ $t('common.owner') }}
+          </p>
+          <p class="truncate text-sm font-medium">
+            {{ photoOwner.username }}
+          </p>
+        </div>
+        <UBadge
+          v-if="photoOwner.isAdmin"
+          size="xs"
+          variant="soft"
+          color="primary"
+          class="ml-auto"
+        >
+          {{ $t('common.admin') }}
+        </UBadge>
+      </div>
+
       <div
         v-if="currentPhoto.description"
         class="text-sm text-white text-justify"

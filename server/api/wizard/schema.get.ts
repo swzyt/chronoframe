@@ -257,6 +257,12 @@ export default eventHandler(async (event) => {
                 icon: 'simple-icons:maplibre',
                 description: 'wizard.map.provider.maplibre.description',
               },
+              {
+                label: 'wizard.map.provider.amap.label',
+                value: 'amap',
+                icon: 'tabler:map-pin',
+                description: 'wizard.map.provider.amap.description',
+              },
             ],
           },
         }

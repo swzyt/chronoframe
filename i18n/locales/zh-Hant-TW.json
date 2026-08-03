@@ -1,4 +1,32 @@
 {
+  "accessGate": {
+    "title": "輸入存取密碼查看更多",
+    "description": "驗證後可查看全部相片、相簿和地球儀內容。",
+    "passwordLabel": "存取密碼",
+    "unlock": "解鎖全部內容",
+    "internalLogin": "內部使用者登入",
+    "morePhotos": "輸入密碼查看更多相片",
+    "moreAlbums": "輸入密碼查看更多相簿",
+    "moreLocations": "查看更多位置",
+    "errors": {
+      "rateLimited": "嘗試次數過多，請在 15 分鐘後重試。",
+      "invalidPassword": "存取密碼不正確。"
+    },
+    "settings": {
+      "title": "網站存取保護",
+      "description": "啟用後，訪客可先瀏覽指定數量的內容，輸入密碼後可查看全部內容。",
+      "enabled": "要求訪客輸入存取密碼",
+      "photoLimit": "免費預覽相片數",
+      "photoLimitDescription": "未驗證訪客可查看的最新相片數量。",
+      "albumLimit": "免費預覽相簿數",
+      "albumLimitDescription": "未驗證訪客可查看的最新公開相簿數量。",
+      "passwordConfigured": "已設定密碼；留空表示保持不變。",
+      "passwordRequired": "首次啟用時必須設定至少 8 位密碼。",
+      "passwordPlaceholder": "至少 8 位",
+      "saved": "存取保護設定已儲存",
+      "saveFailed": "儲存失敗"
+    }
+  },
   "map": {
     "cluster": {
       "details": "點選圖片查看詳細資訊",
@@ -45,6 +73,8 @@
       },
       "sort": {
         "options": {
+          "lastModifiedDesc": "上次修改（最新的在前）",
+          "lastModifiedAsc": "上次修改（最舊的在前）",
           "dateTakenAsc": "日期（最舊的在前）",
           "dateTakenDesc": "日期（最新的在前）",
           "fileSizeAsc": "檔案大小（升冪）",
@@ -121,6 +151,9 @@
       "backtotop": {
         "tooltip": "回到頂部",
         "ariaLabel": "回到頂部"
+      },
+      "albumFlow": {
+        "tooltip": "相片流光牆"
       }
     },
     "stats": {
@@ -183,6 +216,17 @@
       },
       "mobile": "點兩下或雙指縮放",
       "desktop": "點兩下或使用滑鼠滾輪縮放"
+    },
+    "autoplay": {
+      "play": "自動播放",
+      "pause": "暫停自動播放"
+    },
+    "rotate": {
+      "clockwise": "順時針旋轉"
+    },
+    "fullscreen": {
+      "enter": "全螢幕查看",
+      "exit": "退出全螢幕"
     },
     "reaction": {
       "add": "表態",
@@ -345,7 +389,8 @@
         "auto": "自動",
         "manual": "手動",
         "auto1": "正常校正，中性",
-        "auto2": "保留環境暖色"
+        "auto2": "保留環境暖色",
+        "colorTemperatureColorFilter": "色溫與色彩濾鏡"
       },
       "sceneCaptureType": {
         "standard": "標準",
@@ -401,7 +446,16 @@
     "storageSettings": "儲存設定",
     "systemSettings": "系統設定",
     "analyticsSettings": "分析與追蹤",
-    "siteSettings": "站點外觀與合規"
+    "siteSettings": "站點外觀與合規",
+    "albumFlow": "相片流光牆",
+    "users": "使用者管理"
+  },
+  "albumFlow": {
+    "eyebrow": "流動相片",
+    "title": "讓相片在螢幕上自己呼吸",
+    "description": "把目前可見相片獨立成流光相片牆，適合大螢幕展示與投影瀏覽，未解鎖訪客仍只會看到允許預覽的內容。",
+    "empty": "還沒有可展示的相片。",
+    "photoCount": "{count} 張相片"
   },
   "auth": {
     "form": {
@@ -475,13 +529,19 @@
       "continue": "繼續",
       "delete": "刪除"
     },
-    "unknownError": "未知錯誤"
+    "unknownError": "未知錯誤",
+    "owner": "擁有者",
+    "admin": "管理員"
   },
   "dashboard": {
     "photos": {
       "title": "上傳照片",
       "subtitle": "上傳後照片會自動處理並新增到您的圖庫。您稍後可以在 {0} 中組織您的照片。",
-      "supportedFormats": "JPEG / PNG / HEIC / 原況照片 / 動態照片",
+      "supportedFormats": "JPEG / PNG / HEIC / MP4 / 原況照片 / 動態照片",
+      "mediaTypes": {
+        "image": "照片",
+        "video": "影片"
+      },
       "maxFileSize": "最大 {size}MB",
       "buttons": {
         "upload": "上傳照片",
@@ -489,7 +549,11 @@
       },
       "uploader": {
         "label": "拖曳或點擊選擇照片",
-        "description": "支援 JPEG、PNG、HEIC 格式的照片，以及 MOV 格式的原況照片影片。每個檔案的最大大小：{maxSize}MB"
+        "description": "支援 JPEG、PNG、HEIC 照片、Android 原始動態照片、MP4 影片，以及 iPhone 原況照片配對 MOV。每個檔案的最大大小：{maxSize}MB",
+        "livePhotoGuide": {
+          "title": "原況照片與動態照片",
+          "description": "Android 動態照片通常直接上傳原始照片檔即可。iPhone 原況照片需要把照片和同名 MOV 一起上傳，例如 IMG_1234.HEIC 與 IMG_1234.MOV。"
+        }
       },
       "toolbar": {
         "title": "照片管理",
@@ -499,7 +563,8 @@
       "photoFilter": {
         "all": "所有照片",
         "livephoto": "原況照片",
-        "static": "靜態照片"
+        "static": "靜態照片",
+        "video": "影片"
       },
       "stats": {
         "photos": "張照片",
@@ -513,6 +578,8 @@
           },
           "id": "照片 ID",
           "title": "照片標題",
+          "mediaType": "媒體類型",
+          "albums": "所在相簿",
           "tags": "關鍵字",
           "rating": "評分",
           "isLivePhoto": "原況照片",
@@ -522,7 +589,8 @@
           "fileSize": "檔案大小",
           "colorSpace": "色彩空間",
           "reactions": "反應",
-          "actions": "操作"
+          "actions": "操作",
+          "owner": "擁有者"
         },
         "cells": {
           "noTags": "無標籤",
@@ -530,7 +598,9 @@
           "noGps": "沒有 GPS 資訊",
           "unknown": "未知",
           "staticPhoto": "靜態照片",
-          "noReactions": "無反應"
+          "noReactions": "無反應",
+          "noAlbums": "無相簿",
+          "moreAlbums": "+{count} 個"
         },
         "columnVisibility": {
           "button": "列設定",
@@ -552,6 +622,7 @@
         "selected": "已選擇 {count} / {total} 列",
         "batchReprocess": "批量重新處理",
         "batchEraseLocation": "抹除位置資訊",
+        "batchAlbums": "設定相簿",
         "batchDownload": "批量下載",
         "batchDelete": "批量刪除"
       },
@@ -649,6 +720,8 @@
         "eraseLocationFailed": "抹除位置資訊任務新增失敗",
         "batchEraseLocationQueued": "已新增 {count} 條抹除位置資訊任務",
         "batchEraseLocationFailed": "批量抹除位置資訊任務新增失敗",
+        "batchAlbumsUpdateSuccess": "已更新 {count} 張照片的相簿歸屬",
+        "batchAlbumsUpdateFailed": "批次設定相簿失敗",
         "taskSubmitFailed": "提交任務失敗",
         "taskStatusCheckFailed": "檢查任務狀態失敗",
         "uploadFailed": "上傳失敗"
@@ -660,7 +733,7 @@
         "allFilesTooLarge": "所選 {count} 個檔案皆超過最大大小限制（{maxSize}MB）。",
         "filesTooLargeSkipped": "已略過 {count} 個過大檔案（上限 {maxSize}MB），其餘檔案將繼續上傳。",
         "filesUnsupportedSkipped": "已略過 {count} 個不支援格式的檔案，其餘檔案將繼續上傳。",
-        "unsupportedFormat": "不支援的檔案格式：{type}。請選擇 JPEG、PNG 或 HEIC 照片，或 MOV 格式的原況照片影片。",
+        "unsupportedFormat": "不支援的檔案格式：{type}。請選擇 JPEG、PNG 或 HEIC 照片、MP4 影片，或 MOV 格式的原況照片影片。",
         "fileTooLarge": "檔案過大：{size}MB。最大支援：{maxSize}MB。",
         "uploadFailed": "上傳失敗",
         "uploadNetworkError": "網路連線失敗或 CORS 錯誤。請檢查網路和儲存配置。",
@@ -700,12 +773,29 @@
           "noLocation": "未選擇位置",
           "rating": "評分",
           "ratingHint": "點擊星星為照片設定評分（0-5 星）。",
-          "noRating": "未評分"
+          "noRating": "未評分",
+          "albums": "歸屬相簿",
+          "loadingAlbums": "正在載入相簿...",
+          "noAlbumOptions": "暫無可選相簿"
         },
         "actions": {
           "cancel": "取消",
           "save": "儲存變更"
         }
+      },
+      "batchAlbums": {
+        "title": "批次設定相簿",
+        "description": "將對選取的 {count} 張照片套用相簿變更。",
+        "mode": "操作方式",
+        "modes": {
+          "replace": "替換為所選相簿",
+          "add": "加入所選相簿",
+          "remove": "從所選相簿移除"
+        },
+        "clearWarning": "未選取任何相簿，儲存後將清空這些照片目前可管理的相簿歸屬。",
+        "selectAlbumRequired": "請至少選取一個相簿",
+        "cancel": "取消",
+        "save": "儲存變更"
       },
       "uploadQueueItem": {
         "status": {
@@ -787,8 +877,14 @@
           "title": "標題",
           "description": "描述",
           "photoCount": "照片數",
+          "visibility": "可見性",
           "createdAt": "建立時間",
-          "actions": "操作"
+          "actions": "操作",
+          "owner": "擁有者"
+        },
+        "visibility": {
+          "public": "公開",
+          "hidden": "隱藏"
         }
       },
       "modal": {
@@ -798,6 +894,7 @@
         "searchPlaceholder": "搜尋照片...",
         "searchResults": "結果：{current} / {total}",
         "selectAll": "全選",
+        "unassignedOnly": "僅無相簿照片",
         "setCover": "設為封面",
         "noPhotos": "暫無照片",
         "noResults": "未找到相符的照片",
@@ -936,6 +1033,7 @@
       "types": {
         "photo": "照片處理",
         "live-photo-video": "LivePhoto影片",
+        "video": "MP4 影片",
         "photo-reverse-geocoding": "照片逆地理編碼",
         "photo-erase-location": "照片位置資訊抹除"
       },
@@ -1003,6 +1101,49 @@
     },
     "nav": {
       "documentation": "文件"
+    },
+    "users": {
+      "actions": {
+        "createUser": "建立使用者",
+        "create": "建立",
+        "resetPassword": "重設密碼",
+        "promote": "設為管理員",
+        "demote": "降為普通使用者",
+        "enable": "啟用",
+        "disable": "停用"
+      },
+      "roles": {
+        "admin": "管理員",
+        "user": "普通使用者"
+      },
+      "status": {
+        "inactive": "已停用"
+      },
+      "stats": {
+        "summary": "{photos} 張照片 · {albums} 個相簿"
+      },
+      "fields": {
+        "username": "使用者名稱",
+        "email": "電子郵件",
+        "initialPassword": "初始密碼",
+        "passwordHint": "至少 8 位",
+        "createAsAdmin": "建立為管理員"
+      },
+      "create": {
+        "title": "建立使用者"
+      },
+      "prompts": {
+        "resetPassword": "為 {username} 設定新密碼（至少 8 位）",
+        "deleteUser": "刪除 {username}？其內容將轉移給你。"
+      },
+      "messages": {
+        "created": "使用者已建立",
+        "createFailed": "建立失敗",
+        "operationFailed": "操作失敗",
+        "passwordReset": "密碼已重設",
+        "deleted": "使用者已刪除",
+        "deleteFailed": "刪除失敗"
+      }
     }
   },
   "settings": {
@@ -1047,7 +1188,8 @@
       "sections": {
         "thirdPartyLogin": "第三方登入",
         "fileProcessing": "檔案處理",
-        "debugSettings": "除錯設定"
+        "debugSettings": "除錯設定",
+        "databaseBackup": "資料庫備份"
       },
       "upload": {
         "duplicateCheck": {
@@ -1089,6 +1231,72 @@
           }
         }
       },
+      "backup": {
+        "enabled": {
+          "label": "啟用定時資料庫備份",
+          "description": "依排程將 SQLite 資料庫備份寄送到指定信箱。",
+          "help": "只備份資料庫，不包含本機儲存中的原始檔案。"
+        },
+        "cron": {
+          "label": "備份計畫 Cron",
+          "description": "定時寄送備份的 cron 表達式。",
+          "help": "預設 0 3 * * * 表示每天凌晨 3 點執行。"
+        },
+        "timezone": {
+          "label": "備份時區",
+          "description": "cron 表達式使用的時區。",
+          "help": "例如 Asia/Shanghai、UTC、America/Los_Angeles。"
+        },
+        "retentionDays": {
+          "label": "本機備份保留天數",
+          "description": "超過該天數的本機備份檔會自動清理。",
+          "help": "郵件寄送成功後仍會在伺服器 data/backups 下保留備份。"
+        },
+        "smtpHost": {
+          "label": "SMTP 主機",
+          "description": "用於寄送備份郵件的 SMTP 伺服器位址。",
+          "help": "例如 smtp.qq.com、smtp.gmail.com、smtp.example.com。"
+        },
+        "smtpPort": {
+          "label": "SMTP 連接埠",
+          "description": "SMTP 伺服器連接埠，常見為 465 或 587。"
+        },
+        "smtpSecure": {
+          "label": "使用 SSL/TLS",
+          "description": "465 連接埠通常啟用；587 連接埠通常關閉並使用 STARTTLS。"
+        },
+        "smtpUser": {
+          "label": "SMTP 使用者名稱",
+          "description": "用於登入 SMTP 的信箱或帳號。"
+        },
+        "smtpPassword": {
+          "label": "SMTP 密碼",
+          "description": "SMTP 登入密碼或信箱授權碼。"
+        },
+        "mailFrom": {
+          "label": "寄件者",
+          "description": "備份郵件的寄件者地址。",
+          "help": "可填寫 ChronoFrame, your-email(at)example.com；留空時使用 SMTP 使用者名稱。"
+        },
+        "mailTo": {
+          "label": "收件者",
+          "description": "接收資料庫備份的信箱地址。",
+          "help": "多個信箱可用逗號、分號或換行分隔。"
+        },
+        "encryptionPassphrase": {
+          "label": "備份加密口令",
+          "description": "填寫後，附件會先加密再寄送。",
+          "help": "請妥善保存口令；遺失後無法還原加密備份。"
+        },
+        "actions": {
+          "runNow": "立即寄送備份"
+        },
+        "messages": {
+          "runSuccess": "備份郵件已寄送",
+          "runSuccessDescription": "{fileName} 已寄送到 {recipients}",
+          "runFailed": "備份寄送失敗"
+        }
+      },
       "sectionDescription": "設定系統級行為參數。這裡的修改會影響全域上傳和服務行為。"
     },
     "map": {
@@ -1118,9 +1326,33 @@
           "description": "MapLibre 地圖樣式 URL"
         }
       },
+      "amap": {
+        "key": {
+          "label": "高德 JS API Key",
+          "description": "用於瀏覽器地圖顯示的高德 Web 端 Key",
+          "help": "請在高德控制台建立 Web 端（JS API）Key，並設定網站網域白名單"
+        },
+        "securityJsCode": {
+          "label": "高德安全金鑰",
+          "description": "高德 JS API 的安全金鑰",
+          "help": "2021 年 12 月 2 日後申請的 Key 必須搭配安全金鑰使用"
+        },
+        "missingConfig": "請先在後台地圖設定中同時配置高德 JS API Key 和安全密鑰",
+        "loadError": "高德地圖載入失敗，請檢查 Key、安全密鑰、網域白名單和網路連線"
+      },
       "sectionDescription": "設定地圖展示與地理編碼服務。地圖服務商會影響地圖樣式與存取憑證。"
     },
     "location": {
+      "provider": {
+        "label": "位置服務商",
+        "description": "選擇相片反向地理編碼服務",
+        "options": {
+          "auto": "自動（相容舊設定）",
+          "amap": "高德地圖",
+          "mapbox": "Mapbox",
+          "nominatim": "Nominatim"
+        }
+      },
       "language": {
         "label": "地理位置語言",
         "description": "進行逆地理編碼時所使用的語言",
@@ -1138,6 +1370,13 @@
           "label": "Nominatim 基礎 URL",
           "description": "Nominatim 反向地理編碼 API 的基礎 URL",
           "help": "留空則預設使用公開 Nominatim 服務"
+        }
+      },
+      "amap": {
+        "webServiceKey": {
+          "label": "高德 Web 服務 Key",
+          "description": "用於伺服器端反向地理編碼的高德 Web 服務 Key",
+          "help": "請建立服務平台為「Web 服務」的獨立 Key；此 Key 不會傳送到瀏覽器"
         }
       }
     },
@@ -1382,6 +1621,10 @@
         "maplibre": {
           "label": "MapLibre",
           "description": "Mapbox GL JS 的開源分支。"
+        },
+        "amap": {
+          "label": "高德地圖",
+          "description": "適合中國大陸存取的高德 Web 地圖服務。"
         }
       }
     },

@@ -6,13 +6,31 @@ import { Icon, UBadge } from '#components'
 import ThumbImage from '~/components/ui/ThumbImage.vue'
 
 const UCheckbox = resolveComponent('UCheckbox')
+const UAvatar = resolveComponent('UAvatar')
 const Rating = resolveComponent('Rating')
+
+interface PhotoAlbumSummary {
+  id: number
+  title: string
+  isHidden: boolean
+  ownerUserId: number
+}
+
+type ManagedPhoto = Photo & {
+  albums?: PhotoAlbumSummary[]
+  albumIds?: number[]
+}
+
+type BatchAlbumMode = 'replace' | 'add' | 'remove'
 
 // 列名显示映射
 const columnNameMap = computed<Record<string, string>>(() => ({
   thumbnailUrl: $t('dashboard.photos.table.columns.thumbnail.title'),
   id: $t('dashboard.photos.table.columns.id'),
   title: $t('dashboard.photos.table.columns.title'),
+  mediaType: $t('dashboard.photos.table.columns.mediaType'),
+  owner: $t('dashboard.photos.table.columns.owner'),
+  albums: $t('dashboard.photos.table.columns.albums'),
   tags: $t('dashboard.photos.table.columns.tags'),
   rating: $t('dashboard.photos.table.columns.rating'),
   isLivePhoto: $t('dashboard.photos.table.columns.isLivePhoto'),
@@ -44,6 +62,7 @@ const systemUploadEraseLocationDefault = computed(() => {
 })
 
 const dayjs = useDayjs()
+const requestFetch = useRequestFetch()
 
 const { status, refresh } = usePhotos()
 const { filteredPhotos, selectedCounts, hasActiveFilters } = usePhotoFilters()
@@ -92,7 +111,7 @@ const fetchReactions = async (photoIds: string[]) => {
 
   reactionsLoading.value = true
   try {
-    const data = await $fetch('/api/photos/reactions', {
+    const data = await requestFetch('/api/photos/reactions', {
       query: { ids: photoIds },
     })
     reactionsData.value = data as Record<string, Record<string, number>>
@@ -142,17 +161,26 @@ interface EditFormState {
   description: string
   tags: string[]
   rating: number | null
+  albumIds: number[]
 }
 
-const editingPhoto = ref<Photo | null>(null)
+const editingPhoto = ref<ManagedPhoto | null>(null)
 const isEditModalOpen = ref(false)
 const isSavingMetadata = ref(false)
+const albumOptions = ref<PhotoAlbumSummary[]>([])
+const isLoadingAlbumOptions = ref(false)
+const isBatchAlbumModalOpen = ref(false)
+const isSavingBatchAlbums = ref(false)
+const batchAlbumMode = ref<BatchAlbumMode>('replace')
+const batchAlbumIds = ref<number[]>([])
+const batchAlbumPhotos = ref<ManagedPhoto[]>([])
 
 const editFormState = reactive<EditFormState>({
   title: '',
   description: '',
   tags: [],
   rating: null,
+  albumIds: [],
 })
 
 const originalMetadata = ref<{
@@ -161,12 +189,14 @@ const originalMetadata = ref<{
   tags: string[]
   location: { latitude: number; longitude: number } | null
   rating: number | null
+  albumIds: number[]
 }>({
   title: '',
   description: '',
   tags: [],
   location: null,
   rating: null,
+  albumIds: [],
 })
 
 const locationSelection = ref<{ latitude: number; longitude: number } | null>(
@@ -193,6 +223,93 @@ const areTagListsEqual = (a: string[], b: string[]): boolean => {
     return false
   }
   return a.every((tag, index) => tag === b[index])
+}
+
+const areNumberListsEqual = (a: number[], b: number[]): boolean => {
+  if (a.length !== b.length) {
+    return false
+  }
+  const sortedA = [...a].sort((left, right) => left - right)
+  const sortedB = [...b].sort((left, right) => left - right)
+  return sortedA.every((value, index) => value === sortedB[index])
+}
+
+const getPhotoAlbumIds = (photo: ManagedPhoto): number[] => {
+  if (Array.isArray(photo.albumIds)) {
+    return photo.albumIds
+  }
+  return (photo.albums || []).map((album) => album.id)
+}
+
+const loadAlbumOptions = async () => {
+  if (isLoadingAlbumOptions.value) {
+    return
+  }
+
+  isLoadingAlbumOptions.value = true
+  try {
+    const response = await $fetch('/api/albums?scope=manage')
+    albumOptions.value = (response as any[]).map((album) => ({
+      id: album.id,
+      title: album.title,
+      isHidden: album.isHidden,
+      ownerUserId: album.ownerUserId,
+    }))
+  } catch (error) {
+    console.error('加载相簿选项失败:', error)
+    toast.add({
+      title: $t('dashboard.albums.messages.loadError'),
+      color: 'error',
+    })
+  } finally {
+    isLoadingAlbumOptions.value = false
+  }
+}
+
+const toggleEditAlbum = (albumId: number, selected: boolean) => {
+  if (selected) {
+    if (!editFormState.albumIds.includes(albumId)) {
+      editFormState.albumIds = [...editFormState.albumIds, albumId]
+    }
+    return
+  }
+
+  editFormState.albumIds = editFormState.albumIds.filter((id) => id !== albumId)
+}
+
+const toggleBatchAlbum = (albumId: number, selected: boolean) => {
+  if (selected) {
+    if (!batchAlbumIds.value.includes(albumId)) {
+      batchAlbumIds.value = [...batchAlbumIds.value, albumId]
+    }
+    return
+  }
+
+  batchAlbumIds.value = batchAlbumIds.value.filter((id) => id !== albumId)
+}
+
+const batchAlbumModeItems = computed(() => [
+  {
+    label: $t('dashboard.photos.batchAlbums.modes.replace'),
+    value: 'replace',
+    icon: 'tabler:arrows-exchange',
+  },
+  {
+    label: $t('dashboard.photos.batchAlbums.modes.add'),
+    value: 'add',
+    icon: 'tabler:playlist-add',
+  },
+  {
+    label: $t('dashboard.photos.batchAlbums.modes.remove'),
+    value: 'remove',
+    icon: 'tabler:playlist-x',
+  },
+])
+
+const selectedTablePhotos = () => {
+  const selectedRowModel = table.value?.tableApi?.getFilteredSelectedRowModel()
+  return (selectedRowModel?.rows.map((row: any) => row.original) ||
+    []) as ManagedPhoto[]
 }
 
 const tagsModel = computed<string[]>({
@@ -243,13 +360,22 @@ const ratingChanged = computed(
   () => editFormState.rating !== originalMetadata.value.rating,
 )
 
+const albumsChanged = computed(
+  () =>
+    !areNumberListsEqual(
+      editFormState.albumIds,
+      originalMetadata.value.albumIds,
+    ),
+)
+
 const isMetadataDirty = computed(
   () =>
     titleChanged.value ||
     descriptionChanged.value ||
     tagsChanged.value ||
     locationChanged.value ||
-    ratingChanged.value,
+    ratingChanged.value ||
+    albumsChanged.value,
 )
 
 const formattedCoordinates = computed(() => {
@@ -373,19 +499,25 @@ const uploadImage = async (
         uploadingFiles.value = new Map(uploadingFiles.value)
 
         try {
-          // 检查是否为MOV视频文件（通过MIME类型或文件扩展名）
+          // MOV is reserved for Live Photo pairing; MP4 is a standalone video.
           const isMovFile =
             file.type === 'video/quicktime' ||
-            file.type === 'video/mp4' ||
             file.name.toLowerCase().endsWith('.mov')
+          const isMp4File =
+            file.type === 'video/mp4' ||
+            file.name.toLowerCase().endsWith('.mp4')
 
           const resp = await $fetch('/api/queue/add-task', {
             method: 'POST',
             body: {
               payload: {
-                type: isMovFile ? 'live-photo-video' : 'photo',
+                type: isMovFile
+                  ? 'live-photo-video'
+                  : isMp4File
+                    ? 'video'
+                    : 'photo',
                 storageKey: signedUrlResponse.fileKey,
-                ...(isMovFile
+                ...(isMovFile || isMp4File
                   ? {}
                   : {
                       eraseLocation:
@@ -393,7 +525,7 @@ const uploadImage = async (
                         systemUploadEraseLocationDefault.value,
                     }),
               },
-              priority: isMovFile ? 0 : 1, // Live Photo 视频优先级更低，确保图片优先处理
+              priority: isMovFile ? 0 : 1,
               maxAttempts: 3,
             },
           })
@@ -536,15 +668,25 @@ watch(isEditModalOpen, (open) => {
     editFormState.description = ''
     editFormState.tags = []
     editFormState.rating = null
+    editFormState.albumIds = []
     originalMetadata.value = {
       title: '',
       description: '',
       tags: [],
       location: null,
       rating: null,
+      albumIds: [],
     }
     locationSelection.value = null
     locationTouched.value = false
+  }
+})
+
+watch(isBatchAlbumModalOpen, (open) => {
+  if (!open) {
+    batchAlbumMode.value = 'replace'
+    batchAlbumIds.value = []
+    batchAlbumPhotos.value = []
   }
 })
 
@@ -558,6 +700,8 @@ const columnVisibility = ref({
   id: true,
   actions: true,
   title: true,
+  mediaType: true,
+  owner: true,
   tags: true,
   rating: true,
   isLivePhoto: true,
@@ -566,6 +710,7 @@ const columnVisibility = ref({
   lastModified: true,
   fileSize: true,
   colorSpace: true,
+  albums: true,
   reactions: true,
 })
 
@@ -584,12 +729,14 @@ const livePhotoStats = computed(() => {
   const livePhotos = filteredPhotos.value.filter(
     (photo: Photo) => photo.isLivePhoto,
   ).length
-  const staticPhotos = total - livePhotos
+  const staticPhotos = filteredPhotos.value.filter(
+    (photo: Photo) => photo.mediaType !== 'video' && !photo.isLivePhoto,
+  ).length
 
   return { total, livePhotos, staticPhotos }
 })
 
-const photoFilter = ref<'all' | 'livephoto' | 'static'>('all')
+const photoFilter = ref<'all' | 'livephoto' | 'static' | 'video'>('all')
 
 const filteredData = computed(() => {
   if (!filteredPhotos.value) return []
@@ -598,7 +745,13 @@ const filteredData = computed(() => {
     case 'livephoto':
       return filteredPhotos.value.filter((photo: Photo) => photo.isLivePhoto)
     case 'static':
-      return filteredPhotos.value.filter((photo: Photo) => !photo.isLivePhoto)
+      return filteredPhotos.value.filter(
+        (photo: Photo) => photo.mediaType !== 'video' && !photo.isLivePhoto,
+      )
+    case 'video':
+      return filteredPhotos.value.filter(
+        (photo: Photo) => photo.mediaType === 'video',
+      )
     default:
       return filteredPhotos.value
   }
@@ -840,6 +993,84 @@ const columns = computed<TableColumn<Photo>[]>(() => [
     header: $t('dashboard.photos.table.columns.title'),
   },
   {
+    accessorKey: 'mediaType',
+    header: $t('dashboard.photos.table.columns.mediaType'),
+    cell: ({ row }) =>
+      h(
+        UBadge,
+        {
+          color: row.original.mediaType === 'video' ? 'primary' : 'neutral',
+          variant: 'soft',
+        },
+        () =>
+          $t(
+            `dashboard.photos.mediaTypes.${row.original.mediaType || 'image'}`,
+          ),
+      ),
+  },
+  {
+    accessorKey: 'owner',
+    header: $t('dashboard.photos.table.columns.owner'),
+    cell: ({ row }) => {
+      const owner = (row.original as any).owner
+      if (!owner) {
+        return h(
+          'span',
+          { class: 'text-neutral-400 text-xs' },
+          $t('dashboard.photos.table.cells.unknown'),
+        )
+      }
+      return h('div', { class: 'flex items-center gap-2 min-w-36' }, [
+        h(UAvatar, {
+          src: owner.avatar || undefined,
+          alt: owner.username,
+          icon: 'tabler:user',
+          size: 'xs',
+        }),
+        h('span', { class: 'truncate text-sm font-medium' }, owner.username),
+        owner.isAdmin
+          ? h(UBadge, { size: 'xs', variant: 'soft', color: 'primary' }, () =>
+              $t('common.admin'),
+            )
+          : null,
+      ])
+    },
+  },
+  {
+    accessorKey: 'albums',
+    header: $t('dashboard.photos.table.columns.albums'),
+    cell: ({ row }) => {
+      const albums = ((row.original as ManagedPhoto).albums || []).filter(
+        Boolean,
+      )
+      if (albums.length === 0) {
+        return h(
+          'span',
+          { class: 'text-neutral-400 text-xs' },
+          $t('dashboard.photos.table.cells.noAlbums'),
+        )
+      }
+
+      return h(
+        'div',
+        { class: 'flex min-w-48 max-w-80 flex-wrap items-center gap-1' },
+        albums.map((album) =>
+          h(
+            UBadge,
+            {
+              key: album.id,
+              size: 'sm',
+              variant: album.isHidden ? 'outline' : 'soft',
+              color: album.isHidden ? 'neutral' : 'primary',
+              icon: album.isHidden ? 'tabler:lock' : 'tabler:album',
+            },
+            () => album.title,
+          ),
+        ),
+      )
+    },
+  },
+  {
     accessorKey: 'tags',
     header: $t('dashboard.photos.table.columns.tags'),
     cell: ({ row }) => {
@@ -1076,20 +1307,27 @@ const validateFile = (
     'image/heic',
     'image/heif',
     'video/quicktime', // MOV 文件
+    'video/mp4',
   ]
 
   const isValidImageType = allowedTypes.includes(file.type)
-  const isValidImageExtension = ['.heic', '.heif'].some((ext) =>
+  const isValidImageExtension = [
+    '.jpg',
+    '.jpeg',
+    '.png',
+    '.heic',
+    '.heif',
+  ].some((ext) => file.name.toLowerCase().endsWith(ext))
+  const isValidVideoExtension = ['.mov', '.mp4'].some((ext) =>
     file.name.toLowerCase().endsWith(ext),
   )
-  const isValidVideoExtension = file.name.toLowerCase().endsWith('.mov')
 
   if (!isValidImageType && !isValidImageExtension && !isValidVideoExtension) {
     return {
       valid: false,
       reason: 'unsupported-format',
       error: $t('dashboard.photos.errors.unsupportedFormat', {
-        type: file.type,
+        type: file.type || file.name.split('.').pop() || 'unknown',
       }),
     }
   }
@@ -1251,18 +1489,22 @@ const handleUpload = async () => {
 }
 
 const openMetadataEditor = (photo: Photo) => {
+  void loadAlbumOptions()
+  const managedPhoto = photo as ManagedPhoto
   const initialTitle = photo.title?.trim() ?? ''
   const initialDescription = photo.description?.trim() ?? ''
   const initialTags = normalizeTagList(photo.tags ?? [])
+  const initialAlbumIds = getPhotoAlbumIds(managedPhoto)
   const hasCoordinates =
     typeof photo.latitude === 'number' && typeof photo.longitude === 'number'
 
-  editingPhoto.value = photo
+  editingPhoto.value = managedPhoto
   editFormState.title = initialTitle
   editFormState.description = initialDescription
   editFormState.tags = [...initialTags]
   editFormState.rating =
     typeof photo.exif?.Rating === 'number' ? photo.exif.Rating : null
+  editFormState.albumIds = [...initialAlbumIds]
 
   const initialLocation = hasCoordinates
     ? {
@@ -1277,6 +1519,7 @@ const openMetadataEditor = (photo: Photo) => {
     tags: [...initialTags],
     location: initialLocation ? { ...initialLocation } : null,
     rating: typeof photo.exif?.Rating === 'number' ? photo.exif.Rating : null,
+    albumIds: [...initialAlbumIds],
   }
 
   locationSelection.value = initialLocation ? { ...initialLocation } : null
@@ -1373,6 +1616,16 @@ const saveMetadataChanges = async () => {
         title: $t('dashboard.photos.messages.metadataUpdateSuccess'),
         description: '',
         color: 'success',
+      })
+      hasAnySuccessfulAction = true
+    }
+
+    if (albumsChanged.value) {
+      await $fetch(`/api/photos/${editingPhoto.value.id}/albums`, {
+        method: 'PUT',
+        body: {
+          albumIds: [...editFormState.albumIds],
+        },
       })
       hasAnySuccessfulAction = true
     }
@@ -1923,6 +2176,99 @@ const handleBatchEraseLocation = async () => {
   }
 }
 
+const openBatchAlbumModal = async () => {
+  const selectedPhotos = selectedTablePhotos()
+
+  if (selectedPhotos.length === 0) {
+    toast.add({
+      title: $t('dashboard.photos.messages.batchSelectRequired'),
+      description: '',
+      color: 'warning',
+    })
+    return
+  }
+
+  batchAlbumPhotos.value = selectedPhotos
+  batchAlbumMode.value = 'replace'
+  batchAlbumIds.value = getCommonAlbumIds(selectedPhotos)
+  await loadAlbumOptions()
+  isBatchAlbumModalOpen.value = true
+}
+
+const getCommonAlbumIds = (photos: ManagedPhoto[]) => {
+  if (photos.length === 0) {
+    return []
+  }
+
+  const firstPhoto = photos[0]
+  if (!firstPhoto) {
+    return []
+  }
+  const restPhotos = photos.slice(1)
+  const common = new Set(getPhotoAlbumIds(firstPhoto))
+  for (const photo of restPhotos) {
+    const ids = new Set(getPhotoAlbumIds(photo))
+    for (const id of common) {
+      if (!ids.has(id)) {
+        common.delete(id)
+      }
+    }
+  }
+  return [...common]
+}
+
+const saveBatchAlbumChanges = async () => {
+  if (batchAlbumPhotos.value.length === 0) {
+    return
+  }
+
+  if (batchAlbumMode.value !== 'replace' && batchAlbumIds.value.length === 0) {
+    toast.add({
+      title: $t('dashboard.photos.batchAlbums.selectAlbumRequired'),
+      color: 'warning',
+    })
+    return
+  }
+
+  isSavingBatchAlbums.value = true
+  try {
+    await $fetch('/api/photos/albums', {
+      method: 'PUT',
+      body: {
+        photoIds: batchAlbumPhotos.value.map((photo) => photo.id),
+        albumIds: [...batchAlbumIds.value],
+        mode: batchAlbumMode.value,
+      },
+    })
+
+    toast.add({
+      title: $t('dashboard.photos.messages.batchAlbumsUpdateSuccess', {
+        count: batchAlbumPhotos.value.length,
+      }),
+      color: 'success',
+    })
+
+    await refresh()
+    rowSelection.value = {}
+    isBatchAlbumModalOpen.value = false
+  } catch (error: any) {
+    console.error('批量设置相簿失败:', error)
+    const message =
+      error?.data?.statusMessage ||
+      error?.statusMessage ||
+      error?.message ||
+      $t('dashboard.photos.messages.batchAlbumsUpdateFailed')
+
+    toast.add({
+      title: $t('dashboard.photos.messages.batchAlbumsUpdateFailed'),
+      description: message,
+      color: 'error',
+    })
+  } finally {
+    isSavingBatchAlbums.value = false
+  }
+}
+
 // 批量下载照片
 const handleBatchDownload = async () => {
   const selectedRowModel = table.value?.tableApi?.getFilteredSelectedRowModel()
@@ -2101,7 +2447,7 @@ onUnmounted(() => {
           :title="$t('dashboard.photos.slideover.title')"
           :description="$t('dashboard.photos.slideover.description')"
           :ui="{
-            content: 'sm:max-w-xl',
+            content: 'sm:max-w-2xl',
             body: 'p-2',
             header:
               'px-6 py-5 border-b border-neutral-200 dark:border-neutral-800',
@@ -2122,7 +2468,7 @@ onUnmounted(() => {
                 icon="tabler:cloud-upload"
                 layout="list"
                 size="xl"
-                accept="image/jpeg,image/png,image/heic,image/heif,video/quicktime,.mov"
+                accept="image/jpeg,image/png,image/heic,image/heif,video/quicktime,video/mp4,.mov,.mp4"
                 multiple
                 highlight
                 dropzone
@@ -2144,6 +2490,16 @@ onUnmounted(() => {
                   fileSize: 'text-xs text-neutral-500 dark:text-neutral-400',
                   fileTrailingButton: 'text-neutral-400 hover:text-error-500',
                 }"
+              />
+
+              <UAlert
+                color="neutral"
+                variant="soft"
+                icon="tabler:live-photo"
+                :title="$t('dashboard.photos.uploader.livePhotoGuide.title')"
+                :description="
+                  $t('dashboard.photos.uploader.livePhotoGuide.description')
+                "
               />
 
               <UCard
@@ -2242,300 +2598,444 @@ onUnmounted(() => {
                 {{ $t('dashboard.photos.toolbar.title') }}
               </span>
               <div class="flex items-center gap-1 sm:gap-2 sm:ml-1">
-              <UBadge
-                v-if="livePhotoStats.staticPhotos > 0"
-                variant="soft"
-                color="neutral"
-                size="sm"
-              >
-                <span class="hidden sm:inline"
-                  >{{ livePhotoStats.staticPhotos }}
-                  {{ $t('dashboard.photos.stats.photos') }}</span
-                >
-                <span class="sm:hidden"
-                  >{{ livePhotoStats.staticPhotos }}P</span
-                >
-              </UBadge>
-              <UBadge
-                v-if="livePhotoStats.livePhotos > 0"
-                variant="soft"
-                color="warning"
-                size="sm"
-              >
-                <span class="hidden sm:inline"
-                  >{{ livePhotoStats.livePhotos }}
-                  {{ $t('dashboard.photos.stats.livePhotos') }}</span
-                >
-                <span class="sm:hidden">{{ livePhotoStats.livePhotos }}LP</span>
-              </UBadge>
-            </div>
-          </div>
-
-          <div class="flex items-center gap-2">
-            <UPopover>
-              <UTooltip :text="$t('ui.action.filter.tooltip')">
-                <UChip
-                  inset
+                <UBadge
+                  v-if="livePhotoStats.staticPhotos > 0"
+                  variant="soft"
+                  color="neutral"
                   size="sm"
-                  color="info"
-                  :show="totalSelectedFilters > 0"
                 >
-                  <UButton
-                    variant="soft"
-                    :color="hasActiveFilters ? 'info' : 'neutral'"
-                    class="bg-transparent rounded-full cursor-pointer relative"
-                    icon="tabler:filter"
+                  <span class="hidden sm:inline"
+                    >{{ livePhotoStats.staticPhotos }}
+                    {{ $t('dashboard.photos.stats.photos') }}</span
+                  >
+                  <span class="sm:hidden"
+                    >{{ livePhotoStats.staticPhotos }}P</span
+                  >
+                </UBadge>
+                <UBadge
+                  v-if="livePhotoStats.livePhotos > 0"
+                  variant="soft"
+                  color="warning"
+                  size="sm"
+                >
+                  <span class="hidden sm:inline"
+                    >{{ livePhotoStats.livePhotos }}
+                    {{ $t('dashboard.photos.stats.livePhotos') }}</span
+                  >
+                  <span class="sm:hidden"
+                    >{{ livePhotoStats.livePhotos }}LP</span
+                  >
+                </UBadge>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <UPopover>
+                <UTooltip :text="$t('ui.action.filter.tooltip')">
+                  <UChip
+                    inset
                     size="sm"
-                  />
-                </UChip>
-              </UTooltip>
+                    color="info"
+                    :show="totalSelectedFilters > 0"
+                  >
+                    <UButton
+                      variant="soft"
+                      :color="hasActiveFilters ? 'info' : 'neutral'"
+                      class="bg-transparent rounded-full cursor-pointer relative"
+                      icon="tabler:filter"
+                      size="sm"
+                    />
+                  </UChip>
+                </UTooltip>
 
-              <template #content>
-                <UCard variant="glassmorphism">
-                  <OverlayFilterPanel />
-                </UCard>
-              </template>
-            </UPopover>
-            <!-- 过滤器 -->
-            <USelectMenu
-              v-model="photoFilter"
-              class="w-full sm:w-48"
-              :items="[
-                {
-                  label: $t('dashboard.photos.photoFilter.all'),
-                  value: 'all',
-                  icon: 'tabler:photo-scan',
-                },
-                {
-                  label: $t('dashboard.photos.photoFilter.livephoto'),
-                  value: 'livephoto',
-                  icon: 'tabler:live-photo',
-                },
-                {
-                  label: $t('dashboard.photos.photoFilter.static'),
-                  value: 'static',
-                  icon: 'tabler:photo',
-                },
-              ]"
-              value-key="value"
-              label-key="label"
-              size="sm"
-            >
-            </USelectMenu>
-
-            <!-- 刷新按钮 -->
-            <UButton
-              variant="soft"
-              color="info"
-              size="sm"
-              icon="tabler:refresh"
-              :loading="reactionsLoading"
-              @click="
-                async () => {
-                  await refresh()
-                  if (filteredData.length > 0) {
-                    await fetchReactions(filteredData.map((p: Photo) => p.id))
-                  }
-                }
-              "
-            >
-              <span class="hidden sm:inline">{{
-                $t('dashboard.photos.toolbar.refresh')
-              }}</span>
-            </UButton>
-
-            <!-- 列可见性按钮 -->
-            <UDropdownMenu
-              :items="
-                table?.tableApi
-                  ?.getAllColumns()
-                  .filter((column: any) => column.getCanHide())
-                  .map((column: any) => ({
-                    label: columnNameMap[column.id] || column.id,
-                    type: 'checkbox' as const,
-                    checked: column.getIsVisible(),
-                    disabled:
-                      !column.getCanHide() ||
-                      column.id === 'thumbnailUrl' ||
-                      column.id === 'id' ||
-                      column.id === 'actions',
-                    onUpdateChecked(checked: boolean) {
-                      table?.tableApi
-                        ?.getColumn(column.id)
-                        ?.toggleVisibility(!!checked)
-                    },
-                    onSelect(e: Event) {
-                      e.preventDefault()
-                    },
-                  }))
-              "
-              :content="{ align: 'end' }"
-            >
-              <UButton
-                label=""
-                color="neutral"
-                variant="outline"
+                <template #content>
+                  <UCard variant="glassmorphism">
+                    <OverlayFilterPanel />
+                  </UCard>
+                </template>
+              </UPopover>
+              <!-- 过滤器 -->
+              <USelectMenu
+                v-model="photoFilter"
+                class="w-full sm:w-48"
+                :items="[
+                  {
+                    label: $t('dashboard.photos.photoFilter.all'),
+                    value: 'all',
+                    icon: 'tabler:photo-scan',
+                  },
+                  {
+                    label: $t('dashboard.photos.photoFilter.livephoto'),
+                    value: 'livephoto',
+                    icon: 'tabler:live-photo',
+                  },
+                  {
+                    label: $t('dashboard.photos.photoFilter.static'),
+                    value: 'static',
+                    icon: 'tabler:photo',
+                  },
+                  {
+                    label: $t('dashboard.photos.photoFilter.video'),
+                    value: 'video',
+                    icon: 'tabler:video',
+                  },
+                ]"
+                value-key="value"
+                label-key="label"
                 size="sm"
-                icon="tabler:columns-3"
-                :title="
-                  $t('dashboard.photos.table.columnVisibility.description')
+              >
+              </USelectMenu>
+
+              <!-- 刷新按钮 -->
+              <UButton
+                variant="soft"
+                color="info"
+                size="sm"
+                icon="tabler:refresh"
+                :loading="reactionsLoading"
+                @click="
+                  async () => {
+                    await refresh()
+                    if (filteredData.length > 0) {
+                      await fetchReactions(filteredData.map((p: Photo) => p.id))
+                    }
+                  }
                 "
               >
                 <span class="hidden sm:inline">{{
-                  $t('dashboard.photos.table.columnVisibility.button')
+                  $t('dashboard.photos.toolbar.refresh')
                 }}</span>
               </UButton>
-            </UDropdownMenu>
+
+              <!-- 列可见性按钮 -->
+              <UDropdownMenu
+                :items="
+                  table?.tableApi
+                    ?.getAllColumns()
+                    .filter((column: any) => column.getCanHide())
+                    .map((column: any) => ({
+                      label: columnNameMap[column.id] || column.id,
+                      type: 'checkbox' as const,
+                      checked: column.getIsVisible(),
+                      disabled:
+                        !column.getCanHide() ||
+                        column.id === 'thumbnailUrl' ||
+                        column.id === 'id' ||
+                        column.id === 'actions',
+                      onUpdateChecked(checked: boolean) {
+                        table?.tableApi
+                          ?.getColumn(column.id)
+                          ?.toggleVisibility(!!checked)
+                      },
+                      onSelect(e: Event) {
+                        e.preventDefault()
+                      },
+                    }))
+                "
+                :content="{ align: 'end' }"
+              >
+                <UButton
+                  label=""
+                  color="neutral"
+                  variant="outline"
+                  size="sm"
+                  icon="tabler:columns-3"
+                  :title="
+                    $t('dashboard.photos.table.columnVisibility.description')
+                  "
+                >
+                  <span class="hidden sm:inline">{{
+                    $t('dashboard.photos.table.columnVisibility.button')
+                  }}</span>
+                </UButton>
+              </UDropdownMenu>
+            </div>
+          </div>
+
+          <!-- 照片列表 -->
+          <div class="relative flex-1 min-h-0 flex flex-col">
+            <UTable
+              ref="table"
+              v-model:row-selection="rowSelection"
+              v-model:column-visibility="columnVisibility"
+              :column-pinning="{
+                right: ['actions'],
+              }"
+              :data="filteredData as Photo[]"
+              :columns="columns"
+              :loading="status === 'pending'"
+              sticky
+              class="h-full flex-1"
+              :ui="{
+                wrapper: 'relative scroll-smooth h-full overflow-auto',
+                base: 'min-w-full table-fixed',
+                divide:
+                  'divide-y divide-neutral-200/80 dark:divide-neutral-800/80',
+                thead:
+                  'bg-neutral-50/80 dark:bg-neutral-900/80 backdrop-blur-md sticky top-0 z-10 whitespace-nowrap',
+                tbody:
+                  'divide-y divide-neutral-200/80 dark:divide-neutral-800/80 bg-white dark:bg-neutral-900',
+                tr: {
+                  base: 'hover:bg-neutral-50/50 dark:hover:bg-neutral-800/50 transition-colors',
+                  selected: 'bg-primary-50/50 dark:bg-primary-900/20',
+                },
+                th: {
+                  base: 'text-left rtl:text-right ',
+                  padding: 'px-4 py-3.5',
+                  color: 'text-neutral-500 dark:text-neutral-400',
+                  font: 'font-medium text-sm',
+                },
+                td: {
+                  padding: 'px-4 py-3',
+                  color: 'text-neutral-700 dark:text-neutral-300 text-sm',
+                },
+                separator: 'bg-neutral-200/80 dark:bg-neutral-800/80',
+              }"
+            >
+              <template #actions-cell="{ row }">
+                <div class="flex justify-end">
+                  <UDropdownMenu
+                    size="sm"
+                    :content="{
+                      align: 'end',
+                    }"
+                    :items="getRowActions(row.original)"
+                  >
+                    <UButton
+                      variant="outline"
+                      color="neutral"
+                      size="sm"
+                      icon="tabler:dots-vertical"
+                    />
+                  </UDropdownMenu>
+                </div>
+              </template>
+            </UTable>
+
+            <!-- 悬浮版批量操作菜单 -->
+            <transition
+              enter-active-class="transition-all duration-300 ease-out"
+              enter-from-class="translate-y-8 opacity-0 scale-95"
+              enter-to-class="translate-y-0 opacity-100 scale-100"
+              leave-active-class="transition-all duration-200 ease-in"
+              leave-from-class="translate-y-0 opacity-100 scale-100"
+              leave-to-class="translate-y-8 opacity-0 scale-95"
+            >
+              <div
+                v-if="selectedRowsCount > 0"
+                class="fixed bottom-8 left-1/2 -translate-x-1/2 px-2 py-1.5 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-xl shadow-xl rounded-full border border-neutral-200/80 dark:border-neutral-800/80 z-60 flex items-center gap-3 sm:gap-6 shadow-black/5 dark:shadow-black/20"
+              >
+                <div
+                  class="pl-4 pr-1 border-r border-neutral-200 dark:border-neutral-800 min-w-max"
+                >
+                  <p
+                    class="text-sm font-medium tracking-wide text-neutral-700 dark:text-neutral-200"
+                  >
+                    {{
+                      $t('dashboard.photos.selection.selected', {
+                        count: selectedRowsCount,
+                        total: totalRowsCount,
+                      })
+                    }}
+                  </p>
+                </div>
+
+                <div class="flex items-center gap-1 sm:gap-1.5 pr-2">
+                  <UButton
+                    color="neutral"
+                    variant="ghost"
+                    size="sm"
+                    class="rounded-full text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-neutral-800"
+                    icon="tabler:refresh"
+                    @click="handleBatchReprocess"
+                  >
+                    <span class="hidden sm:inline">{{
+                      $t('dashboard.photos.selection.batchReprocess')
+                    }}</span>
+                  </UButton>
+
+                  <UButton
+                    color="neutral"
+                    variant="ghost"
+                    size="sm"
+                    class="rounded-full text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-neutral-800"
+                    icon="tabler:map-off"
+                    @click="handleBatchEraseLocation"
+                  >
+                    <span class="hidden sm:inline">{{
+                      $t('dashboard.photos.selection.batchEraseLocation')
+                    }}</span>
+                  </UButton>
+
+                  <UButton
+                    color="neutral"
+                    variant="ghost"
+                    size="sm"
+                    class="rounded-full text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-neutral-800"
+                    icon="tabler:album"
+                    @click="openBatchAlbumModal"
+                  >
+                    <span class="hidden sm:inline">{{
+                      $t('dashboard.photos.selection.batchAlbums')
+                    }}</span>
+                  </UButton>
+
+                  <UButton
+                    color="neutral"
+                    variant="ghost"
+                    size="sm"
+                    class="rounded-full text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-neutral-800"
+                    icon="tabler:download"
+                    @click="handleBatchDownload"
+                  >
+                    <span class="hidden sm:inline">{{
+                      $t('dashboard.photos.selection.batchDownload')
+                    }}</span>
+                  </UButton>
+
+                  <UButton
+                    color="error"
+                    variant="ghost"
+                    size="sm"
+                    class="rounded-full hover:bg-error-50 dark:hover:bg-error-500/20"
+                    icon="tabler:trash"
+                    @click="handleBatchDelete"
+                  >
+                    <span class="hidden sm:inline">{{
+                      $t('dashboard.photos.selection.batchDelete')
+                    }}</span>
+                  </UButton>
+                </div>
+              </div>
+            </transition>
           </div>
         </div>
 
-        <!-- 照片列表 -->
-        <div class="relative flex-1 min-h-0 flex flex-col">
-          <UTable
-            ref="table"
-            v-model:row-selection="rowSelection"
-            v-model:column-visibility="columnVisibility"
-            :column-pinning="{
-              right: ['actions'],
-            }"
-            :data="filteredData as Photo[]"
-            :columns="columns"
-            :loading="status === 'pending'"
-            sticky
-            class="h-full flex-1"
-            :ui="{
-              wrapper: 'relative scroll-smooth h-full overflow-auto',
-              base: 'min-w-full table-fixed',
-              divide:
-                'divide-y divide-neutral-200/80 dark:divide-neutral-800/80',
-              thead:
-                'bg-neutral-50/80 dark:bg-neutral-900/80 backdrop-blur-md sticky top-0 z-10 whitespace-nowrap',
-              tbody:
-                'divide-y divide-neutral-200/80 dark:divide-neutral-800/80 bg-white dark:bg-neutral-900',
-              tr: {
-                base: 'hover:bg-neutral-50/50 dark:hover:bg-neutral-800/50 transition-colors',
-                selected: 'bg-primary-50/50 dark:bg-primary-900/20',
-              },
-              th: {
-                base: 'text-left rtl:text-right ',
-                padding: 'px-4 py-3.5',
-                color: 'text-neutral-500 dark:text-neutral-400',
-                font: 'font-medium text-sm',
-              },
-              td: {
-                padding: 'px-4 py-3',
-                color: 'text-neutral-700 dark:text-neutral-300 text-sm',
-              },
-              separator: 'bg-neutral-200/80 dark:bg-neutral-800/80',
-            }"
-          >
-            <template #actions-cell="{ row }">
-              <div class="flex justify-end">
-                <UDropdownMenu
-                  size="sm"
-                  :content="{
-                    align: 'end',
-                  }"
-                  :items="getRowActions(row.original)"
-                >
-                  <UButton
-                    variant="outline"
-                    color="neutral"
-                    size="sm"
-                    icon="tabler:dots-vertical"
-                  />
-                </UDropdownMenu>
-              </div>
-            </template>
-          </UTable>
-
-          <!-- 悬浮版批量操作菜单 -->
-          <transition
-            enter-active-class="transition-all duration-300 ease-out"
-            enter-from-class="translate-y-8 opacity-0 scale-95"
-            enter-to-class="translate-y-0 opacity-100 scale-100"
-            leave-active-class="transition-all duration-200 ease-in"
-            leave-from-class="translate-y-0 opacity-100 scale-100"
-            leave-to-class="translate-y-8 opacity-0 scale-95"
-          >
-            <div
-              v-if="selectedRowsCount > 0"
-              class="fixed bottom-8 left-1/2 -translate-x-1/2 px-2 py-1.5 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-xl shadow-xl rounded-full border border-neutral-200/80 dark:border-neutral-800/80 z-60 flex items-center gap-3 sm:gap-6 shadow-black/5 dark:shadow-black/20"
-            >
-              <div
-                class="pl-4 pr-1 border-r border-neutral-200 dark:border-neutral-800 min-w-max"
+        <UModal
+          v-model:open="isBatchAlbumModalOpen"
+          :title="$t('dashboard.photos.batchAlbums.title')"
+          :description="
+            $t('dashboard.photos.batchAlbums.description', {
+              count: batchAlbumPhotos.length,
+            })
+          "
+          :ui="{
+            content: 'sm:max-w-2xl',
+          }"
+        >
+          <template #body>
+            <div class="space-y-5">
+              <UFormField
+                :label="$t('dashboard.photos.batchAlbums.mode')"
+                name="batchAlbumMode"
               >
-                <p
-                  class="text-sm font-medium tracking-wide text-neutral-700 dark:text-neutral-200"
-                >
-                  {{
-                    $t('dashboard.photos.selection.selected', {
-                      count: selectedRowsCount,
-                      total: totalRowsCount,
-                    })
-                  }}
-                </p>
-              </div>
+                <USelectMenu
+                  v-model="batchAlbumMode"
+                  :items="batchAlbumModeItems"
+                  value-key="value"
+                  label-key="label"
+                  class="w-full"
+                />
+              </UFormField>
 
-              <div class="flex items-center gap-1 sm:gap-1.5 pr-2">
-                <UButton
-                  color="neutral"
-                  variant="ghost"
-                  size="sm"
-                  class="rounded-full text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-neutral-800"
-                  icon="tabler:refresh"
-                  @click="handleBatchReprocess"
-                >
-                  <span class="hidden sm:inline">{{
-                    $t('dashboard.photos.selection.batchReprocess')
-                  }}</span>
-                </UButton>
+              <UAlert
+                v-if="
+                  batchAlbumMode === 'replace' && batchAlbumIds.length === 0
+                "
+                color="warning"
+                variant="soft"
+                icon="tabler:alert-triangle"
+                :title="$t('dashboard.photos.batchAlbums.clearWarning')"
+              />
 
-                <UButton
-                  color="neutral"
-                  variant="ghost"
-                  size="sm"
-                  class="rounded-full text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-neutral-800"
-                  icon="tabler:map-off"
-                  @click="handleBatchEraseLocation"
+              <UFormField
+                :label="$t('dashboard.photos.editModal.fields.albums')"
+                name="batchAlbumIds"
+              >
+                <div
+                  class="rounded-xl border border-neutral-200 bg-neutral-50/70 p-2 dark:border-neutral-800 dark:bg-neutral-900/60"
                 >
-                  <span class="hidden sm:inline">{{
-                    $t('dashboard.photos.selection.batchEraseLocation')
-                  }}</span>
-                </UButton>
+                  <div
+                    v-if="isLoadingAlbumOptions"
+                    class="flex items-center gap-2 px-2 py-4 text-sm text-neutral-500"
+                  >
+                    <Icon
+                      name="tabler:loader-2"
+                      class="size-4 animate-spin"
+                    />
+                    {{ $t('dashboard.photos.editModal.fields.loadingAlbums') }}
+                  </div>
 
-                <UButton
-                  color="neutral"
-                  variant="ghost"
-                  size="sm"
-                  class="rounded-full text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-neutral-800"
-                  icon="tabler:download"
-                  @click="handleBatchDownload"
-                >
-                  <span class="hidden sm:inline">{{
-                    $t('dashboard.photos.selection.batchDownload')
-                  }}</span>
-                </UButton>
+                  <div
+                    v-else-if="albumOptions.length === 0"
+                    class="flex items-center gap-2 px-2 py-4 text-sm text-neutral-500"
+                  >
+                    <Icon
+                      name="tabler:album-off"
+                      class="size-4"
+                    />
+                    {{ $t('dashboard.photos.editModal.fields.noAlbumOptions') }}
+                  </div>
 
-                <UButton
-                  color="error"
-                  variant="ghost"
-                  size="sm"
-                  class="rounded-full hover:bg-error-50 dark:hover:bg-error-500/20"
-                  icon="tabler:trash"
-                  @click="handleBatchDelete"
-                >
-                  <span class="hidden sm:inline">{{
-                    $t('dashboard.photos.selection.batchDelete')
-                  }}</span>
-                </UButton>
-              </div>
+                  <div
+                    v-else
+                    class="grid max-h-64 gap-1 overflow-y-auto pr-1 sm:grid-cols-2"
+                  >
+                    <label
+                      v-for="album in albumOptions"
+                      :key="album.id"
+                      class="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-sm transition hover:bg-white dark:hover:bg-neutral-800"
+                    >
+                      <UCheckbox
+                        :model-value="batchAlbumIds.includes(album.id)"
+                        @update:model-value="
+                          toggleBatchAlbum(album.id, Boolean($event))
+                        "
+                      />
+                      <span class="min-w-0 flex-1 truncate">
+                        {{ album.title }}
+                      </span>
+                      <UBadge
+                        v-if="album.isHidden"
+                        size="xs"
+                        color="neutral"
+                        variant="outline"
+                        icon="tabler:lock"
+                      >
+                        {{ $t('dashboard.albums.table.visibility.hidden') }}
+                      </UBadge>
+                    </label>
+                  </div>
+                </div>
+              </UFormField>
             </div>
-          </transition>
-        </div>
-      </div>
+          </template>
 
-      <USlideover
+          <template #footer>
+            <div class="flex w-full justify-end gap-2">
+              <UButton
+                variant="ghost"
+                color="neutral"
+                @click="isBatchAlbumModalOpen = false"
+              >
+                {{ $t('dashboard.photos.batchAlbums.cancel') }}
+              </UButton>
+              <UButton
+                icon="tabler:device-floppy"
+                :loading="isSavingBatchAlbums"
+                :disabled="
+                  isSavingBatchAlbums ||
+                  (batchAlbumMode !== 'replace' && batchAlbumIds.length === 0)
+                "
+                @click="saveBatchAlbumChanges"
+              >
+                {{ $t('dashboard.photos.batchAlbums.save') }}
+              </UButton>
+            </div>
+          </template>
+        </UModal>
+
+        <USlideover
           v-model:open="isEditModalOpen"
           :title="$t('dashboard.photos.editModal.title')"
           :description="$t('dashboard.photos.editModal.description')"
@@ -2600,6 +3100,73 @@ onUnmounted(() => {
                     {{ $t('dashboard.photos.editModal.fields.tagsHint') }}
                   </p>
                 </div>
+
+                <UFormField
+                  :label="$t('dashboard.photos.editModal.fields.albums')"
+                  name="albumIds"
+                >
+                  <div
+                    class="rounded-xl border border-neutral-200 bg-neutral-50/70 p-2 dark:border-neutral-800 dark:bg-neutral-900/60"
+                  >
+                    <div
+                      v-if="isLoadingAlbumOptions"
+                      class="flex items-center gap-2 px-2 py-4 text-sm text-neutral-500"
+                    >
+                      <Icon
+                        name="tabler:loader-2"
+                        class="size-4 animate-spin"
+                      />
+                      {{
+                        $t('dashboard.photos.editModal.fields.loadingAlbums')
+                      }}
+                    </div>
+
+                    <div
+                      v-else-if="albumOptions.length === 0"
+                      class="flex items-center gap-2 px-2 py-4 text-sm text-neutral-500"
+                    >
+                      <Icon
+                        name="tabler:album-off"
+                        class="size-4"
+                      />
+                      {{
+                        $t('dashboard.photos.editModal.fields.noAlbumOptions')
+                      }}
+                    </div>
+
+                    <div
+                      v-else
+                      class="grid max-h-56 gap-1 overflow-y-auto pr-1 sm:grid-cols-2"
+                    >
+                      <label
+                        v-for="album in albumOptions"
+                        :key="album.id"
+                        class="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-sm transition hover:bg-white dark:hover:bg-neutral-800"
+                      >
+                        <UCheckbox
+                          :model-value="
+                            editFormState.albumIds.includes(album.id)
+                          "
+                          @update:model-value="
+                            toggleEditAlbum(album.id, Boolean($event))
+                          "
+                        />
+                        <span class="min-w-0 flex-1 truncate">
+                          {{ album.title }}
+                        </span>
+                        <UBadge
+                          v-if="album.isHidden"
+                          size="xs"
+                          color="neutral"
+                          variant="outline"
+                          icon="tabler:lock"
+                        >
+                          {{ $t('dashboard.albums.table.visibility.hidden') }}
+                        </UBadge>
+                      </label>
+                    </div>
+                  </div>
+                </UFormField>
 
                 <div class="flex items-center justify-between space-y-2">
                   <label

@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { and } from 'drizzle-orm'
 
 export default eventHandler(async (event) => {
-  await requireUserSession(event)
+  const user = await requireCurrentUser(event)
 
   const { albumId } = await getValidatedRouterParams(
     event,
@@ -22,6 +22,21 @@ export default eventHandler(async (event) => {
   )
 
   const db = useDB()
+  const album = await db
+    .select()
+    .from(tables.albums)
+    .where(
+      user.isAdmin
+        ? eq(tables.albums.id, albumId)
+        : and(
+            eq(tables.albums.id, albumId),
+            eq(tables.albums.ownerUserId, user.id),
+          ),
+    )
+    .get()
+  if (!album) {
+    throw createError({ statusCode: 404, statusMessage: 'Album not found' })
+  }
 
   // 检查相簌-照片关系是否存在
   const relation = await db
@@ -55,12 +70,6 @@ export default eventHandler(async (event) => {
       .run()
 
     // 如果该照片是封面，清除封面
-    const album = tx
-      .select()
-      .from(tables.albums)
-      .where(eq(tables.albums.id, albumId))
-      .get()
-
     if (album && album.coverPhotoId === photoId) {
       tx.update(tables.albums)
         .set({ coverPhotoId: null, updatedAt: new Date() })

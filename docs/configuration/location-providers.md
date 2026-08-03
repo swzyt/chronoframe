@@ -9,7 +9,18 @@ However, you may need to configure a custom location provider in the following c
 - Your server is located in mainland China
 - The connection between your server and Nominatim is blocked
 
-ChronoFrame supports two location providers. You can choose the appropriate one based on your needs.
+ChronoFrame supports Nominatim, Mapbox, and AMap. Select the provider in **Dashboard → Settings → Map & Location**.
+
+## AMap Web Service
+
+AMap reverse geocoding is recommended for mainland-China deployments.
+
+1. Create a separate key in the AMap console.
+2. Select **Web Service** as its platform.
+3. Select AMap as the location provider in ChronoFrame.
+4. Enter the Web Service key.
+
+The Web Service key is stored as a server-side secret and is not returned to public clients. ChronoFrame converts the original WGS-84 EXIF coordinate to GCJ-02 only for the AMap request and stores the original coordinate unchanged.
 
 ## Nominatim
 

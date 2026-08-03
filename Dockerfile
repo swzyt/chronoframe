@@ -19,7 +19,7 @@ RUN NODE_OPTIONS="--max-old-space-size=8192" pnpm run build
 RUN find ./.output -type f -name '*.map' -delete
 
 FROM node:22.23.1-alpine AS runtime_deps
-RUN apk add --no-cache ca-certificates perl exiftool \
+RUN apk add --no-cache ca-certificates perl exiftool ffmpeg \
 	&& install -Dm755 "$(readlink -f /usr/bin/perl)" /opt/runtime-bin/perl \
 	&& install -Dm755 "$(readlink -f /usr/bin/env)" /opt/runtime-bin/env \
 	&& install -Dm755 "$(readlink -f /usr/bin/exiftool)" /opt/runtime-bin/exiftool

@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 export default defineEventHandler(async (event) => {
-  await requireUserSession(event)
+  const user = await requireCurrentUser(event)
 
   try {
     const payloadSchema = z.discriminatedUnion('type', [
@@ -12,6 +12,10 @@ export default defineEventHandler(async (event) => {
       }),
       z.object({
         type: z.literal('live-photo-video'),
+        storageKey: z.string().nonempty(),
+      }),
+      z.object({
+        type: z.literal('video'),
         storageKey: z.string().nonempty(),
       }),
       z.object({
@@ -44,9 +48,12 @@ export default defineEventHandler(async (event) => {
       })
     }
 
+    await requireQueuePayloadAccess(event, user, payload)
+
     const taskId = await workerPool.addTask(payload, {
       priority,
       maxAttempts,
+      ownerUserId: user.id,
     })
 
     return {

@@ -115,7 +115,7 @@ const streamNewLines = async (
 }
 
 export default defineEventHandler(async (event) => {
-  await requireUserSession(event)
+  await requireAdmin(event)
 
   const eventStream = createEventStream(event)
 

@@ -299,7 +299,15 @@ export const extractExifData = async (
 
         try {
           // 提取基础元数据
-          let metadata = await sharp(imageBuffer).metadata()
+          let metadata: Metadata = {}
+          try {
+            metadata = await sharp(imageBuffer).metadata()
+          } catch (err) {
+            logger?.warn(
+              'Sharp could not read image metadata; falling back to exiftool:',
+              err,
+            )
+          }
 
           // 如果主buffer没有EXIF，尝试原始buffer
           if (!metadata.exif && rawImageBuffer) {
@@ -314,11 +322,12 @@ export const extractExifData = async (
           }
 
           if (!metadata.exif) {
-            logger?.warn('No EXIF data found in image metadata')
-            return null
+            logger?.info(
+              'Sharp metadata has no EXIF block; falling back to exiftool',
+            )
+          } else {
+            logger?.info('Extracting EXIF data using exiftool...')
           }
-
-          logger?.info('Extracting EXIF data using exiftool...')
 
           // 创建临时工作目录
           const tempDir = path.resolve(process.cwd(), 'data/.exif_workdir')

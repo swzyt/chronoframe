@@ -57,6 +57,7 @@ export class WebGLImageViewerEngine {
   // 变换状态
   private transform: Transform = { scale: 1, translateX: 0, translateY: 0 }
   private initialScale = 1
+  private rotation = 0
 
   // 动画状态
   private animation: Animation | null = null
@@ -98,6 +99,7 @@ export class WebGLImageViewerEngine {
   private boundHandleTouchStart: (event: TouchEvent) => void
   private boundHandleTouchMove: (event: TouchEvent) => void
   private boundHandleTouchEnd: (event: TouchEvent) => void
+  private boundHandleTouchCancel: (event: TouchEvent) => void
   private boundHandleContextLost: (event: Event) => void
   private boundHandleContextRestored: () => void
   private boundHandleContextMenu: (event: MouseEvent) => void
@@ -121,6 +123,7 @@ export class WebGLImageViewerEngine {
   constructor(canvas: HTMLCanvasElement, config: Partial<EngineConfig> = {}) {
     this.canvas = canvas
     this.config = { ...DEFAULT_CONFIG, ...config }
+    this.rotation = this.normalizeRotation(this.config.rotation)
 
     // 初始化 WebGL 上下文
     const gl = canvas.getContext('webgl', {
@@ -151,6 +154,7 @@ export class WebGLImageViewerEngine {
     this.boundHandleTouchStart = this.handleTouchStart.bind(this)
     this.boundHandleTouchMove = this.handleTouchMove.bind(this)
     this.boundHandleTouchEnd = this.handleTouchEnd.bind(this)
+    this.boundHandleTouchCancel = this.handleTouchCancel.bind(this)
     this.boundHandleContextLost = this.handleContextLost.bind(this)
     this.boundHandleContextRestored = this.handleContextRestored.bind(this)
     this.boundHandleContextMenu = (event: MouseEvent) => event.preventDefault()
@@ -313,13 +317,19 @@ export class WebGLImageViewerEngine {
       this.currentQuality = 'high'
     }
 
-    this.emitLoadingStateChange(false, LoadingState.COMPLETE, this.currentQuality)
+    this.emitLoadingStateChange(
+      false,
+      LoadingState.COMPLETE,
+      this.currentQuality,
+    )
     this.render()
 
     return true
   }
 
-  private async decodeImageOnMainThread(src: string): Promise<HTMLImageElement> {
+  private async decodeImageOnMainThread(
+    src: string,
+  ): Promise<HTMLImageElement> {
     return await new Promise((resolve, reject) => {
       const image = new Image()
       image.crossOrigin = 'anonymous'
@@ -367,7 +377,9 @@ export class WebGLImageViewerEngine {
     const normalizedError =
       error instanceof Error
         ? error
-        : new Error(typeof error === 'string' ? error : 'Unknown image load error')
+        : new Error(
+            typeof error === 'string' ? error : 'Unknown image load error',
+          )
 
     this.emitLoadingStateChange(false, LoadingState.ERROR)
     reject?.(normalizedError)
@@ -428,6 +440,9 @@ export class WebGLImageViewerEngine {
       passive: false,
     })
     this.canvas.addEventListener('touchend', this.boundHandleTouchEnd, {
+      passive: false,
+    })
+    this.canvas.addEventListener('touchcancel', this.boundHandleTouchCancel, {
       passive: false,
     })
 
@@ -491,10 +506,15 @@ export class WebGLImageViewerEngine {
             payload: { src: absolute.toString() },
           })
         } catch (error) {
-          console.warn('Worker postMessage failed, using main-thread fallback.', error)
+          console.warn(
+            'Worker postMessage failed, using main-thread fallback.',
+            error,
+          )
           void this.renderWithMainThreadFallback(error)
             .then(() => this.resolvePendingImageLoad())
-            .catch((fallbackError) => this.rejectPendingImageLoad(fallbackError))
+            .catch((fallbackError) =>
+              this.rejectPendingImageLoad(fallbackError),
+            )
         }
       } else {
         void this.renderWithMainThreadFallback(new Error('No worker available'))
@@ -879,6 +899,10 @@ export class WebGLImageViewerEngine {
       return []
     }
 
+    if (this.rotation !== 0) {
+      return this.tiles
+    }
+
     const scale = this.transform.scale
     if (!isFinite(scale) || scale <= 0) {
       return this.tiles
@@ -991,13 +1015,12 @@ export class WebGLImageViewerEngine {
     // 否则使用限制后的值
     const actualScale = this.clampScale(this.initialScale)
 
-    const scaledWidth = this.image.width * actualScale
-    const scaledHeight = this.image.height * actualScale
+    const rotatedSize = this.getRotatedContentSize(actualScale)
 
     this.transform = {
       scale: actualScale,
-      translateX: (this.canvas.width - scaledWidth) / 2,
-      translateY: (this.canvas.height - scaledHeight) / 2,
+      translateX: (this.canvas.width - rotatedSize.width) / 2,
+      translateY: (this.canvas.height - rotatedSize.height) / 2,
     }
 
     this.emitZoomChange()
@@ -1007,8 +1030,9 @@ export class WebGLImageViewerEngine {
   private constrainToBounds(): void {
     if (!this.config.limitToBounds || !this.image) return
 
-    const scaledWidth = this.image.width * this.transform.scale
-    const scaledHeight = this.image.height * this.transform.scale
+    const rotatedSize = this.getRotatedContentSize(this.transform.scale)
+    const scaledWidth = rotatedSize.width
+    const scaledHeight = rotatedSize.height
 
     // 如果图像小于画布，居中显示
     if (scaledWidth <= this.canvas.width) {
@@ -1052,6 +1076,21 @@ export class WebGLImageViewerEngine {
     return this.initialScale * this.config.maxScale
   }
 
+  private normalizeRotation(degrees: number): number {
+    if (!isFinite(degrees)) return 0
+    return (((Math.round(degrees / 90) * 90) % 360) + 360) % 360
+  }
+
+  private getRotatedContentSize(scale = 1): { width: number; height: number } {
+    if (!this.image) return { width: 0, height: 0 }
+
+    const isSideways = this.rotation === 90 || this.rotation === 270
+    return {
+      width: (isSideways ? this.image.height : this.image.width) * scale,
+      height: (isSideways ? this.image.width : this.image.height) * scale,
+    }
+  }
+
   /**
    * 基于相对缩放限制来约束绝对缩放值
    */
@@ -1088,6 +1127,9 @@ export class WebGLImageViewerEngine {
         this.transform.scale,
         this.transform.translateX,
         this.transform.translateY,
+        this.rotation,
+        this.image?.width ?? 0,
+        this.image?.height ?? 0,
       )
       gl.uniformMatrix3fv(this.matrixLocation, false, matrix)
 
@@ -1357,18 +1399,23 @@ export class WebGLImageViewerEngine {
     const touches = getTouchPoints(event.touches)
 
     if (touches.length === 1 && touches[0]) {
-      // 单指操作
-      this.hasMoved = false // 重置移动标志
+      // 单指操作：始终记录触点，双击缩放不应受 panningDisabled 影响。
+      this.hasMoved = false
+      this.lastMousePos = touches[0]
+      this.touchState = null
 
-      if (!this.config.panningDisabled) {
-        this.isDragging = true
-        this.lastMousePos = touches[0]
-      }
+      this.isDragging = !this.config.panningDisabled
     } else if (touches.length === 2 && touches[0] && touches[1]) {
       // 双指缩放
       if (!this.config.pinchDisabled) {
         const distance = getDistance(touches[0], touches[1])
         const center = getCenter(touches)
+
+        if (!isFinite(distance) || distance <= 0) return
+
+        this.isDragging = false
+        this.lastMousePos = null
+        this.hasMoved = true
 
         this.touchState = {
           touches: Array.from(event.touches),
@@ -1384,12 +1431,7 @@ export class WebGLImageViewerEngine {
 
     const touches = getTouchPoints(event.touches)
 
-    if (
-      touches.length === 1 &&
-      this.isDragging &&
-      this.lastMousePos &&
-      touches[0]
-    ) {
+    if (touches.length === 1 && this.lastMousePos && touches[0]) {
       // 单指拖拽
       const dpr = window.devicePixelRatio || 1
       const deltaX = (touches[0].x - this.lastMousePos.x) * dpr
@@ -1400,31 +1442,44 @@ export class WebGLImageViewerEngine {
         this.hasMoved = true
       }
 
-      this.transform.translateX += deltaX
-      this.transform.translateY += deltaY
+      if (this.isDragging && !this.config.panningDisabled) {
+        this.transform.translateX += deltaX
+        this.transform.translateY += deltaY
 
-      // 应用边界限制
-      this.constrainToBounds()
+        // 应用边界限制
+        this.constrainToBounds()
+
+        // 通知变换变化
+        this.emitTransformChange()
+
+        this.throttledRender()
+      }
 
       this.lastMousePos = touches[0]
-
-      // 通知变换变化
-      this.emitTransformChange()
-
-      this.throttledRender()
-    } else if (
-      touches.length === 2 &&
-      this.touchState &&
-      touches[0] &&
-      touches[1]
-    ) {
+    } else if (touches.length === 2 && touches[0] && touches[1]) {
       // 双指缩放
       if (this.config.pinchDisabled) return
 
       const distance = getDistance(touches[0], touches[1])
       const center = getCenter(touches)
+      if (!isFinite(distance) || distance <= 0) return
 
-      const scaleFactor = distance / this.touchState.lastDistance
+      if (!this.touchState || this.touchState.lastDistance <= 0) {
+        this.touchState = {
+          touches: Array.from(event.touches),
+          lastDistance: distance,
+          lastCenter: center,
+        }
+        this.hasMoved = true
+        this.isDragging = false
+        this.lastMousePos = null
+        return
+      }
+
+      const rawScaleFactor = distance / this.touchState.lastDistance
+      if (!isFinite(rawScaleFactor) || rawScaleFactor <= 0) return
+
+      const scaleFactor = clamp(rawScaleFactor, 0.82, 1.22)
       const rect = this.canvas.getBoundingClientRect()
       const dpr = window.devicePixelRatio || 1
 
@@ -1434,6 +1489,9 @@ export class WebGLImageViewerEngine {
 
       this.zoomAtPoint(canvasX, canvasY, scaleFactor)
 
+      this.hasMoved = true
+      this.isDragging = false
+      this.lastMousePos = null
       this.touchState.lastDistance = distance
       this.touchState.lastCenter = center
     }
@@ -1503,6 +1561,14 @@ export class WebGLImageViewerEngine {
     this.hasMoved = false
   }
 
+  private handleTouchCancel(event: TouchEvent): void {
+    event.preventDefault()
+    this.isDragging = false
+    this.lastMousePos = null
+    this.touchState = null
+    this.hasMoved = false
+  }
+
   private isNearPosition(pos1: Point, pos2: Point, threshold: number): boolean {
     const distance = Math.sqrt(
       Math.pow(pos1.x - pos2.x, 2) + Math.pow(pos1.y - pos2.y, 2),
@@ -1544,7 +1610,9 @@ export class WebGLImageViewerEngine {
           if (!recreated) {
             const texture = this.createTexture(this.image)
             if (!texture) {
-              throw new Error('Failed to recreate texture after context restore')
+              throw new Error(
+                'Failed to recreate texture after context restore',
+              )
             }
             usingTiles = false
           }
@@ -1612,13 +1680,12 @@ export class WebGLImageViewerEngine {
     // 基于相对缩放限制计算实际缩放值
     const actualScale = this.clampScale(this.initialScale)
 
-    const scaledWidth = this.image.width * actualScale
-    const scaledHeight = this.image.height * actualScale
+    const rotatedSize = this.getRotatedContentSize(actualScale)
 
     return {
       scale: actualScale,
-      translateX: (this.canvas.width - scaledWidth) / 2,
-      translateY: (this.canvas.height - scaledHeight) / 2,
+      translateX: (this.canvas.width - rotatedSize.width) / 2,
+      translateY: (this.canvas.height - rotatedSize.height) / 2,
     }
   }
 
@@ -1637,20 +1704,88 @@ export class WebGLImageViewerEngine {
       return this.initialScale
     }
 
+    const isSideways = this.rotation === 90 || this.rotation === 270
+    const contentWidth = isSideways ? this.image.height : this.image.width
+    const contentHeight = isSideways ? this.image.width : this.image.height
+
     const canvasAspect = this.canvas.width / this.canvas.height
-    const imageAspect = this.image.width / this.image.height
+    const imageAspect = contentWidth / contentHeight
 
     if (!isFinite(canvasAspect) || !isFinite(imageAspect)) {
       return this.initialScale
     }
 
     return imageAspect > canvasAspect
-      ? this.canvas.width / this.image.width
-      : this.canvas.height / this.image.height
+      ? this.canvas.width / contentWidth
+      : this.canvas.height / contentHeight
   }
 
   public getRelativeScale(): number {
     return this.transform.scale / this.initialScale
+  }
+
+  public updateConfig(config: Partial<EngineConfig>): void {
+    const nextRotation =
+      config.rotation === undefined
+        ? this.rotation
+        : this.normalizeRotation(config.rotation)
+
+    this.config = { ...this.config, ...config }
+
+    if (nextRotation !== this.rotation) {
+      this.setRotation(nextRotation, false)
+      return
+    }
+
+    this.constrainToBounds()
+    this.render()
+    this.emitZoomChange()
+    this.emitTransformChange()
+  }
+
+  public setRotation(degrees: number, animate = true): void {
+    if (!this.image) {
+      this.rotation = this.normalizeRotation(degrees)
+      this.config.rotation = this.rotation
+      return
+    }
+
+    const nextRotation = this.normalizeRotation(degrees)
+    if (nextRotation === this.rotation) return
+
+    const relativeScale =
+      this.initialScale > 0 && isFinite(this.initialScale)
+        ? this.transform.scale / this.initialScale
+        : 1
+
+    this.rotation = nextRotation
+    this.config.rotation = nextRotation
+    this.initialScale = this.getFitScale()
+
+    const nextScale = this.clampScale(this.initialScale * relativeScale)
+    const rotatedSize = this.getRotatedContentSize(nextScale)
+    const targetTransform = {
+      scale: nextScale,
+      translateX: (this.canvas.width - rotatedSize.width) / 2,
+      translateY: (this.canvas.height - rotatedSize.height) / 2,
+    }
+
+    if (animate) {
+      this.animateTo(targetTransform, this.config.animationTime)
+    } else {
+      this.transform = targetTransform
+      this.render()
+      this.emitZoomChange()
+      this.emitTransformChange()
+    }
+  }
+
+  public rotateClockwise(): void {
+    this.setRotation(this.rotation + 90)
+  }
+
+  public rotateCounterClockwise(): void {
+    this.setRotation(this.rotation - 90)
   }
 
   private zoomAtPoint(
@@ -1669,13 +1804,13 @@ export class WebGLImageViewerEngine {
     // 检查新缩放值是否有效且有意义的变化
     if (newScale === this.transform.scale || !isFinite(newScale)) return
 
-    // 计算缩放中心点相对于图像的位置
-    const imageX = (x - this.transform.translateX) / this.transform.scale
-    const imageY = (y - this.transform.translateY) / this.transform.scale
+    // 计算缩放中心点相对于旋转后内容外接框的位置。
+    const contentX = (x - this.transform.translateX) / this.transform.scale
+    const contentY = (y - this.transform.translateY) / this.transform.scale
 
     // 计算新的平移量
-    const newTranslateX = x - imageX * newScale
-    const newTranslateY = y - imageY * newScale
+    const newTranslateX = x - contentX * newScale
+    const newTranslateY = y - contentY * newScale
 
     // 检查平移值的有效性
     if (!isFinite(newTranslateX) || !isFinite(newTranslateY)) return
@@ -1746,6 +1881,7 @@ export class WebGLImageViewerEngine {
       totalTiles: this.tiles.length,
       visibleTiles: visibleTiles.length,
       tileSize: this.config.tileSize,
+      rotation: this.rotation,
     }
   }
 
@@ -1839,6 +1975,7 @@ export class WebGLImageViewerEngine {
     this.canvas.removeEventListener('touchstart', this.boundHandleTouchStart)
     this.canvas.removeEventListener('touchmove', this.boundHandleTouchMove)
     this.canvas.removeEventListener('touchend', this.boundHandleTouchEnd)
+    this.canvas.removeEventListener('touchcancel', this.boundHandleTouchCancel)
     this.canvas.removeEventListener(
       'webglcontextlost',
       this.boundHandleContextLost,

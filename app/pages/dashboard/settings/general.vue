@@ -8,11 +8,15 @@ useHead({
 })
 
 const colorMode = useColorMode()
+const { t } = useI18n()
 
 const { fields, state, submit, loading } = useSettingsForm('app')
 
 const appFields = computed(() =>
-  fields.value.filter((f) => !f.key.startsWith('appearance.')),
+  fields.value.filter(
+    (f) =>
+      !f.key.startsWith('appearance.') && !f.key.startsWith('access.'),
+  ),
 )
 
 const appearanceFields = computed(() =>
@@ -71,6 +75,50 @@ const handleAppearanceSettingsSubmit = async () => {
     }
   } catch {
     /* empty */
+  }
+}
+
+const toast = useToast()
+const { data: accessConfig, refresh: refreshAccessConfig } = await useFetch(
+  '/api/access/config',
+)
+const accessEnabled = ref(false)
+const accessPassword = ref('')
+const accessPhotoLimit = ref(10)
+const accessAlbumLimit = ref(1)
+watch(
+  accessConfig,
+  (value) => {
+    accessEnabled.value = Boolean(value?.enabled)
+    accessPhotoLimit.value = Number(value?.photoLimit) || 10
+    accessAlbumLimit.value = Number(value?.albumLimit) || 1
+  },
+  { immediate: true },
+)
+const accessLoading = ref(false)
+const saveAccessConfig = async () => {
+  accessLoading.value = true
+  try {
+    await $fetch('/api/access/config', {
+      method: 'PUT',
+      body: {
+        enabled: accessEnabled.value,
+        password: accessPassword.value || undefined,
+        photoLimit: accessPhotoLimit.value,
+        albumLimit: accessAlbumLimit.value,
+      },
+    })
+    accessPassword.value = ''
+    await refreshAccessConfig()
+    toast.add({ color: 'success', title: t('accessGate.settings.saved') })
+  } catch (error: any) {
+    toast.add({
+      color: 'error',
+      title: t('accessGate.settings.saveFailed'),
+      description: error?.data?.message || error?.message,
+    })
+  } finally {
+    accessLoading.value = false
   }
 }
 </script>
@@ -153,6 +201,74 @@ const handleAppearanceSettingsSubmit = async () => {
               {{ $t('common.actions.saveSettings') }}
             </UButton>
             </div>
+          </footer>
+        </section>
+
+        <section class="rounded-md border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950">
+          <header class="border-b border-neutral-200 px-5 py-4 dark:border-neutral-800">
+            <h3 class="text-base font-semibold">
+              {{ $t('accessGate.settings.title') }}
+            </h3>
+            <p class="mt-1 text-sm text-neutral-500">
+              {{ $t('accessGate.settings.description') }}
+            </p>
+          </header>
+          <div class="space-y-5 px-5 py-5">
+            <USwitch
+              v-model="accessEnabled"
+              :label="$t('accessGate.settings.enabled')"
+            />
+            <div class="grid gap-4 sm:grid-cols-2">
+              <UFormField
+                :label="$t('accessGate.settings.photoLimit')"
+                :description="$t('accessGate.settings.photoLimitDescription')"
+              >
+                <UInput
+                  v-model.number="accessPhotoLimit"
+                  type="number"
+                  :min="1"
+                  :max="10000"
+                  class="w-full"
+                />
+              </UFormField>
+              <UFormField
+                :label="$t('accessGate.settings.albumLimit')"
+                :description="$t('accessGate.settings.albumLimitDescription')"
+              >
+                <UInput
+                  v-model.number="accessAlbumLimit"
+                  type="number"
+                  :min="1"
+                  :max="10000"
+                  class="w-full"
+                />
+              </UFormField>
+            </div>
+            <UFormField
+              :label="$t('accessGate.passwordLabel')"
+              :description="
+                accessConfig?.hasPassword
+                  ? $t('accessGate.settings.passwordConfigured')
+                  : $t('accessGate.settings.passwordRequired')
+              "
+            >
+              <UInput
+                v-model="accessPassword"
+                type="password"
+                autocomplete="new-password"
+                :placeholder="$t('accessGate.settings.passwordPlaceholder')"
+                class="w-full"
+              />
+            </UFormField>
+          </div>
+          <footer class="flex justify-end border-t border-neutral-200 px-5 py-4 dark:border-neutral-800">
+            <UButton
+              icon="tabler:device-floppy"
+              :loading="accessLoading"
+              @click="saveAccessConfig"
+            >
+              保存访问保护
+            </UButton>
           </footer>
         </section>
 

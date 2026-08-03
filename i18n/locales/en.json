@@ -1,4 +1,32 @@
 {
+  "accessGate": {
+    "title": "Enter the access password to see more",
+    "description": "Unlock all photos, albums, and globe content after verification.",
+    "passwordLabel": "Access password",
+    "unlock": "Unlock all content",
+    "internalLogin": "Internal user sign in",
+    "morePhotos": "Enter password to see more photos",
+    "moreAlbums": "Enter password to see more albums",
+    "moreLocations": "See more locations",
+    "errors": {
+      "rateLimited": "Too many attempts. Please try again in 15 minutes.",
+      "invalidPassword": "Incorrect access password."
+    },
+    "settings": {
+      "title": "Site access protection",
+      "description": "Visitors can preview limited content, then enter the password to see everything.",
+      "enabled": "Require visitors to enter an access password",
+      "photoLimit": "Free photo preview limit",
+      "photoLimitDescription": "Number of newest photos unverified visitors can view.",
+      "albumLimit": "Free album preview limit",
+      "albumLimitDescription": "Number of newest public albums unverified visitors can view.",
+      "passwordConfigured": "A password is set; leave blank to keep it unchanged.",
+      "passwordRequired": "A password of at least 8 characters is required when enabling this for the first time.",
+      "passwordPlaceholder": "At least 8 characters",
+      "saved": "Access protection settings saved",
+      "saveFailed": "Failed to save"
+    }
+  },
   "plural": {
     "photo": "no photos | one photo | {count} photos"
   },
@@ -32,6 +60,8 @@
         "tooltip": "Photo Sorting",
         "title": "Sort By",
         "options": {
+          "lastModifiedDesc": "Last Modified (Newest First)",
+          "lastModifiedAsc": "Last Modified (Oldest First)",
           "dateTakenDesc": "Date Taken (Newest First)",
           "dateTakenAsc": "Date Taken (Oldest First)",
           "fileSizeAsc": "File Size (Ascending)",
@@ -112,6 +142,9 @@
       "backtotop": {
         "tooltip": "Back to Top",
         "ariaLabel": "Back to top"
+      },
+      "albumFlow": {
+        "tooltip": "Photo flow wall"
       }
     },
     "stats": {
@@ -186,6 +219,17 @@
       },
       "mobile": "Double-click or pinch zoom",
       "desktop": "Double-click or zoom with the mouse wheel"
+    },
+    "autoplay": {
+      "play": "Autoplay",
+      "pause": "Pause autoplay"
+    },
+    "rotate": {
+      "clockwise": "Rotate clockwise"
+    },
+    "fullscreen": {
+      "enter": "View fullscreen",
+      "exit": "Exit fullscreen"
     },
     "reaction": {
       "add": "React",
@@ -348,7 +392,8 @@
         "auto": "Auto",
         "manual": "Manual",
         "auto1": "Normal correction, neutral",
-        "auto2": "Keep ambient warm tones"
+        "auto2": "Keep ambient warm tones",
+        "colorTemperatureColorFilter": "Color temperature and color filter"
       },
       "sceneCaptureType": {
         "standard": "Standard",
@@ -401,7 +446,16 @@
     "storageSettings": "Storage Settings",
     "systemSettings": "System Settings",
     "analyticsSettings": "Analytics & Tracking",
-    "siteSettings": "Site Appearance & Compliance"
+    "siteSettings": "Site Appearance & Compliance",
+    "albumFlow": "Photo Flow Wall",
+    "users": "User Management"
+  },
+  "albumFlow": {
+    "eyebrow": "Flowing photos",
+    "title": "Let photos breathe across the screen",
+    "description": "A standalone flowing wall for the currently visible photo set, tuned for large screens and ambient browsing. Locked visitors only see the configured preview content.",
+    "empty": "No public photos to show yet.",
+    "photoCount": "{count} photos"
   },
   "auth": {
     "form": {
@@ -475,7 +529,9 @@
       "continue": "Continue",
       "delete": "Delete"
     },
-    "unknownError": "Unknown error"
+    "unknownError": "Unknown error",
+    "owner": "Owner",
+    "admin": "Admin"
   },
   "upload": {
     "duplicate": {
@@ -555,7 +611,11 @@
     "photos": {
       "title": "Photo Upload",
       "subtitle": "Photos will be automatically processed and added to your library. You can organize your photos in the {0} section afterwards.",
-      "supportedFormats": "JPEG / PNG / HEIC / Live Photo / Motion Photo",
+      "supportedFormats": "JPEG / PNG / HEIC / MP4 / Live Photo / Motion Photo",
+      "mediaTypes": {
+        "image": "Photo",
+        "video": "Video"
+      },
       "maxFileSize": "Max {size}MB",
       "buttons": {
         "upload": "Upload Photos",
@@ -563,7 +623,11 @@
       },
       "uploader": {
         "label": "Drag and drop or click to select photos",
-        "description": "Supports JPEG, PNG, HEIC format photos, and MOV format Live Photo videos. Maximum file size: {maxSize}MB per file"
+        "description": "Supports JPEG, PNG, HEIC photos, Android Motion Photo originals, MP4 videos, and iPhone Live Photo MOV pairs. Maximum file size: {maxSize}MB per file",
+        "livePhotoGuide": {
+          "title": "Live Photo and Motion Photo",
+          "description": "Android Motion Photos can usually be uploaded as the original photo file. For iPhone Live Photos, upload the photo and its same-name MOV file together, such as IMG_1234.HEIC and IMG_1234.MOV."
+        }
       },
       "toolbar": {
         "title": "Photo Management",
@@ -573,7 +637,8 @@
       "photoFilter": {
         "all": "All Photos",
         "livephoto": "Live Photo",
-        "static": "Static Photos"
+        "static": "Static Photos",
+        "video": "Videos"
       },
       "stats": {
         "photos": "photos",
@@ -587,6 +652,8 @@
           },
           "id": "Photo ID",
           "title": "Photo Title",
+          "mediaType": "Media Type",
+          "albums": "Albums",
           "tags": "Keywords",
           "rating": "Rating",
           "isLivePhoto": "Live Photo",
@@ -596,7 +663,8 @@
           "fileSize": "File Size",
           "colorSpace": "Color Space",
           "reactions": "Reactions",
-          "actions": "Actions"
+          "actions": "Actions",
+          "owner": "Owner"
         },
         "cells": {
           "noTags": "No tags",
@@ -604,7 +672,9 @@
           "noGps": "No GPS info",
           "unknown": "Unknown",
           "staticPhoto": "Static Photo",
-          "noReactions": "No reactions"
+          "noReactions": "No reactions",
+          "noAlbums": "No albums",
+          "moreAlbums": "+{count}"
         },
         "columnVisibility": {
           "button": "Columns",
@@ -626,6 +696,7 @@
         "selected": "{count} / {total} rows selected",
         "batchReprocess": "Reprocess",
         "batchEraseLocation": "Erase location info",
+        "batchAlbums": "Set albums",
         "batchDownload": "Download",
         "batchDelete": "Batch Delete"
       },
@@ -723,6 +794,8 @@
         "eraseLocationFailed": "Failed to queue erase location info task",
         "batchEraseLocationQueued": "Queued {count} erase-location task(s)",
         "batchEraseLocationFailed": "Failed to queue batch erase-location tasks",
+        "batchAlbumsUpdateSuccess": "Updated album assignments for {count} photo(s)",
+        "batchAlbumsUpdateFailed": "Failed to batch update albums",
         "taskSubmitFailed": "Failed to submit task",
         "taskStatusCheckFailed": "Failed to check task status",
         "uploadFailed": "Upload failed"
@@ -734,7 +807,7 @@
         "allFilesTooLarge": "All {count} selected files exceed the maximum size limit ({maxSize}MB).",
         "filesTooLargeSkipped": "Skipped {count} oversized file(s) (limit {maxSize}MB). Remaining files will continue uploading.",
         "filesUnsupportedSkipped": "Skipped {count} file(s) with unsupported formats. Remaining files will continue uploading.",
-        "unsupportedFormat": "Unsupported file format: {type}. Please select JPEG, PNG, or HEIC photos, or MOV format Live Photo videos.",
+        "unsupportedFormat": "Unsupported file format: {type}. Please select JPEG, PNG, or HEIC photos, MP4 videos, or MOV Live Photo videos.",
         "fileTooLarge": "File too large: {size}MB. Maximum supported: {maxSize}MB.",
         "uploadFailed": "Upload failed",
         "uploadNetworkError": "Network connection failed or CORS error. Please check network and storage configuration.",
@@ -774,12 +847,29 @@
           "noLocation": "No location selected",
           "rating": "Rating",
           "ratingHint": "Click on the stars to set the photo rating (0-5 stars).",
-          "noRating": "No rating"
+          "noRating": "No rating",
+          "albums": "Assigned albums",
+          "loadingAlbums": "Loading albums...",
+          "noAlbumOptions": "No albums available"
         },
         "actions": {
           "cancel": "Cancel",
           "save": "Save changes"
         }
+      },
+      "batchAlbums": {
+        "title": "Batch set albums",
+        "description": "Apply album changes to {count} selected photo(s).",
+        "mode": "Action",
+        "modes": {
+          "replace": "Replace with selected albums",
+          "add": "Add to selected albums",
+          "remove": "Remove from selected albums"
+        },
+        "clearWarning": "No albums are selected. Saving will clear the currently manageable album assignments for these photos.",
+        "selectAlbumRequired": "Select at least one album",
+        "cancel": "Cancel",
+        "save": "Save changes"
       },
       "uploadQueueItem": {
         "status": {
@@ -861,8 +951,14 @@
           "title": "Title",
           "description": "Description",
           "photoCount": "Photos",
+          "visibility": "Visibility",
           "createdAt": "Created at",
-          "actions": "Actions"
+          "actions": "Actions",
+          "owner": "Owner"
+        },
+        "visibility": {
+          "public": "Public",
+          "hidden": "Hidden"
         }
       },
       "modal": {
@@ -872,6 +968,7 @@
         "searchPlaceholder": "Search photos...",
         "searchResults": "Results: {current} / {total}",
         "selectAll": "Select All",
+        "unassignedOnly": "Unassigned only",
         "setCover": "Set as cover",
         "noPhotos": "No photos",
         "noResults": "No matching photos found",
@@ -1010,6 +1107,7 @@
       "types": {
         "photo": "Photo Processing",
         "live-photo-video": "LivePhoto Video",
+        "video": "MP4 Video",
         "photo-reverse-geocoding": "Photo Reverse Geocoding",
         "photo-erase-location": "Photo Location Erasure"
       },
@@ -1077,6 +1175,49 @@
     },
     "nav": {
       "documentation": "Documentation"
+    },
+    "users": {
+      "actions": {
+        "createUser": "Create User",
+        "create": "Create",
+        "resetPassword": "Reset Password",
+        "promote": "Make Admin",
+        "demote": "Demote to User",
+        "enable": "Enable",
+        "disable": "Disable"
+      },
+      "roles": {
+        "admin": "Admin",
+        "user": "User"
+      },
+      "status": {
+        "inactive": "Disabled"
+      },
+      "stats": {
+        "summary": "{photos} photos · {albums} albums"
+      },
+      "fields": {
+        "username": "Username",
+        "email": "Email",
+        "initialPassword": "Initial Password",
+        "passwordHint": "At least 8 characters",
+        "createAsAdmin": "Create as admin"
+      },
+      "create": {
+        "title": "Create User"
+      },
+      "prompts": {
+        "resetPassword": "Set a new password for {username} (at least 8 characters)",
+        "deleteUser": "Delete {username}? Their content will be transferred to you."
+      },
+      "messages": {
+        "created": "User created",
+        "createFailed": "Failed to create user",
+        "operationFailed": "Operation failed",
+        "passwordReset": "Password reset",
+        "deleted": "User deleted",
+        "deleteFailed": "Failed to delete user"
+      }
     }
   },
   "settings": {
@@ -1121,7 +1262,8 @@
       "sections": {
         "thirdPartyLogin": "Third-Party Login",
         "fileProcessing": "File Processing",
-        "debugSettings": "Debug Settings"
+        "debugSettings": "Debug Settings",
+        "databaseBackup": "Database Backup"
       },
       "upload": {
         "duplicateCheck": {
@@ -1163,6 +1305,72 @@
           }
         }
       },
+      "backup": {
+        "enabled": {
+          "label": "Enable scheduled database backup",
+          "description": "Send SQLite database backups to email on a schedule.",
+          "help": "This backs up the database only, not original files stored locally."
+        },
+        "cron": {
+          "label": "Backup cron schedule",
+          "description": "Cron expression for sending scheduled backups.",
+          "help": "The default 0 3 * * * runs every day at 03:00."
+        },
+        "timezone": {
+          "label": "Backup timezone",
+          "description": "Timezone used by the cron expression.",
+          "help": "For example Asia/Shanghai, UTC, or America/Los_Angeles."
+        },
+        "retentionDays": {
+          "label": "Local backup retention days",
+          "description": "Local backup files older than this value are removed automatically.",
+          "help": "After email delivery, backups are still kept under data/backups on the server."
+        },
+        "smtpHost": {
+          "label": "SMTP host",
+          "description": "SMTP server used to send backup emails.",
+          "help": "For example smtp.gmail.com, smtp.qq.com, or smtp.example.com."
+        },
+        "smtpPort": {
+          "label": "SMTP port",
+          "description": "SMTP server port, commonly 465 or 587."
+        },
+        "smtpSecure": {
+          "label": "Use SSL/TLS",
+          "description": "Usually enabled for port 465; usually disabled for port 587 with STARTTLS."
+        },
+        "smtpUser": {
+          "label": "SMTP username",
+          "description": "Email address or account used to authenticate with SMTP."
+        },
+        "smtpPassword": {
+          "label": "SMTP password",
+          "description": "SMTP password or email app password."
+        },
+        "mailFrom": {
+          "label": "Sender",
+          "description": "Sender address for backup emails.",
+          "help": "You can use ChronoFrame, your-email(at)example.com. If empty, the SMTP username is used."
+        },
+        "mailTo": {
+          "label": "Recipients",
+          "description": "Email addresses that receive database backups.",
+          "help": "Separate multiple recipients with commas, semicolons, or new lines."
+        },
+        "encryptionPassphrase": {
+          "label": "Backup encryption passphrase",
+          "description": "When filled, the attachment is encrypted before sending.",
+          "help": "Keep this passphrase safe; encrypted backups cannot be restored without it."
+        },
+        "actions": {
+          "runNow": "Send backup now"
+        },
+        "messages": {
+          "runSuccess": "Backup email sent",
+          "runSuccessDescription": "{fileName} was sent to {recipients}",
+          "runFailed": "Failed to send backup"
+        }
+      },
       "sectionDescription": "Configure system-level behavior parameters. Changes here will affect global upload and service behavior."
     },
     "map": {
@@ -1192,9 +1400,33 @@
           "description": "MapLibre map style URL"
         }
       },
+      "amap": {
+        "key": {
+          "label": "AMap JS API Key",
+          "description": "AMap Web key used to render maps in the browser",
+          "help": "Create a Web (JS API) key in the AMap console and restrict it to your site domains"
+        },
+        "securityJsCode": {
+          "label": "AMap security code",
+          "description": "Security code for the AMap JavaScript API",
+          "help": "Keys created after December 2, 2021 must be used with a security code"
+        },
+        "missingConfig": "Configure both the AMap JS API Key and security code in dashboard map settings first",
+        "loadError": "AMap could not be loaded. Check the key, security code, domain allowlist, and network connection."
+      },
       "sectionDescription": "Configure map display and geocoding services. The map provider affects map styles and access credentials."
     },
     "location": {
+      "provider": {
+        "label": "Location provider",
+        "description": "Select the reverse-geocoding service for photos",
+        "options": {
+          "auto": "Automatic (legacy compatible)",
+          "amap": "AMap",
+          "mapbox": "Mapbox",
+          "nominatim": "Nominatim"
+        }
+      },
       "language": {
         "label": "Location Language",
         "description": "Language for geocoding location names",
@@ -1212,6 +1444,13 @@
           "label": "Nominatim Base URL",
           "description": "Base URL for Nominatim reverse geocoding API",
           "help": "Leave empty to use the public Nominatim service by default"
+        }
+      },
+      "amap": {
+        "webServiceKey": {
+          "label": "AMap Web Service Key",
+          "description": "AMap Web Service key used for server-side reverse geocoding",
+          "help": "Create a separate key for the Web Service platform; it is never sent to the browser"
         }
       }
     },
@@ -1456,6 +1695,10 @@
         "maplibre": {
           "label": "MapLibre",
           "description": "Open-source fork of Mapbox GL JS."
+        },
+        "amap": {
+          "label": "AMap",
+          "description": "AMap Web maps optimized for mainland China."
         }
       }
     },

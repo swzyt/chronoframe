@@ -14,6 +14,24 @@ interface AlbumItem extends Album {
   photoCount?: number
   photoIds?: string[]
   coverPhoto?: Photo | null
+  owner?: {
+    id: number
+    username: string
+    avatar?: string | null
+    isAdmin: number
+  } | null
+}
+
+interface PhotoAlbumSummary {
+  id: number
+  title: string
+  isHidden: boolean
+  ownerUserId: number
+}
+
+type ManagedPhoto = Photo & {
+  albums?: PhotoAlbumSummary[]
+  albumIds?: number[]
 }
 
 interface AlbumFormState {
@@ -47,6 +65,7 @@ const coverPhotoId = ref('')
 
 const draftSelectedPhotoIds = ref<string[]>([])
 const draftCoverPhotoId = ref('')
+const photosContext = usePhotos()
 const {
   filteredPhotos: unifiedFilteredPhotos,
   selectedCounts,
@@ -55,13 +74,24 @@ const {
 } = usePhotoFilters()
 
 const isSelectorFilterOpen = ref(false)
+const showUnassignedPhotosOnly = ref(false)
 
 const totalSelectedFilters = computed(() => {
-  return Object.values(selectedCounts.value).reduce(
+  const sharedFilterCount = Object.values(selectedCounts.value).reduce(
     (total, count) => total + count,
     0,
   )
+  return sharedFilterCount + (showUnassignedPhotosOnly.value ? 1 : 0)
 })
+
+const hasSelectorFilters = computed(
+  () => hasActiveFilters.value || showUnassignedPhotosOnly.value,
+)
+
+const clearSelectorFilters = () => {
+  clearAllFilters()
+  showUnassignedPhotosOnly.value = false
+}
 
 const validateForm = (state: any): FormError[] => {
   const errors: FormError[] = []
@@ -77,7 +107,7 @@ const validateForm = (state: any): FormError[] => {
 const loadAlbums = async () => {
   isLoadingAlbums.value = true
   try {
-    const response = await $fetch('/api/albums')
+    const response = await $fetch('/api/albums?scope=manage')
     albums.value = (response as any[]).map((album) => ({
       ...album,
       photoCount: album.photoIds?.length || 0,
@@ -107,13 +137,17 @@ const loadAlbums = async () => {
 const loadPhotos = async () => {
   isLoadingPhotos.value = true
   try {
-    const { photos } = usePhotos()
-    allPhotos.value = photos.value
+    allPhotos.value = photosContext.photos.value
   } catch (error) {
     console.error('Failed to load photos:', error)
   } finally {
     isLoadingPhotos.value = false
   }
+}
+
+const refreshPhotos = async () => {
+  await photosContext.refresh()
+  allPhotos.value = photosContext.photos.value
 }
 
 const openCreateSlideover = () => {
@@ -193,7 +227,7 @@ const onFormSubmit = async (event: FormSubmitEvent<AlbumFormState>) => {
       isAlbumSlideoverOpen.value = false
     }
 
-    await loadAlbums()
+    await Promise.all([refreshPhotos(), loadAlbums()])
   } catch (error) {
     console.error('Failed to save album:', error)
     useToast().add({
@@ -221,7 +255,7 @@ const deleteAlbum = async () => {
     })
 
     isDeleteConfirmOpen.value = false
-    await loadAlbums()
+    await Promise.all([refreshPhotos(), loadAlbums()])
   } catch (error) {
     console.error('Failed to delete album:', error)
     useToast().add({
@@ -244,6 +278,7 @@ const togglePhotoSelection = (photoId: string) => {
 }
 
 const openPhotoSelector = () => {
+  allPhotos.value = photosContext.photos.value
   draftSelectedPhotoIds.value = [...selectedPhotoIds.value]
   draftCoverPhotoId.value =
     coverPhotoId.value && selectedPhotoIds.value.includes(coverPhotoId.value)
@@ -337,7 +372,21 @@ const selectorFilteredPhotos = computed(() => {
   if (allPhotos.value.length === 0) return []
 
   const ids = new Set(allPhotos.value.map((photo) => photo.id))
-  return unifiedFilteredPhotos.value.filter((photo) => ids.has(photo.id))
+  const photos = unifiedFilteredPhotos.value.filter((photo) =>
+    ids.has(photo.id),
+  )
+
+  if (!showUnassignedPhotosOnly.value) {
+    return photos
+  }
+
+  return photos.filter((photo) => {
+    const managedPhoto = photo as ManagedPhoto
+    const albumIds = Array.isArray(managedPhoto.albumIds)
+      ? managedPhoto.albumIds
+      : (managedPhoto.albums || []).map((album) => album.id)
+    return albumIds.length === 0
+  })
 })
 
 const selectedPhotosPreview = computed(() => {
@@ -398,6 +447,16 @@ const columns = computed<any[]>(() => [
     id: 'photoCount',
     accessorKey: 'photoCount',
     header: $t('dashboard.albums.table.columns.photoCount'),
+  },
+  {
+    id: 'visibility',
+    accessorKey: 'isHidden',
+    header: $t('dashboard.albums.table.columns.visibility'),
+  },
+  {
+    id: 'owner',
+    accessorKey: 'owner',
+    header: $t('dashboard.albums.table.columns.owner'),
   },
   {
     id: 'createdAt',
@@ -497,8 +556,71 @@ const columns = computed<any[]>(() => [
                 variant="soft"
                 color="neutral"
               >
-                {{ $t('dashboard.albums.photoCount', { count: (row.original as unknown as AlbumItem).photoCount || 0 }) }}
+                {{
+                  $t('dashboard.albums.photoCount', {
+                    count:
+                      (row.original as unknown as AlbumItem).photoCount || 0,
+                  })
+                }}
               </UBadge>
+            </template>
+
+            <template #visibility-cell="{ row }">
+              <UBadge
+                variant="soft"
+                :color="
+                  (row.original as unknown as AlbumItem).isHidden
+                    ? 'warning'
+                    : 'success'
+                "
+                :icon="
+                  (row.original as unknown as AlbumItem).isHidden
+                    ? 'tabler:eye-off'
+                    : 'tabler:world'
+                "
+              >
+                {{
+                  (row.original as unknown as AlbumItem).isHidden
+                    ? $t('dashboard.albums.table.visibility.hidden')
+                    : $t('dashboard.albums.table.visibility.public')
+                }}
+              </UBadge>
+            </template>
+
+            <template #owner-cell="{ row }">
+              <div
+                v-if="(row.original as unknown as AlbumItem).owner"
+                class="flex items-center gap-2"
+              >
+                <UAvatar
+                  :src="
+                    (row.original as unknown as AlbumItem).owner?.avatar ||
+                    undefined
+                  "
+                  :alt="
+                    (row.original as unknown as AlbumItem).owner?.username || ''
+                  "
+                  icon="tabler:user"
+                  size="xs"
+                />
+                <span class="text-sm font-medium">
+                  {{ (row.original as unknown as AlbumItem).owner?.username }}
+                </span>
+                <UBadge
+                  v-if="(row.original as unknown as AlbumItem).owner?.isAdmin"
+                  size="xs"
+                  variant="soft"
+                  color="primary"
+                >
+                  {{ $t('common.admin') }}
+                </UBadge>
+              </div>
+              <span
+                v-else
+                class="text-sm text-gray-400 dark:text-gray-600"
+              >
+                -
+              </span>
             </template>
 
             <template #createdAt-cell="{ row }">
@@ -799,8 +921,8 @@ const columns = computed<any[]>(() => [
                     >
                       <UButton
                         icon="tabler:filter"
-                        :color="hasActiveFilters ? 'info' : 'neutral'"
-                        :variant="hasActiveFilters ? 'soft' : 'outline'"
+                        :color="hasSelectorFilters ? 'info' : 'neutral'"
+                        :variant="hasSelectorFilters ? 'soft' : 'outline'"
                         size="sm"
                       >
                         {{ $t('ui.action.filter.title') }}
@@ -823,14 +945,26 @@ const columns = computed<any[]>(() => [
                     </UPopover>
 
                     <UButton
-                      v-if="hasActiveFilters"
+                      v-if="hasSelectorFilters"
                       icon="tabler:filter-x"
                       color="neutral"
                       variant="ghost"
                       size="sm"
-                      @click="clearAllFilters()"
+                      @click="clearSelectorFilters"
                     >
                       {{ $t('ui.action.filter.clearAll') }}
+                    </UButton>
+
+                    <UButton
+                      icon="tabler:album-off"
+                      :color="showUnassignedPhotosOnly ? 'info' : 'neutral'"
+                      :variant="showUnassignedPhotosOnly ? 'soft' : 'outline'"
+                      size="sm"
+                      @click="
+                        showUnassignedPhotosOnly = !showUnassignedPhotosOnly
+                      "
+                    >
+                      {{ $t('dashboard.albums.modal.unassignedOnly') }}
                     </UButton>
 
                     <UButton
@@ -873,6 +1007,15 @@ const columns = computed<any[]>(() => [
                   </div>
 
                   <div class="flex flex-wrap gap-1">
+                    <UBadge
+                      v-if="showUnassignedPhotosOnly"
+                      size="xs"
+                      color="info"
+                      variant="soft"
+                      icon="tabler:album-off"
+                    >
+                      {{ $t('dashboard.albums.modal.unassignedOnly') }}
+                    </UBadge>
                     <UBadge
                       v-if="selectedCounts.tags"
                       size="xs"
@@ -1026,7 +1169,11 @@ const columns = computed<any[]>(() => [
                           <p
                             class="truncate text-[10px] font-medium text-white/92"
                           >
-                            {{ photo.title || photo.storageKey || $t('ui.photo.untitled') }}
+                            {{
+                              photo.title ||
+                              photo.storageKey ||
+                              $t('ui.photo.untitled')
+                            }}
                           </p>
                           <p class="truncate text-[9px] text-white/72">
                             {{
@@ -1089,13 +1236,13 @@ const columns = computed<any[]>(() => [
                   />
                   <p class="font-medium">
                     {{
-                      hasActiveFilters
+                      hasSelectorFilters
                         ? $t('dashboard.albums.modal.noResults')
                         : $t('dashboard.albums.modal.noPhotos')
                     }}
                   </p>
                   <p
-                    v-if="hasActiveFilters"
+                    v-if="hasSelectorFilters"
                     class="mt-1 text-sm"
                   >
                     {{ $t('dashboard.albums.modal.tryOtherKeywords') }}

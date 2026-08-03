@@ -12,7 +12,8 @@ export default defineEventHandler(async (event) => {
   }
 
   // 支持单个或多个 ID
-  const ids = Array.isArray(photoIds) ? photoIds : [photoIds]
+  const requestedIds = (Array.isArray(photoIds) ? photoIds : [photoIds]) as string[]
+  const ids = await filterAccessiblePhotoIds(event, requestedIds)
 
   if (ids.length === 0) {
     return {}

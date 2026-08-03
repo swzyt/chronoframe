@@ -3,34 +3,33 @@ import sharp from 'sharp'
 export default eventHandler(async (event) => {
   const { storageProvider } = useStorageProvider(event)
 
-  let url = getRouterParam(event, 'thumbnailUrl')
+  const encodedUrl = getRouterParam(event, 'thumbnailUrl')
 
-  if (!url) {
+  if (!encodedUrl) {
     throw createError({
       statusCode: 400,
       statusMessage: 'Invalid thumbnailUrl',
     })
   }
 
-  url = decodeURIComponent(url)
+  const url = decodeURIComponent(encodedUrl)
+  let key =
+    url.startsWith('/image/') || url.startsWith('/storage/')
+      ? decodeURIComponent(url.replace(/^\/(?:image|storage)\//, ''))
+      : null
+  const photo = key ? findPhotoByMediaKey(key) : findPhotoByMediaUrl(url)
+  key ||= photo?.thumbnailKey || photo?.storageKey || null
 
-  if (
-    storageProvider.config?.provider === 'local' &&
-    url.startsWith('/storage/')
-  ) {
-    const scheme = event.node.req.headers['x-forwarded-proto'] || 'http'
-    url = `${scheme}://${event.node.req.headers.host}${url}`
+  if (!photo || !key) {
+    throw createError({ statusCode: 404, statusMessage: 'Photo not found' })
+  }
+  await requirePublicPhotoAccess(event, photo.id)
+
+  const source = await storageProvider.get(key)
+  if (!source) {
+    throw createError({ statusCode: 404, statusMessage: 'Photo not found' })
   }
 
-  const photo = await fetch(url)
-    .then((res) => {
-      if (!res.ok) {
-        throw createError({ statusCode: 404, statusMessage: 'Photo not found' })
-      }
-      return res.arrayBuffer()
-    })
-    .then((buf) => Buffer.from(buf))
-
-  const sharpInst = sharp(photo).rotate()
+  const sharpInst = sharp(source).rotate()
   return await sharpInst.jpeg({ quality: 85 }).toBuffer()
 })

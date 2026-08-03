@@ -1,7 +1,8 @@
 import { z } from 'zod'
+import { and, inArray, eq, sql } from 'drizzle-orm'
 
 export default eventHandler(async (event) => {
-  await requireUserSession(event)
+  const user = await requireCurrentUser(event)
 
   const { albumId } = await getValidatedRouterParams(
     event,
@@ -30,7 +31,14 @@ export default eventHandler(async (event) => {
   const album = await db
     .select()
     .from(tables.albums)
-    .where(eq(tables.albums.id, albumId))
+    .where(
+      user.isAdmin
+        ? eq(tables.albums.id, albumId)
+        : and(
+            eq(tables.albums.id, albumId),
+            eq(tables.albums.ownerUserId, user.id),
+          ),
+    )
     .get()
 
   if (!album) {
@@ -38,6 +46,24 @@ export default eventHandler(async (event) => {
       statusCode: 404,
       statusMessage: 'Album not found',
     })
+  }
+  const requestedPhotoIds = new Set(body.photoIds || [])
+  if (body.coverPhotoId) requestedPhotoIds.add(body.coverPhotoId)
+  if (requestedPhotoIds.size) {
+    const owned = await db
+      .select({ id: tables.photos.id })
+      .from(tables.photos)
+      .where(
+        and(
+          inArray(tables.photos.id, [...requestedPhotoIds]),
+          user.isAdmin
+            ? sql`1 = 1`
+            : eq(tables.photos.ownerUserId, user.id),
+        ),
+      )
+    if (owned.length !== requestedPhotoIds.size) {
+      throw createError({ statusCode: 404, statusMessage: 'Photo not found' })
+    }
   }
 
   // 使用事务更新相簿

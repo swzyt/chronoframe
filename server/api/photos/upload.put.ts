@@ -1,9 +1,10 @@
 import { useStorageProvider } from '~~/server/utils/useStorageProvider'
 import { logger } from '~~/server/utils/logger'
 import { settingsManager } from '~~/server/services/settings/settingsManager'
+import { isUserStorageKey } from '~~/server/utils/queue-authz'
 
 export default eventHandler(async (event) => {
-  await requireUserSession(event)
+  const user = await requireCurrentUser(event)
 
   const { storageProvider } = useStorageProvider(event)
   const key = getQuery(event).key as string | undefined
@@ -17,6 +18,13 @@ export default eventHandler(async (event) => {
         title: t('upload.error.required.title'),
         message: t('upload.error.required.message', { field: 'key' }),
       },
+    })
+  }
+  const normalizedKey = key.replace(/^\/+/, '')
+  if (!user.isAdmin && !isUserStorageKey(event, user.id, normalizedKey)) {
+    throw createError({
+      statusCode: 404,
+      statusMessage: 'Storage object not found',
     })
   }
 
@@ -84,7 +92,7 @@ export default eventHandler(async (event) => {
   }
 
   try {
-    await storageProvider.create(key.replace(/^\/+/, ''), raw, contentType)
+    await storageProvider.create(normalizedKey, raw, contentType)
   } catch (error) {
     logger.chrono.error('Storage provider create error:', error)
     throw createError({
@@ -97,5 +105,5 @@ export default eventHandler(async (event) => {
     })
   }
 
-  return { ok: true, key }
+  return { ok: true, key: normalizedKey }
 })

@@ -15,20 +15,14 @@ import type { SettingsFieldsResponse } from '~~/shared/types/settings'
  * @returns SettingsFieldsResponse
  */
 export default eventHandler(async (event) => {
+  await requireAdmin(event)
+
   const query = await getValidatedQuery(
     event,
     z.object({
       namespace: z.string().min(1),
     }).parse,
   )
-
-  const session = await requireUserSession(event)
-  if (!session || !session.user.isAdmin) {
-    throw createError({
-      statusCode: 403,
-      statusMessage: 'Admin privileges required',
-    })
-  }
 
   try {
     // 获取该命名空间的所有设置

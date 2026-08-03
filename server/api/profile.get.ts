@@ -1,3 +1,4 @@
 export default eventHandler(async (event) => {
-  return (await getUserSession(event)).user
+  const { password: _password, ...user } = await requireCurrentUser(event)
+  return user
 })

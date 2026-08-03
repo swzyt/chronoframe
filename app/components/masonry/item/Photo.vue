@@ -35,6 +35,11 @@ const touchCount = ref(0)
 const longPressTimer = ref<NodeJS.Timeout | null>(null)
 const initialTouchPos = ref<{ x: number; y: number } | null>(null)
 const isMobile = useMediaQuery('(max-width: 768px)')
+const formattedVideoDuration = computed(() => {
+  const seconds = Math.max(0, Math.round(props.photo.duration || 0))
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
+})
+const photoOwner = computed(() => (props.photo as any).owner)
 
 const resizeObserverRef = ref<ResizeObserver | null>(null)
 const intersectionObserverRef = ref<IntersectionObserver | null>(null)
@@ -507,6 +512,24 @@ onUnmounted(() => {
           @load="handleImageLoad"
           @error="handleImageError"
         />
+        <div
+          v-if="photo.mediaType === 'video'"
+          class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center"
+        >
+          <span
+            class="flex size-12 items-center justify-center rounded-full bg-black/55 text-white shadow-lg backdrop-blur-sm"
+          >
+            <Icon
+              name="tabler:player-play-filled"
+              class="size-6"
+            />
+          </span>
+          <span
+            class="absolute bottom-2 right-2 rounded-md bg-black/65 px-2 py-1 text-xs font-semibold tabular-nums text-white backdrop-blur-sm"
+          >
+            {{ formattedVideoDuration }}
+          </span>
+        </div>
 
         <!-- LivePhoto video with enhanced motion transition -->
         <motion.video
@@ -589,7 +612,7 @@ onUnmounted(() => {
               {{ photo.description }}
             </p>
             <p
-              v-if="photo.dateTaken || photo.city"
+              v-if="photo.dateTaken || photo.city || photoOwner"
               class="text-xs font-medium opacity-80"
             >
               <span v-if="photo.dateTaken">
@@ -597,6 +620,10 @@ onUnmounted(() => {
               </span>
               <span v-if="photo.city">
                 <span v-if="photo.dateTaken"> · </span>{{ photo.city }}
+              </span>
+              <span v-if="photoOwner">
+                <span v-if="photo.dateTaken || photo.city"> · </span>
+                {{ photoOwner.username }}
               </span>
             </p>
           </div>

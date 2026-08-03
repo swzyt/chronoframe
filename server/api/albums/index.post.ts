@@ -1,7 +1,8 @@
 import z from 'zod'
+import { and, inArray, eq, sql } from 'drizzle-orm'
 
 export default eventHandler(async (event) => {
-  await requireUserSession(event)
+  const user = await requireCurrentUser(event)
 
   const body = await readValidatedBody(
     event,
@@ -15,6 +16,24 @@ export default eventHandler(async (event) => {
   )
 
   const db = useDB()
+  const requestedPhotoIds = new Set(body.photoIds || [])
+  if (body.coverPhotoId) requestedPhotoIds.add(body.coverPhotoId)
+  if (requestedPhotoIds.size) {
+    const owned = await db
+      .select({ id: tables.photos.id })
+      .from(tables.photos)
+      .where(
+        and(
+          inArray(tables.photos.id, [...requestedPhotoIds]),
+          user.isAdmin
+            ? sql`1 = 1`
+            : eq(tables.photos.ownerUserId, user.id),
+        ),
+      )
+    if (owned.length !== requestedPhotoIds.size) {
+      throw createError({ statusCode: 404, statusMessage: 'Photo not found' })
+    }
+  }
 
   const album = db.transaction((tx) => {
     const newAlbum = tx
@@ -24,6 +43,7 @@ export default eventHandler(async (event) => {
         description: body.description || null,
         coverPhotoId: body.coverPhotoId || null,
         isHidden: body.isHidden || false,
+        ownerUserId: user.id,
       })
       .returning()
       .get()

@@ -1,7 +1,7 @@
 const HEIC_EXTENSIONS = ['.heic', '.heif', '.hif']
 
 export default eventHandler(async (event) => {
-  await requireUserSession(event)
+  const user = await requireCurrentUser(event)
   const { storageProvider } = useStorageProvider(event)
   const photoId = getRouterParam(event, 'photoId')
 
@@ -15,7 +15,14 @@ export default eventHandler(async (event) => {
   const photo = await useDB()
     .select()
     .from(tables.photos)
-    .where(eq(tables.photos.id, photoId))
+    .where(
+      user.isAdmin
+        ? eq(tables.photos.id, photoId)
+        : and(
+            eq(tables.photos.id, photoId),
+            eq(tables.photos.ownerUserId, user.id),
+          ),
+    )
     .get()
 
   if (!photo) {
@@ -58,6 +65,9 @@ export default eventHandler(async (event) => {
       }
       if (photo.livePhotoVideoKey) {
         await storageProvider.delete(photo.livePhotoVideoKey)
+      }
+      if (photo.videoPlaybackKey) {
+        await storageProvider.delete(photo.videoPlaybackKey)
       }
     } catch {
       // ignore error

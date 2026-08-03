@@ -66,8 +66,21 @@ const mapStyle = computed(() => {
 <template>
   <div :class="twMerge('w-full h-full', $props.class)">
     <ClientOnly>
+      <MapAmap
+        v-if="provider === 'amap'"
+        class="h-full w-full"
+        :api-key="mapConfig['amap.key']"
+        :security-js-code="mapConfig['amap.securityJsCode']"
+        :center
+        :zoom
+        :interactive
+        @load="emit('load', $event)"
+        @zoom="emit('zoom')"
+      >
+        <slot />
+      </MapAmap>
       <MglMap
-        v-if="provider === 'maplibre'"
+        v-else-if="provider === 'maplibre'"
         class="w-full h-full"
         :map-key="mapId"
         :map-style="mapStyle as StyleSpecification"
