@@ -1,13 +1,4 @@
-import {
-  asc,
-  and,
-  count,
-  desc,
-  eq,
-  inArray,
-  isNotNull,
-  notInArray,
-} from 'drizzle-orm'
+import { asc, and, count, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm'
 import type { H3Event } from 'h3'
 import { settingsManager } from '~~/server/services/settings/settingsManager'
 
@@ -22,18 +13,25 @@ export async function getPreviewLimits() {
   }
 }
 
-async function hiddenPhotoIds() {
-  return useDB()
-    .select({ photoId: tables.albumPhotos.photoId })
-    .from(tables.albumPhotos)
-    .innerJoin(tables.albums, eq(tables.albumPhotos.albumId, tables.albums.id))
-    .where(eq(tables.albums.isHidden, true))
-    .all()
-    .map((row) => row.photoId)
-}
+const publicPhotoWhere = () => sql`
+  NOT EXISTS (
+    SELECT 1
+    FROM album_photos AS hidden_album_photos
+    INNER JOIN albums AS hidden_albums
+      ON hidden_albums.id = hidden_album_photos.album_id
+    WHERE hidden_album_photos.photo_id = photos.id
+      AND hidden_albums.is_hidden = 1
+  )
+`
 
 interface PublicPhotoQueryOptions {
   limit?: number
+  bounds?: {
+    west: number
+    east: number
+    south: number
+    north: number
+  }
 }
 
 const normalizeLimit = (limit?: number) => {
@@ -44,45 +42,31 @@ const normalizeLimit = (limit?: number) => {
 }
 
 export async function getPublicPhotos(options: PublicPhotoQueryOptions = {}) {
-  const db = useDB()
-  const hiddenIds = await hiddenPhotoIds()
   const limit = normalizeLimit(options.limit)
-
-  if (hiddenIds.length) {
-    const query = db
-      .select()
-      .from(tables.photos)
-      .where(notInArray(tables.photos.id, hiddenIds))
-      .orderBy(desc(tables.photos.lastModified), desc(tables.photos.dateTaken))
-    return limit ? query.limit(limit).all() : query.all()
-  }
-
-  const query = db
+  const query = useDB()
     .select()
     .from(tables.photos)
+    .where(publicPhotoWhere())
     .orderBy(desc(tables.photos.lastModified), desc(tables.photos.dateTaken))
   return limit ? query.limit(limit).all() : query.all()
 }
 
 export async function getPublicPhotoCount() {
-  const hiddenIds = await hiddenPhotoIds()
-  const query = useDB().select({ count: count() }).from(tables.photos)
   return (
-    (hiddenIds.length
-      ? query.where(notInArray(tables.photos.id, hiddenIds)).get()
-      : query.get()
-    )?.count || 0
+    useDB()
+      .select({ count: count() })
+      .from(tables.photos)
+      .where(publicPhotoWhere())
+      .get()?.count || 0
   )
 }
 
 export async function isPublicPhoto(photoId: string) {
-  const hiddenIds = await hiddenPhotoIds()
-  if (hiddenIds.includes(photoId)) return false
   return Boolean(
     useDB()
       .select({ id: tables.photos.id })
       .from(tables.photos)
-      .where(eq(tables.photos.id, photoId))
+      .where(and(eq(tables.photos.id, photoId), publicPhotoWhere()))
       .limit(1)
       .get(),
   )
@@ -110,8 +94,22 @@ export async function getPublicPhotoMarkers(
   options: PublicPhotoQueryOptions = {},
 ) {
   const db = useDB()
-  const hiddenIds = await hiddenPhotoIds()
   const limit = normalizeLimit(options.limit)
+  const bounds = options.bounds
+  const boundsWhere = bounds
+    ? bounds.west <= bounds.east
+      ? and(
+          sql`${tables.photos.longitude} >= ${bounds.west}`,
+          sql`${tables.photos.longitude} <= ${bounds.east}`,
+          sql`${tables.photos.latitude} >= ${bounds.south}`,
+          sql`${tables.photos.latitude} <= ${bounds.north}`,
+        )
+      : and(
+          sql`(${tables.photos.longitude} >= ${bounds.west} OR ${tables.photos.longitude} <= ${bounds.east})`,
+          sql`${tables.photos.latitude} >= ${bounds.south}`,
+          sql`${tables.photos.latitude} <= ${bounds.north}`,
+        )
+    : undefined
   const selectFields = {
     id: tables.photos.id,
     title: tables.photos.title,
@@ -130,9 +128,8 @@ export async function getPublicPhotoMarkers(
       and(
         isNotNull(tables.photos.latitude),
         isNotNull(tables.photos.longitude),
-        hiddenIds.length
-          ? notInArray(tables.photos.id, hiddenIds)
-          : isNotNull(tables.photos.id),
+        publicPhotoWhere(),
+        boundsWhere,
       ),
     )
     .orderBy(desc(tables.photos.lastModified), desc(tables.photos.dateTaken))
@@ -150,17 +147,28 @@ export async function getPublicPhotoMarkers(
   }))
 }
 
-export async function getPublicAlbums() {
-  return useDB()
+export async function getPublicAlbums(options: PublicPhotoQueryOptions = {}) {
+  const limit = normalizeLimit(options.limit)
+  const query = useDB()
     .select()
     .from(tables.albums)
     .where(eq(tables.albums.isHidden, false))
     .orderBy(desc(tables.albums.createdAt))
-    .all()
+  return limit ? query.limit(limit).all() : query.all()
+}
+
+export async function getPublicAlbumCount() {
+  return (
+    useDB()
+      .select({ count: count() })
+      .from(tables.albums)
+      .where(eq(tables.albums.isHidden, false))
+      .get()?.count || 0
+  )
 }
 
 async function getPreviewAlbumPhotoIds(albumLimit: number, photoLimit: number) {
-  const albums = (await getPublicAlbums()).slice(0, albumLimit)
+  const albums = await getPublicAlbums({ limit: albumLimit })
   if (albums.length === 0) return []
 
   const albumPhotoRows = useDB()
@@ -201,22 +209,22 @@ async function getPreviewPhotoIds() {
 }
 
 export async function getPreviewAccessSummary(event: H3Event) {
-  const [state, limits, totalPhotos, albums] = await Promise.all([
+  const [state, limits, totalPhotos, totalAlbums] = await Promise.all([
     getAccessState(event),
     getPreviewLimits(),
     getPublicPhotoCount(),
-    getPublicAlbums(),
+    getPublicAlbumCount(),
   ])
   return {
     required: state.enabled,
     granted: state.granted,
     ...limits,
     totalPhotos,
-    totalAlbums: albums.length,
+    totalAlbums,
     hasMorePhotos:
       state.enabled && !state.granted && totalPhotos > limits.photoLimit,
     hasMoreAlbums:
-      state.enabled && !state.granted && albums.length > limits.albumLimit,
+      state.enabled && !state.granted && totalAlbums > limits.albumLimit,
   }
 }
 
@@ -244,9 +252,9 @@ export async function requirePublicAlbumAccess(
   if (state.granted) return
 
   const { albumLimit } = await getPreviewLimits()
-  const allowedIds = (await getPublicAlbums())
-    .slice(0, albumLimit)
-    .map((album) => album.id)
+  const allowedIds = (await getPublicAlbums({ limit: albumLimit })).map(
+    (album) => album.id,
+  )
   if (!allowedIds.includes(albumId)) {
     throw createError({
       statusCode: 401,

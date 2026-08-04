@@ -63,6 +63,8 @@ const systemUploadEraseLocationDefault = computed(() => {
 
 const dayjs = useDayjs()
 const requestFetch = useRequestFetch()
+const route = useRoute()
+const router = useRouter()
 
 const { status, refresh } = usePhotos()
 const { filteredPhotos, selectedCounts, hasActiveFilters } = usePhotoFilters()
@@ -737,7 +739,119 @@ const livePhotoStats = computed(() => {
 })
 
 const photoFilter = ref<'all' | 'livephoto' | 'static' | 'video'>('all')
+const serverPhotoSearch = ref(
+  typeof route.query.search === 'string' ? route.query.search : '',
+)
+const serverMediaType = ref<'all' | 'image' | 'video'>(
+  route.query.mediaType === 'image' || route.query.mediaType === 'video'
+    ? route.query.mediaType
+    : 'all',
+)
+const serverPage = computed(() => {
+  const page = Number(route.query.page || 1)
+  return Number.isFinite(page) && page > 0 ? Math.floor(page) : 1
+})
+const serverPageSize = computed(() => {
+  const size = Number(route.query.pageSize || 80)
+  return Number.isFinite(size) && size > 0
+    ? Math.min(200, Math.max(20, Math.floor(size)))
+    : 80
+})
+const photoPageMetaEndpoint = computed(() => {
+  const query = new URLSearchParams({
+    scope: 'manage',
+    metaOnly: '1',
+    page: String(serverPage.value),
+    pageSize: String(serverPageSize.value),
+  })
+  const routeSearch =
+    typeof route.query.search === 'string' ? route.query.search.trim() : ''
+  const routeMediaType =
+    route.query.mediaType === 'image' || route.query.mediaType === 'video'
+      ? route.query.mediaType
+      : 'all'
+  if (routeSearch) {
+    query.set('search', routeSearch)
+  }
+  if (routeMediaType !== 'all') {
+    query.set('mediaType', routeMediaType)
+  }
+  return `/api/photos?${query.toString()}`
+})
+const { data: photoPageData, refresh: refreshPhotoPageMeta } = await useFetch<{
+  total: number
+  page: number
+  pageSize: number
+  totalPages: number
+}>(() => photoPageMetaEndpoint.value, {
+  watch: [photoPageMetaEndpoint],
+  transform: (response: any) => ({
+    total: Number(response?.total || 0),
+    page: Number(response?.page || 1),
+    pageSize: Number(response?.pageSize || serverPageSize.value),
+    totalPages: Number(response?.totalPages || 1),
+  }),
+})
+const totalManagedPhotos = computed(() => photoPageData.value?.total || 0)
+const totalManagedPages = computed(() =>
+  Math.max(1, photoPageData.value?.totalPages || 1),
+)
+const serverPhotoPageLabel = computed(() => {
+  const start =
+    totalManagedPhotos.value === 0
+      ? 0
+      : (serverPage.value - 1) * serverPageSize.value + 1
+  const end = Math.min(
+    totalManagedPhotos.value,
+    serverPage.value * serverPageSize.value,
+  )
+  return `${start}-${end} / ${totalManagedPhotos.value}`
+})
+const updateServerPhotoQuery = (
+  patch: Record<string, string | number | null>,
+) => {
+  const nextQuery: Record<string, any> = { ...route.query }
+  for (const [key, value] of Object.entries(patch)) {
+    if (value === null || value === '' || value === 'all') {
+      delete nextQuery[key]
+    } else {
+      nextQuery[key] = String(value)
+    }
+  }
+  router.replace({ query: nextQuery })
+}
+const debouncedServerSearch = useDebounceFn(() => {
+  updateServerPhotoQuery({
+    search: serverPhotoSearch.value.trim() || null,
+    page: 1,
+  })
+}, 350)
 
+watch(serverPhotoSearch, debouncedServerSearch)
+watch(serverMediaType, (value) => {
+  updateServerPhotoQuery({
+    mediaType: value === 'all' ? null : value,
+    page: 1,
+  })
+})
+watch(
+  () => route.query.search,
+  (value) => {
+    const next = typeof value === 'string' ? value : ''
+    if (next !== serverPhotoSearch.value) {
+      serverPhotoSearch.value = next
+    }
+  },
+)
+watch(
+  () => route.query.mediaType,
+  (value) => {
+    const next = value === 'image' || value === 'video' ? value : 'all'
+    if (next !== serverMediaType.value) {
+      serverMediaType.value = next
+    }
+  },
+)
 const filteredData = computed(() => {
   if (!filteredPhotos.value) return []
 
@@ -755,6 +869,10 @@ const filteredData = computed(() => {
     default:
       return filteredPhotos.value
   }
+})
+
+watch(filteredData, () => {
+  rowSelection.value = {}
 })
 
 // 监听过滤后的照片变化，自动获取表态数据
@@ -2629,7 +2747,38 @@ onUnmounted(() => {
               </div>
             </div>
 
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center justify-end gap-2">
+              <UInput
+                v-model="serverPhotoSearch"
+                class="w-full sm:w-64"
+                size="sm"
+                icon="tabler:search"
+                :aria-label="$t('dashboard.photos.toolbar.serverSearch')"
+                :placeholder="
+                  $t('dashboard.photos.toolbar.serverSearchPlaceholder')
+                "
+              />
+              <USelect
+                v-model="serverMediaType"
+                class="w-32"
+                size="sm"
+                value-key="value"
+                label-key="label"
+                :items="[
+                  {
+                    label: $t('dashboard.photos.photoFilter.all'),
+                    value: 'all',
+                  },
+                  {
+                    label: $t('dashboard.photos.mediaTypes.image'),
+                    value: 'image',
+                  },
+                  {
+                    label: $t('dashboard.photos.mediaTypes.video'),
+                    value: 'video',
+                  },
+                ]"
+              />
               <UPopover>
                 <UTooltip :text="$t('ui.action.filter.tooltip')">
                   <UChip
@@ -2696,6 +2845,7 @@ onUnmounted(() => {
                 @click="
                   async () => {
                     await refresh()
+                    await refreshPhotoPageMeta()
                     if (filteredData.length > 0) {
                       await fetchReactions(filteredData.map((p: Photo) => p.id))
                     }
@@ -2811,6 +2961,57 @@ onUnmounted(() => {
                 </div>
               </template>
             </UTable>
+
+            <div
+              class="flex flex-col gap-2 border-t border-neutral-200/80 bg-neutral-50/70 px-3 py-2 text-xs text-neutral-500 dark:border-neutral-800/80 dark:bg-neutral-900/70 dark:text-neutral-400 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div class="font-mono">
+                {{ serverPhotoPageLabel }}
+              </div>
+              <div class="flex items-center gap-2">
+                <USelect
+                  :model-value="serverPageSize"
+                  class="w-32"
+                  size="xs"
+                  :items="
+                    [40, 80, 120, 200].map((size) => ({
+                      label: $t('dashboard.photos.toolbar.pageSize', { size }),
+                      value: size,
+                    }))
+                  "
+                  value-key="value"
+                  label-key="label"
+                  @update:model-value="
+                    (value) =>
+                      updateServerPhotoQuery({
+                        pageSize: Number(value),
+                        page: 1,
+                      })
+                  "
+                />
+                <UButton
+                  size="xs"
+                  variant="soft"
+                  color="neutral"
+                  icon="tabler:chevron-left"
+                  :disabled="serverPage <= 1"
+                  :label="$t('dashboard.photos.toolbar.previousPage')"
+                  @click="updateServerPhotoQuery({ page: serverPage - 1 })"
+                />
+                <span class="font-mono">
+                  {{ serverPage }} / {{ totalManagedPages }}
+                </span>
+                <UButton
+                  size="xs"
+                  variant="soft"
+                  color="neutral"
+                  trailing-icon="tabler:chevron-right"
+                  :disabled="serverPage >= totalManagedPages"
+                  :label="$t('dashboard.photos.toolbar.nextPage')"
+                  @click="updateServerPhotoQuery({ page: serverPage + 1 })"
+                />
+              </div>
+            </div>
 
             <!-- 悬浮版批量操作菜单 -->
             <transition

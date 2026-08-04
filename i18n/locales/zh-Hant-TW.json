@@ -558,7 +558,12 @@
       "toolbar": {
         "title": "照片管理",
         "filter": "篩選",
-        "refresh": "重新整理"
+        "refresh": "重新整理",
+        "serverSearch": "搜尋照片",
+        "serverSearchPlaceholder": "依標題、ID、位置或儲存路徑搜尋",
+        "pageSize": "每頁 {size} 張",
+        "previousPage": "上一頁",
+        "nextPage": "下一頁"
       },
       "photoFilter": {
         "all": "所有照片",

@@ -36,6 +36,21 @@ export interface PhotoMarker {
   exif?: any
 }
 
+export interface PhotoMarkerCluster {
+  id: string
+  latitude: number
+  longitude: number
+  count: number
+  clusteredPhotos: PhotoMarker[]
+}
+
+export interface PhotoMapResponse {
+  markers: PhotoMarker[]
+  clusters: PhotoMarkerCluster[]
+  total: number
+  clustered: boolean
+}
+
 export interface ClusterPoint {
   type: 'Feature'
   properties: {

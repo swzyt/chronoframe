@@ -632,7 +632,12 @@
       "toolbar": {
         "title": "Photo Management",
         "filter": "Filter",
-        "refresh": "Refresh"
+        "refresh": "Refresh",
+        "serverSearch": "Search photos",
+        "serverSearchPlaceholder": "Search by title, ID, location, or storage path",
+        "pageSize": "{size} per page",
+        "previousPage": "Previous page",
+        "nextPage": "Next page"
       },
       "photoFilter": {
         "all": "All Photos",

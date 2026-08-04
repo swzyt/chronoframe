@@ -1,7 +1,11 @@
 <script lang="ts" setup>
 import { motion } from 'motion-v'
 import { clusterMarkers } from '~/utils/clustering'
-import type { PhotoMarker } from '~~/shared/types/map'
+import type {
+  ClusterPoint,
+  PhotoMapResponse,
+  PhotoMarker,
+} from '~~/shared/types/map'
 
 useHead({
   title: () => $t('title.globe'),
@@ -13,13 +17,49 @@ const dayjs = useDayjs()
 
 const { accessEntitlement, unlockUrl } = useAccessEntitlement()
 const requestFetch = useRequestFetch()
-const { data: mapPhotos, refresh: refreshMapPhotos } = await useAsyncData<
-  PhotoMarker[]
->('photo-map-markers', () => requestFetch('/api/photos/map'))
+
+interface MapBounds {
+  west: number
+  east: number
+  south: number
+  north: number
+}
+
+const visibleMapBounds = shallowRef<MapBounds | null>(null)
+const currentZoom = ref<number>(4)
+const mapRequestQuery = computed(() => {
+  const bounds = visibleMapBounds.value
+  return {
+    zoom: Math.round(currentZoom.value * 100) / 100,
+    ...(bounds
+      ? {
+          west: bounds.west,
+          east: bounds.east,
+          south: bounds.south,
+          north: bounds.north,
+        }
+      : {}),
+  }
+})
+const { data: mapData, refresh: refreshMapPhotos } =
+  await useAsyncData<PhotoMapResponse>('photo-map-markers', () =>
+    requestFetch('/api/photos/map', {
+      query: mapRequestQuery.value,
+    }),
+  )
 
 const photosWithLocation = computed(() => {
-  return mapPhotos.value || []
+  return mapData.value?.markers || []
 })
+
+const mapPositionPoints = computed(() => [
+  ...(mapData.value?.markers || []),
+  ...(mapData.value?.clusters || []).map((cluster) => ({
+    id: cluster.id,
+    latitude: cluster.latitude,
+    longitude: cluster.longitude,
+  })),
+])
 
 watch(
   () => accessEntitlement.value.granted,
@@ -238,21 +278,12 @@ const toggleTimelineEnabled = () => {
 
 const currentClusterPointId = ref<string | null>(null)
 const mapInstance = shallowRef<any | null>(null)
-const visibleMapBounds = shallowRef<MapBounds | null>(null)
-const currentZoom = ref<number>(4)
 const analysisMode = ref<'none' | 'focalLength' | 'shutterSpeed' | 'altitude'>(
   'none',
 )
 const parameterAnnotationOpen = ref(false)
 const globeMapId = 'cframe-globe-map'
 const mapEventHandlers: Array<[string, (...args: any[]) => void]> = []
-
-interface MapBounds {
-  west: number
-  east: number
-  south: number
-  north: number
-}
 
 const toMapBounds = (rawBounds: any): MapBounds | null => {
   if (!rawBounds) return null
@@ -295,7 +326,10 @@ const updateMapViewportState = () => {
 }
 
 const scheduleMapViewportStateUpdate = useThrottleFn(
-  updateMapViewportState,
+  () => {
+    updateMapViewportState()
+    refreshMapPhotos()
+  },
   120,
   true,
   true,
@@ -490,8 +524,44 @@ const visiblePhotosWithLocation = computed(() => {
 
 const visiblePhotoMarkers = computed(() => visiblePhotosWithLocation.value)
 
+const serverClusterPoints = computed<ClusterPoint[]>(() => {
+  return (mapData.value?.clusters || []).map((cluster) => ({
+    type: 'Feature',
+    properties: {
+      cluster: true,
+      point_count: cluster.count,
+      point_count_abbreviated: cluster.count.toString(),
+      marker: {
+        id: cluster.id,
+        latitude: cluster.latitude,
+        longitude: cluster.longitude,
+        title: `${cluster.count}`,
+      },
+      clusteredPhotos: cluster.clusteredPhotos,
+    },
+    geometry: {
+      type: 'Point',
+      coordinates: [cluster.longitude, cluster.latitude],
+    },
+  }))
+})
+
+const serverSinglePoints = computed<ClusterPoint[]>(() => {
+  return visiblePhotoMarkers.value.map((marker) => ({
+    type: 'Feature',
+    properties: { marker },
+    geometry: {
+      type: 'Point',
+      coordinates: [marker.longitude, marker.latitude],
+    },
+  }))
+})
+
 // Convert photos to markers and apply clustering
 const clusteredMarkers = computed(() => {
+  if (mapData.value?.clustered) {
+    return [...serverClusterPoints.value, ...serverSinglePoints.value]
+  }
   return clusterMarkers(visiblePhotoMarkers.value, currentZoom.value, {
     maxRenderedPoints: 520,
   })
@@ -533,7 +603,7 @@ watch(filteredPhotosWithLocation, (currentPhotos) => {
 })
 
 const mapViewState = computed(() => {
-  if (photosWithLocation.value.length === 0) {
+  if (mapPositionPoints.value.length === 0) {
     return {
       longitude: -122.4,
       latitude: 37.8,
@@ -541,8 +611,8 @@ const mapViewState = computed(() => {
     }
   }
 
-  const latitudes = photosWithLocation.value.map((photo) => photo.latitude!)
-  const longitudes = photosWithLocation.value.map((photo) => photo.longitude!)
+  const latitudes = mapPositionPoints.value.map((photo) => photo.latitude!)
+  const longitudes = mapPositionPoints.value.map((photo) => photo.longitude!)
 
   const minLat = Math.min(...latitudes)
   const maxLat = Math.max(...latitudes)
@@ -622,6 +692,7 @@ const onMapLoaded = (map: any) => {
   mapInstance.value = map
   bindMapViewportListeners(map)
   updateMapViewportState()
+  refreshMapPhotos()
 
   const { photoId } = route.query
   if (photoId && typeof photoId === 'string') {

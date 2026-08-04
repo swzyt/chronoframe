@@ -1,7 +1,8 @@
 import { createCipheriv, randomBytes, scryptSync } from 'node:crypto'
 import { createReadStream, createWriteStream } from 'node:fs'
-import { mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import { mkdir, readdir, rm, stat } from 'node:fs/promises'
 import { basename, dirname, join, resolve } from 'node:path'
+import { Transform } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 import { createGzip } from 'node:zlib'
 
@@ -12,7 +13,7 @@ import nodemailer from 'nodemailer'
 import { settingsManager } from '~~/server/services/settings/settingsManager'
 import { resolveDatabasePath } from '~~/server/utils/database-path'
 
-const BACKUP_MAGIC = Buffer.from('CFDBENC1')
+const BACKUP_MAGIC = Buffer.from('CFDBENC2')
 const DEFAULT_BACKUP_DIR = 'data/backups'
 
 export interface DatabaseBackupSettings {
@@ -141,13 +142,31 @@ async function encryptFile(
   const iv = randomBytes(12)
   const key = scryptSync(passphrase, salt, 32)
   const cipher = createCipheriv('aes-256-gcm', key, iv)
-  const source = await readFile(sourcePath)
-  const encrypted = Buffer.concat([cipher.update(source), cipher.final()])
-  const tag = cipher.getAuthTag()
 
-  await writeFile(
-    targetPath,
-    Buffer.concat([BACKUP_MAGIC, salt, iv, tag, encrypted]),
+  let headerWritten = false
+  const frame = new Transform({
+    transform(chunk, _encoding, callback) {
+      if (!headerWritten) {
+        this.push(Buffer.concat([BACKUP_MAGIC, salt, iv]))
+        headerWritten = true
+      }
+      this.push(chunk)
+      callback()
+    },
+    final(callback) {
+      if (!headerWritten) {
+        this.push(Buffer.concat([BACKUP_MAGIC, salt, iv]))
+      }
+      this.push(cipher.getAuthTag())
+      callback()
+    },
+  })
+
+  await pipeline(
+    createReadStream(sourcePath),
+    cipher,
+    frame,
+    createWriteStream(targetPath),
   )
 }
 
@@ -220,7 +239,7 @@ async function sendBackupEmail(
 
   const fileName = basename(backup.filePath)
   const encryptionNote = backup.encrypted
-    ? '\n\nThis attachment is encrypted with AES-256-GCM. Keep the configured passphrase safe.'
+    ? '\n\nThis attachment is encrypted with AES-256-GCM in ChronoFrame stream format v2. Keep the configured passphrase safe.'
     : ''
 
   await transporter.sendMail({

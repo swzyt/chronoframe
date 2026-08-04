@@ -632,7 +632,12 @@
       "toolbar": {
         "title": "照片管理",
         "filter": "筛选",
-        "refresh": "刷新"
+        "refresh": "刷新",
+        "serverSearch": "搜索照片",
+        "serverSearchPlaceholder": "按标题、ID、位置或存储路径搜索",
+        "pageSize": "每页 {size} 张",
+        "previousPage": "上一页",
+        "nextPage": "下一页"
       },
       "photoFilter": {
         "all": "全部照片",

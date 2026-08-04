@@ -632,7 +632,12 @@
       "toolbar": {
         "title": "Управление фотографиями",
         "filter": "Фильтр",
-        "refresh": "Обновить"
+        "refresh": "Обновить",
+        "serverSearch": "Поиск фотографий",
+        "serverSearchPlaceholder": "Искать по названию, ID, месту или пути хранения",
+        "pageSize": "{size} на странице",
+        "previousPage": "Предыдущая страница",
+        "nextPage": "Следующая страница"
       },
       "photoFilter": {
         "all": "Все фотографии",

@@ -48,6 +48,23 @@ watchEffect(() => {
 const apiEndpoint = computed(() => {
   // 后台管理页面始终显示所有照片
   if (route.path.startsWith('/dashboard')) {
+    if (route.path === '/dashboard/photos') {
+      const query = new URLSearchParams({
+        scope: 'manage',
+        page: String(route.query.page || 1),
+        pageSize: String(route.query.pageSize || 80),
+      })
+      if (typeof route.query.search === 'string' && route.query.search.trim()) {
+        query.set('search', route.query.search.trim())
+      }
+      if (
+        typeof route.query.mediaType === 'string' &&
+        ['image', 'video'].includes(route.query.mediaType)
+      ) {
+        query.set('mediaType', route.query.mediaType)
+      }
+      return `/api/photos?${query.toString()}`
+    }
     return '/api/photos?scope=manage'
   }
   // 前端页面：登录用户显示所有照片，未登录用户只显示可见照片
@@ -58,7 +75,8 @@ const { data, refresh, status } = await useFetch(() => apiEndpoint.value, {
 })
 
 const photos = computed(() => {
-  const allPhotos = (data.value as Photo[]) || []
+  const raw = data.value as Photo[] | { items?: Photo[] } | null | undefined
+  const allPhotos = Array.isArray(raw) ? raw : raw?.items || []
   if (accessEntitlement.value.required && !accessEntitlement.value.granted) {
     return allPhotos.slice(0, accessEntitlement.value.photoLimit)
   }

@@ -558,7 +558,12 @@
       "toolbar": {
         "title": "写真管理",
         "filter": "フィルター",
-        "refresh": "更新"
+        "refresh": "更新",
+        "serverSearch": "写真を検索",
+        "serverSearchPlaceholder": "タイトル、ID、場所、保存パスで検索",
+        "pageSize": "1ページ {size} 件",
+        "previousPage": "前のページ",
+        "nextPage": "次のページ"
       },
       "photoFilter": {
         "all": "すべての写真",
