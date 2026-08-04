@@ -28,6 +28,10 @@ export default defineConfig({
             text: '与上游仓库的差异',
             link: '/zh/guide/fork-differences',
           },
+          {
+            text: 'AI / Agent 功能路线',
+            link: '/zh/guide/ai-agent-roadmap',
+          },
         ],
       },
       {
