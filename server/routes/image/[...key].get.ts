@@ -12,6 +12,9 @@ export default eventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Photo not found' })
   }
   await requirePublicPhotoAccess(event, mediaPhoto.id)
+  if (isOriginalImageMediaKey(mediaPhoto, normalizedKey)) {
+    await requireOriginalImageMediaAccess(event)
+  }
 
   const ext = normalizedKey.split('.').pop()?.toLowerCase()
   const contentTypes: Record<string, string> = {
@@ -35,14 +38,16 @@ export default eventHandler(async (event) => {
   const meta = await storageProvider.getFileMeta(normalizedKey)
   const range = getHeader(event, 'range')
 
-  if (meta?.size && range) {
+  if (meta?.size) {
     const etag = `W/"${meta.size}-${encodeURIComponent(normalizedKey)}"`
     setHeader(event, 'ETag', etag)
     if (getHeader(event, 'if-none-match') === etag) {
       setResponseStatus(event, 304)
       return
     }
+  }
 
+  if (meta?.size && range) {
     const match = /^bytes=(\d*)-(\d*)$/.exec(range)
     if (!match) {
       throw createError({ statusCode: 416, statusMessage: 'Invalid range' })
@@ -59,6 +64,19 @@ export default eventHandler(async (event) => {
       })
     }
 
+    const stream = await storageProvider.getRangeStream?.(
+      normalizedKey,
+      start,
+      end,
+    )
+    if (stream) {
+      setResponseStatus(event, 206)
+      setHeader(event, 'Content-Range', `bytes ${start}-${end}/${size}`)
+      setHeader(event, 'Content-Length', String(end - start + 1))
+      logger.chrono.info('Serve image range stream from key', normalizedKey)
+      return sendStream(event, stream)
+    }
+
     const chunk =
       (await storageProvider.getRange?.(normalizedKey, start, end)) ||
       (await storageProvider.get(normalizedKey))?.subarray(start, end + 1) ||
@@ -73,6 +91,15 @@ export default eventHandler(async (event) => {
     setHeader(event, 'Content-Length', String(chunk.length))
     logger.chrono.info('Serve image range from key', normalizedKey)
     return chunk
+  }
+
+  if (meta?.size) {
+    const stream = await storageProvider.getStream?.(normalizedKey)
+    if (stream) {
+      setHeader(event, 'Content-Length', String(meta.size))
+      logger.chrono.info('Serve image stream from key', normalizedKey)
+      return sendStream(event, stream)
+    }
   }
 
   const photo =

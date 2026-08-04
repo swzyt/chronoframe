@@ -1,3 +1,4 @@
+import { createReadStream } from 'node:fs'
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import type {
@@ -74,6 +75,17 @@ export class LocalStorageProvider implements StorageProvider {
     }
   }
 
+  async getStream(key: string): Promise<NodeJS.ReadableStream | null> {
+    const { absFile } = this.resolveAbsoluteKey(key)
+    try {
+      await fs.access(absFile)
+      return createReadStream(absFile)
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT') return null
+      throw err
+    }
+  }
+
   async getRange(
     key: string,
     start: number,
@@ -93,6 +105,21 @@ export class LocalStorageProvider implements StorageProvider {
       throw err
     } finally {
       await handle?.close()
+    }
+  }
+
+  async getRangeStream(
+    key: string,
+    start: number,
+    end: number,
+  ): Promise<NodeJS.ReadableStream | null> {
+    const { absFile } = this.resolveAbsoluteKey(key)
+    try {
+      await fs.access(absFile)
+      return createReadStream(absFile, { start, end })
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT') return null
+      throw err
     }
   }
 

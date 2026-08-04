@@ -38,10 +38,7 @@ const requireDisplayPhotoAccess = async (
 ) => {
   if (await canManagePhoto(event, photo)) return
 
-  const publicPhoto = (await getPublicPhotos()).some(
-    (item) => item.id === photo.id,
-  )
-  if (!publicPhoto) {
+  if (!(await isPublicPhoto(photo.id))) {
     throw createError({ statusCode: 404, statusMessage: 'Photo not found' })
   }
 
@@ -67,6 +64,26 @@ const serveDisplayBuffer = (
   return buffer
 }
 
+const serveDisplayStream = (
+  event: H3Event,
+  photoId: string,
+  size: number,
+  stream: NodeJS.ReadableStream,
+) => {
+  const etag = `W/"display-${photoId}-${size}"`
+  setHeader(event, 'Content-Type', 'image/webp')
+  setHeader(event, 'Cache-Control', 'private, max-age=604800')
+  setHeader(event, 'ETag', etag)
+
+  if (getHeader(event, 'if-none-match') === etag) {
+    setResponseStatus(event, 304)
+    return
+  }
+
+  setHeader(event, 'Content-Length', String(size))
+  return sendStream(event, stream)
+}
+
 export default eventHandler(async (event) => {
   const photoId = getRouterParam(event, 'photoId')
   if (!photoId) {
@@ -89,6 +106,14 @@ export default eventHandler(async (event) => {
   const { storageProvider } = useStorageProvider(event)
 
   if (photo.displayKey) {
+    const meta = await storageProvider.getFileMeta(photo.displayKey)
+    const stream = meta?.size
+      ? await storageProvider.getStream?.(photo.displayKey)
+      : null
+    if (meta?.size && stream) {
+      return serveDisplayStream(event, photo.id, meta.size, stream)
+    }
+
     const displayBuffer = await storageProvider.get(photo.displayKey)
     if (displayBuffer) {
       return serveDisplayBuffer(event, photo.id, displayBuffer)

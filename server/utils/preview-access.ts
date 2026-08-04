@@ -1,4 +1,13 @@
-import { asc, desc, eq, inArray, notInArray } from 'drizzle-orm'
+import {
+  asc,
+  and,
+  count,
+  desc,
+  eq,
+  inArray,
+  isNotNull,
+  notInArray,
+} from 'drizzle-orm'
 import type { H3Event } from 'h3'
 import { settingsManager } from '~~/server/services/settings/settingsManager'
 
@@ -23,16 +32,122 @@ async function hiddenPhotoIds() {
     .map((row) => row.photoId)
 }
 
-export async function getPublicPhotos() {
+interface PublicPhotoQueryOptions {
+  limit?: number
+}
+
+const normalizeLimit = (limit?: number) => {
+  if (limit === undefined) return undefined
+  const parsed = Math.floor(Number(limit))
+  if (!Number.isFinite(parsed) || parsed <= 0) return undefined
+  return Math.min(parsed, 500)
+}
+
+export async function getPublicPhotos(options: PublicPhotoQueryOptions = {}) {
   const db = useDB()
   const hiddenIds = await hiddenPhotoIds()
+  const limit = normalizeLimit(options.limit)
+
+  if (hiddenIds.length) {
+    const query = db
+      .select()
+      .from(tables.photos)
+      .where(notInArray(tables.photos.id, hiddenIds))
+      .orderBy(desc(tables.photos.lastModified), desc(tables.photos.dateTaken))
+    return limit ? query.limit(limit).all() : query.all()
+  }
+
   const query = db
     .select()
     .from(tables.photos)
     .orderBy(desc(tables.photos.lastModified), desc(tables.photos.dateTaken))
-  return hiddenIds.length
-    ? query.where(notInArray(tables.photos.id, hiddenIds)).all()
-    : query.all()
+  return limit ? query.limit(limit).all() : query.all()
+}
+
+export async function getPublicPhotoCount() {
+  const hiddenIds = await hiddenPhotoIds()
+  const query = useDB().select({ count: count() }).from(tables.photos)
+  return (
+    (hiddenIds.length
+      ? query.where(notInArray(tables.photos.id, hiddenIds)).get()
+      : query.get()
+    )?.count || 0
+  )
+}
+
+export async function isPublicPhoto(photoId: string) {
+  const hiddenIds = await hiddenPhotoIds()
+  if (hiddenIds.includes(photoId)) return false
+  return Boolean(
+    useDB()
+      .select({ id: tables.photos.id })
+      .from(tables.photos)
+      .where(eq(tables.photos.id, photoId))
+      .limit(1)
+      .get(),
+  )
+}
+
+const pickMapExif = (exif: any) => {
+  if (!exif || typeof exif !== 'object') return undefined
+  return {
+    DateTimeOriginal: exif.DateTimeOriginal,
+    Make: exif.Make,
+    Model: exif.Model,
+    FocalLength: exif.FocalLength,
+    FocalLengthIn35mmFormat: exif.FocalLengthIn35mmFormat,
+    ExposureTime: exif.ExposureTime,
+    GPSLatitude: exif.GPSLatitude,
+    GPSLatitudeRef: exif.GPSLatitudeRef,
+    GPSLongitude: exif.GPSLongitude,
+    GPSLongitudeRef: exif.GPSLongitudeRef,
+    GPSAltitude: exif.GPSAltitude,
+    GPSAltitudeRef: exif.GPSAltitudeRef,
+  }
+}
+
+export async function getPublicPhotoMarkers(
+  options: PublicPhotoQueryOptions = {},
+) {
+  const db = useDB()
+  const hiddenIds = await hiddenPhotoIds()
+  const limit = normalizeLimit(options.limit)
+  const selectFields = {
+    id: tables.photos.id,
+    title: tables.photos.title,
+    latitude: tables.photos.latitude,
+    longitude: tables.photos.longitude,
+    thumbnailKey: tables.photos.thumbnailKey,
+    thumbnailHash: tables.photos.thumbnailHash,
+    dateTaken: tables.photos.dateTaken,
+    city: tables.photos.city,
+    exif: tables.photos.exif,
+  }
+  const base = db
+    .select(selectFields)
+    .from(tables.photos)
+    .where(
+      and(
+        isNotNull(tables.photos.latitude),
+        isNotNull(tables.photos.longitude),
+        hiddenIds.length
+          ? notInArray(tables.photos.id, hiddenIds)
+          : isNotNull(tables.photos.id),
+      ),
+    )
+    .orderBy(desc(tables.photos.lastModified), desc(tables.photos.dateTaken))
+  const rows = limit ? base.limit(limit).all() : base.all()
+  return rows.map(({ thumbnailKey, exif, ...photo }) => ({
+    ...photo,
+    thumbnailUrl: thumbnailKey
+      ? `/image/${thumbnailKey
+          .replace(/^\/+/, '')
+          .split('/')
+          .map(encodeURIComponent)
+          .join('/')}`
+      : null,
+    exif: pickMapExif(exif),
+  }))
 }
 
 export async function getPublicAlbums() {
@@ -80,26 +195,26 @@ async function getPreviewAlbumPhotoIds(albumLimit: number, photoLimit: number) {
 async function getPreviewPhotoIds() {
   const { photoLimit, albumLimit } = await getPreviewLimits()
   return new Set([
-    ...(await getPublicPhotos()).slice(0, photoLimit).map((photo) => photo.id),
+    ...(await getPublicPhotos({ limit: photoLimit })).map((photo) => photo.id),
     ...(await getPreviewAlbumPhotoIds(albumLimit, photoLimit)),
   ])
 }
 
 export async function getPreviewAccessSummary(event: H3Event) {
-  const [state, limits, photos, albums] = await Promise.all([
+  const [state, limits, totalPhotos, albums] = await Promise.all([
     getAccessState(event),
     getPreviewLimits(),
-    getPublicPhotos(),
+    getPublicPhotoCount(),
     getPublicAlbums(),
   ])
   return {
     required: state.enabled,
     granted: state.granted,
     ...limits,
-    totalPhotos: photos.length,
+    totalPhotos,
     totalAlbums: albums.length,
     hasMorePhotos:
-      state.enabled && !state.granted && photos.length > limits.photoLimit,
+      state.enabled && !state.granted && totalPhotos > limits.photoLimit,
     hasMoreAlbums:
       state.enabled && !state.granted && albums.length > limits.albumLimit,
   }

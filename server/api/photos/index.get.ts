@@ -28,14 +28,13 @@ export default eventHandler(async (event) => {
           .all()
     return withPhotoAlbums(await withOwners(photos))
   }
-  const [state, limits, photos] = await Promise.all([
+  const [state, limits] = await Promise.all([
     getAccessState(event),
     getPreviewLimits(),
-    getPublicPhotos(),
   ])
+  const photos = await getPublicPhotos({
+    limit: state.granted ? undefined : limits.photoLimit,
+  })
   const accessVersion = await getAccessVersion()
-  return toPublicPhotos(
-    state.granted ? photos : photos.slice(0, limits.photoLimit),
-    accessVersion,
-  )
+  return toPublicPhotos(photos, accessVersion)
 })

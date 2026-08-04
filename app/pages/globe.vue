@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { motion } from 'motion-v'
-import { clusterMarkers, photosToMarkers } from '~/utils/clustering'
+import { clusterMarkers } from '~/utils/clustering'
+import type { PhotoMarker } from '~~/shared/types/map'
 
 useHead({
   title: () => $t('title.globe'),
@@ -10,18 +11,22 @@ const route = useRoute()
 const router = useRouter()
 const dayjs = useDayjs()
 
-const { photos } = usePhotos()
 const { accessEntitlement, unlockUrl } = useAccessEntitlement()
+const requestFetch = useRequestFetch()
+const { data: mapPhotos, refresh: refreshMapPhotos } = await useAsyncData<
+  PhotoMarker[]
+>('photo-map-markers', () => requestFetch('/api/photos/map'))
 
 const photosWithLocation = computed(() => {
-  return photos.value.filter(
-    (photo) =>
-      photo.latitude !== null &&
-      photo.longitude !== null &&
-      photo.latitude !== undefined &&
-      photo.longitude !== undefined,
-  )
+  return mapPhotos.value || []
 })
+
+watch(
+  () => accessEntitlement.value.granted,
+  () => {
+    refreshMapPhotos()
+  },
+)
 
 const timelineProgress = ref(100)
 const isTimelineEnabled = ref(false)
@@ -325,7 +330,7 @@ const longitudeInBounds = (longitude: number, west: number, east: number) => {
   return longitude >= west || longitude <= east
 }
 
-const isPhotoNearVisibleBounds = (photo: Photo, bounds: MapBounds) => {
+const isPhotoNearVisibleBounds = (photo: PhotoMarker, bounds: MapBounds) => {
   const longitude = photo.longitude
   const latitude = photo.latitude
   if (longitude == null || latitude == null) return false
@@ -483,9 +488,7 @@ const visiblePhotosWithLocation = computed(() => {
   return [...visiblePhotos, selectedPhoto]
 })
 
-const visiblePhotoMarkers = computed(() =>
-  photosToMarkers(visiblePhotosWithLocation.value),
-)
+const visiblePhotoMarkers = computed(() => visiblePhotosWithLocation.value)
 
 // Convert photos to markers and apply clustering
 const clusteredMarkers = computed(() => {

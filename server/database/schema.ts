@@ -4,6 +4,7 @@ import {
   text,
   integer,
   real,
+  index,
   uniqueIndex,
 } from 'drizzle-orm/sqlite-core'
 import type { NeededExif } from '~~/shared/types/photo'
@@ -45,45 +46,58 @@ export const users = sqliteTable('users', {
   isActive: integer('is_active', { mode: 'boolean' }).default(true).notNull(),
 })
 
-export const photos = sqliteTable('photos', {
-  id: text('id').primaryKey().unique(),
-  title: text('title'),
-  description: text('description'),
-  width: integer('width'),
-  height: integer('height'),
-  aspectRatio: real('aspect_ratio'),
-  mediaType: text('media_type', { enum: ['image', 'video'] })
-    .default('image')
-    .notNull(),
-  duration: real('duration'),
-  videoCodec: text('video_codec'),
-  audioCodec: text('audio_codec'),
-  videoPlaybackKey: text('video_playback_key'),
-  dateTaken: text('date_taken'),
-  storageKey: text('storage_key'),
-  thumbnailKey: text('thumbnail_key'),
-  displayKey: text('display_key'),
-  fileSize: integer('file_size'),
-  lastModified: text('last_modified'),
-  originalUrl: text('original_url'),
-  thumbnailUrl: text('thumbnail_url'),
-  thumbnailHash: text('thumbnail_hash'),
-  tags: text('tags', { mode: 'json' }).$type<string[]>(),
-  exif: text('exif', { mode: 'json' }).$type<NeededExif>(),
-  // 地理位置信息
-  latitude: real('latitude'),
-  longitude: real('longitude'),
-  country: text('country'),
-  city: text('city'),
-  locationName: text('location_name'),
-  // LivePhoto 相关字段
-  isLivePhoto: integer('is_live_photo').default(0).notNull(),
-  livePhotoVideoUrl: text('live_photo_video_url'),
-  livePhotoVideoKey: text('live_photo_video_key'),
-  ownerUserId: integer('owner_user_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'restrict' }),
-})
+export const photos = sqliteTable(
+  'photos',
+  {
+    id: text('id').primaryKey().unique(),
+    title: text('title'),
+    description: text('description'),
+    width: integer('width'),
+    height: integer('height'),
+    aspectRatio: real('aspect_ratio'),
+    mediaType: text('media_type', { enum: ['image', 'video'] })
+      .default('image')
+      .notNull(),
+    duration: real('duration'),
+    videoCodec: text('video_codec'),
+    audioCodec: text('audio_codec'),
+    videoPlaybackKey: text('video_playback_key'),
+    dateTaken: text('date_taken'),
+    storageKey: text('storage_key'),
+    thumbnailKey: text('thumbnail_key'),
+    displayKey: text('display_key'),
+    fileSize: integer('file_size'),
+    lastModified: text('last_modified'),
+    originalUrl: text('original_url'),
+    thumbnailUrl: text('thumbnail_url'),
+    thumbnailHash: text('thumbnail_hash'),
+    tags: text('tags', { mode: 'json' }).$type<string[]>(),
+    exif: text('exif', { mode: 'json' }).$type<NeededExif>(),
+    // 地理位置信息
+    latitude: real('latitude'),
+    longitude: real('longitude'),
+    country: text('country'),
+    city: text('city'),
+    locationName: text('location_name'),
+    // LivePhoto 相关字段
+    isLivePhoto: integer('is_live_photo').default(0).notNull(),
+    livePhotoVideoUrl: text('live_photo_video_url'),
+    livePhotoVideoKey: text('live_photo_video_key'),
+    ownerUserId: integer('owner_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+  },
+  (t) => [
+    index('idx_photos_storage_key').on(t.storageKey),
+    index('idx_photos_thumbnail_key').on(t.thumbnailKey),
+    index('idx_photos_display_key').on(t.displayKey),
+    index('idx_photos_video_playback_key').on(t.videoPlaybackKey),
+    index('idx_photos_live_photo_video_key').on(t.livePhotoVideoKey),
+    index('idx_photos_owner_user_id').on(t.ownerUserId),
+    index('idx_photos_last_modified').on(t.lastModified, t.dateTaken),
+    index('idx_photos_location').on(t.latitude, t.longitude),
+  ],
+)
 
 export const pipelineQueue = sqliteTable('pipeline_queue', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -151,39 +165,55 @@ export const photoReactions = sqliteTable('photo_reactions', {
 })
 
 // 相簿表
-export const albums = sqliteTable('albums', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  title: text('title').notNull(),
-  description: text('description'),
-  coverPhotoId: text('cover_photo_id').references(() => photos.id, {
-    onDelete: 'set null',
-  }),
-  isHidden: integer('is_hidden', { mode: 'boolean' }).default(false).notNull(),
-  createdAt: integer('created_at', { mode: 'timestamp' })
-    .notNull()
-    .default(sql`(unixepoch())`),
-  updatedAt: integer('updated_at', { mode: 'timestamp' })
-    .notNull()
-    .default(sql`(unixepoch())`),
-  ownerUserId: integer('owner_user_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'restrict' }),
-})
+export const albums = sqliteTable(
+  'albums',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    title: text('title').notNull(),
+    description: text('description'),
+    coverPhotoId: text('cover_photo_id').references(() => photos.id, {
+      onDelete: 'set null',
+    }),
+    isHidden: integer('is_hidden', { mode: 'boolean' })
+      .default(false)
+      .notNull(),
+    createdAt: integer('created_at', { mode: 'timestamp' })
+      .notNull()
+      .default(sql`(unixepoch())`),
+    updatedAt: integer('updated_at', { mode: 'timestamp' })
+      .notNull()
+      .default(sql`(unixepoch())`),
+    ownerUserId: integer('owner_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+  },
+  (t) => [
+    index('idx_albums_is_hidden_created_at').on(t.isHidden, t.createdAt),
+    index('idx_albums_owner_user_id').on(t.ownerUserId),
+  ],
+)
 
 // 相簿-照片 多对多关系表
-export const albumPhotos = sqliteTable('album_photos', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  albumId: integer('album_id')
-    .notNull()
-    .references(() => albums.id, { onDelete: 'cascade' }),
-  photoId: text('photo_id')
-    .notNull()
-    .references(() => photos.id, { onDelete: 'cascade' }),
-  position: real('position').notNull().default(1000000),
-  addedAt: integer('added_at', { mode: 'timestamp' })
-    .notNull()
-    .default(sql`(unixepoch())`),
-})
+export const albumPhotos = sqliteTable(
+  'album_photos',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    albumId: integer('album_id')
+      .notNull()
+      .references(() => albums.id, { onDelete: 'cascade' }),
+    photoId: text('photo_id')
+      .notNull()
+      .references(() => photos.id, { onDelete: 'cascade' }),
+    position: real('position').notNull().default(1000000),
+    addedAt: integer('added_at', { mode: 'timestamp' })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [
+    index('idx_album_photos_album_position').on(t.albumId, t.position),
+    index('idx_album_photos_photo_id').on(t.photoId),
+  ],
+)
 
 export const settings = sqliteTable(
   'settings',

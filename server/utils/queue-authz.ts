@@ -106,3 +106,32 @@ export function findPhotoByMediaUrl(url: string) {
     )
     .get()
 }
+
+const mediaKeyMatches = (
+  key: string | null | undefined,
+  normalizedKey: string,
+) => {
+  if (!key) return false
+  const normalizedPhotoKey = normalizeStorageKey(key)
+  return normalizedPhotoKey === normalizedKey
+}
+
+export function isOriginalImageMediaKey(
+  photo: Pick<typeof tables.photos.$inferSelect, 'mediaType' | 'storageKey'>,
+  storageKey: string,
+) {
+  return (
+    photo.mediaType !== 'video' &&
+    mediaKeyMatches(photo.storageKey, normalizeStorageKey(storageKey))
+  )
+}
+
+export async function requireOriginalImageMediaAccess(event: H3Event) {
+  const state = await getAccessState(event)
+  if (state.granted) return
+
+  throw createError({
+    statusCode: 401,
+    statusMessage: 'Site access required to download original photos',
+  })
+}

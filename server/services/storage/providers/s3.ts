@@ -233,6 +233,32 @@ export class S3StorageProvider implements StorageProvider {
     }
   }
 
+  async getStream(key: string): Promise<NodeJS.ReadableStream | null> {
+    try {
+      const absoluteKey = this.getAbsoluteKey(key)
+      const cmd = new GetObjectCommand({
+        Bucket: this.config.bucket,
+        Key: absoluteKey,
+      })
+
+      const resp = await this.sendWithTimeout<any>(
+        cmd,
+        `stream object ${absoluteKey}`,
+      )
+
+      if (!resp.Body) {
+        return null
+      }
+
+      return resp.Body as NodeJS.ReadableStream
+    } catch (error) {
+      if (!isObjectNotFoundError(error)) {
+        this.logger?.error(`Failed to stream object with key: ${key}`, error)
+      }
+      return null
+    }
+  }
+
   async getRange(
     key: string,
     start: number,
@@ -264,6 +290,40 @@ export class S3StorageProvider implements StorageProvider {
     } catch (error) {
       if (!isObjectNotFoundError(error)) {
         this.logger?.error(`Failed to get object range with key: ${key}`, error)
+      }
+      return null
+    }
+  }
+
+  async getRangeStream(
+    key: string,
+    start: number,
+    end: number,
+  ): Promise<NodeJS.ReadableStream | null> {
+    try {
+      const absoluteKey = this.getAbsoluteKey(key)
+      const cmd = new GetObjectCommand({
+        Bucket: this.config.bucket,
+        Key: absoluteKey,
+        Range: `bytes=${start}-${end}`,
+      })
+
+      const resp = await this.sendWithTimeout<any>(
+        cmd,
+        `stream object range ${absoluteKey} ${start}-${end}`,
+      )
+
+      if (!resp.Body) {
+        return null
+      }
+
+      return resp.Body as NodeJS.ReadableStream
+    } catch (error) {
+      if (!isObjectNotFoundError(error)) {
+        this.logger?.error(
+          `Failed to stream object range with key: ${key}`,
+          error,
+        )
       }
       return null
     }

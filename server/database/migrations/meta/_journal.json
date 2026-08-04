@@ -120,6 +120,13 @@
       "when": 1785849137956,
       "tag": "0016_slippery_shadow_king",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1785851649362,
+      "tag": "0017_absent_corsair",
+      "breakpoints": true
     }
   ]
 }

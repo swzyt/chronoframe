@@ -53,7 +53,6 @@ const loadHistogram = (thumbnailUrl: string) => {
   if (url.origin !== window.location.origin) {
     img.crossOrigin = 'anonymous'
   }
-  url.searchParams.set('_histogram', Date.now().toString())
   img.src = url.toString()
 
   img.onload = () => {

@@ -23,7 +23,13 @@ export interface StorageProvider {
   ): Promise<StorageObject>
   delete(key: string): Promise<void>
   get(key: string): Promise<Buffer | null>
+  getStream?(key: string): Promise<NodeJS.ReadableStream | null>
   getRange?(key: string, start: number, end: number): Promise<Buffer | null>
+  getRangeStream?(
+    key: string,
+    start: number,
+    end: number,
+  ): Promise<NodeJS.ReadableStream | null>
   getPublicUrl(key: string): string
   getSignedUrl?(
     key: string,
