@@ -24,6 +24,18 @@ flowchart LR
 
 For Tencent COS, use an endpoint like `https://cos.ap-guangzhou.myqcloud.com`, a bucket name including the AppID suffix, region such as `ap-guangzhou`, and keep path-style access disabled.
 
+## Low-cost display image strategy
+
+To reduce COS/CDN egress costs, ChronoFrame generates a separate display image during upload processing:
+
+| Asset         | Usage                                               | Notes                           |
+| ------------- | --------------------------------------------------- | ------------------------------- |
+| Thumbnail     | Lists, album covers, map markers                    | Small WebP asset                |
+| Display image | Photo detail, fullscreen viewing, nearby preloading | WebP, longest edge up to 2560px |
+| Original      | Explicit download and original-file workflows       | Preserved at source quality     |
+
+Photo detail pages load the display image by default instead of the original. Older photos without a generated display image are lazily processed through `/display/:photoId` on first detail-page access and then reused from storage.
+
 ## Video and Live Photo
 
 MP4/MOV files are supported. HEVC/H.265 inputs are processed into browser-friendly H.264 playback assets. Live Photos should be uploaded with both the image and paired MOV file preserved.

@@ -16,6 +16,11 @@ const getOriginalProxyUrl = (photo: Photo, storageKey: string | null) => {
   return storageKey ? `/image/${encodeStorageKey(storageKey)}` : null
 }
 
+const getDisplayProxyUrl = (photo: Photo, originalUrl: string | null) => {
+  if (photo.mediaType === 'video') return originalUrl
+  return `/display/${encodeURIComponent(photo.id)}`
+}
+
 export async function toPublicPhoto(
   photo: Photo,
   accessVersion?: string,
@@ -24,14 +29,18 @@ export async function toPublicPhoto(
   const {
     storageKey,
     thumbnailKey,
+    displayKey: _displayKey,
     livePhotoVideoKey,
     videoPlaybackKey,
     ownerUserId: _ownerUserId,
     ...safe
   } = photo
+  const originalUrl = getOriginalProxyUrl(photo, videoPlaybackKey || storageKey)
+
   return {
     ...safe,
-    originalUrl: getOriginalProxyUrl(photo, videoPlaybackKey || storageKey),
+    originalUrl,
+    displayUrl: getDisplayProxyUrl(photo, originalUrl),
     thumbnailUrl: thumbnailKey
       ? `/image/${encodeStorageKey(thumbnailKey)}`
       : null,
@@ -51,7 +60,11 @@ export async function toPublicPhotos(photos: Photo[], accessVersion?: string) {
   const owners = await getOwnerMap(photos.map((photo) => photo.ownerUserId))
   return Promise.all(
     photos.map((photo) =>
-      toPublicPhoto(photo, accessVersion, owners.get(photo.ownerUserId) || null),
+      toPublicPhoto(
+        photo,
+        accessVersion,
+        owners.get(photo.ownerUserId) || null,
+      ),
     ),
   )
 }

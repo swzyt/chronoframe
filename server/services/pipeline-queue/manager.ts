@@ -13,7 +13,10 @@ import {
   preprocessImageWithJpegUpload,
   processImageMetadataAndSharp,
 } from '../image/processor'
-import { generateThumbnailAndHash } from '../image/thumbnail'
+import {
+  generateDisplayImage,
+  generateThumbnailAndHash,
+} from '../image/thumbnail'
 import { extractExifData, extractPhotoInfo } from '../image/exif'
 import {
   extractLocationFromGPS,
@@ -328,6 +331,10 @@ export class QueueManager {
           this.logger.info(`[${taskId}:in-stage] thumbnail generation`)
           const { thumbnailBuffer, thumbnailHash } =
             await generateThumbnailAndHash(imageBuffer, this.logger)
+          const displayBuffer = await generateDisplayImage(
+            imageBuffer,
+            this.logger,
+          )
 
           // 上传缩略图到存储服务
           const thumbnailObject = await new Promise<any>((resolve, reject) => {
@@ -336,6 +343,20 @@ export class QueueManager {
                 const result = await storageProvider.create(
                   `thumbnails/${task.ownerUserId}/${photoId}.webp`,
                   thumbnailBuffer,
+                  'image/webp',
+                )
+                resolve(result)
+              } catch (error) {
+                reject(error)
+              }
+            })
+          })
+          const displayObject = await new Promise<any>((resolve, reject) => {
+            setImmediate(async () => {
+              try {
+                const result = await storageProvider.create(
+                  `display/${task.ownerUserId}/${photoId}.webp`,
+                  displayBuffer,
                   'image/webp',
                 )
                 resolve(result)
@@ -449,6 +470,7 @@ export class QueueManager {
             videoPlaybackKey: null,
             storageKey: storageKey,
             thumbnailKey: thumbnailObject.key,
+            displayKey: displayObject.key,
             fileSize: storageObject.size || null,
             lastModified:
               storageObject.lastModified?.toISOString() ||
@@ -779,6 +801,7 @@ export class QueueManager {
           dateTaken: processed.dateTaken,
           storageKey: payload.storageKey,
           thumbnailKey: thumbnailObject.key,
+          displayKey: null,
           fileSize: storageObject?.size || videoBuffer.length,
           lastModified:
             storageObject?.lastModified?.toISOString() ||

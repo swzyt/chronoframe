@@ -37,3 +37,40 @@ export const generateThumbnailAndHash = async (
     logger,
   )
 }
+
+export const generateDisplayImage = async (
+  buffer: Buffer,
+  logger?: Logger[keyof Logger],
+) => {
+  return await withRetry(
+    async () => {
+      const displayBuffer = await sharp(buffer)
+        .rotate()
+        .resize(2560, 2560, {
+          fit: 'inside',
+          withoutEnlargement: true,
+          fastShrinkOnLoad: true,
+        })
+        .webp({
+          quality: 82,
+          effort: 4,
+          smartSubsample: true,
+        })
+        .toBuffer()
+
+      logger?.info(
+        `Successfully generated display image (${Math.round(
+          displayBuffer.length / 1024,
+        )} KiB)`,
+      )
+
+      return displayBuffer
+    },
+    {
+      ...RetryPresets.standard,
+      timeout: 20000,
+      delayStrategy: 'linear',
+    },
+    logger,
+  )
+}

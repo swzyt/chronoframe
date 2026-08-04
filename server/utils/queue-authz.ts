@@ -73,6 +73,8 @@ export function findPhotoByMediaKey(storageKey: string) {
         eq(tables.photos.storageKey, `/${normalizedKey}`),
         eq(tables.photos.thumbnailKey, normalizedKey),
         eq(tables.photos.thumbnailKey, `/${normalizedKey}`),
+        eq(tables.photos.displayKey, normalizedKey),
+        eq(tables.photos.displayKey, `/${normalizedKey}`),
         eq(tables.photos.livePhotoVideoKey, normalizedKey),
         eq(tables.photos.livePhotoVideoKey, `/${normalizedKey}`),
         eq(tables.photos.videoPlaybackKey, normalizedKey),
@@ -87,6 +89,9 @@ export function findPhotoByMediaKey(storageKey: string) {
 }
 
 export function findPhotoByMediaUrl(url: string) {
+  const normalizedKey = normalizeStorageKey(
+    url.replace(/^\/image\/+/, '').replace(/^\/storage\/+/, ''),
+  )
   return useDB()
     .select()
     .from(tables.photos)
@@ -95,6 +100,8 @@ export function findPhotoByMediaUrl(url: string) {
         eq(tables.photos.originalUrl, url),
         eq(tables.photos.thumbnailUrl, url),
         eq(tables.photos.livePhotoVideoUrl, url),
+        eq(tables.photos.displayKey, normalizedKey),
+        eq(tables.photos.displayKey, `/${normalizedKey}`),
       ),
     )
     .get()

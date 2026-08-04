@@ -124,6 +124,16 @@ const livePhotoProcessingState = computed(() => {
     : ref(null)
 })
 
+const getViewingUrl = (photo?: Photo) => {
+  if (!photo) return ''
+  return photo.displayUrl || photo.originalUrl || photo.thumbnailUrl || ''
+}
+
+const getVideoUrl = (photo?: Photo) => {
+  if (!photo) return ''
+  return photo.originalUrl || photo.displayUrl || ''
+}
+
 function clearAutoPlayTimer() {
   if (!autoPlayTimer.value) return
   clearTimeout(autoPlayTimer.value)
@@ -131,21 +141,24 @@ function clearAutoPlayTimer() {
 }
 
 const preloadPhotoMedia = (photo?: Photo) => {
-  if (!import.meta.client || !photo?.originalUrl) return
-  if (preloadedMediaUrls.has(photo.originalUrl)) return
+  if (!import.meta.client || !photo) return
 
-  preloadedMediaUrls.add(photo.originalUrl)
+  const mediaUrl =
+    photo.mediaType === 'video' ? getVideoUrl(photo) : getViewingUrl(photo)
+  if (!mediaUrl || preloadedMediaUrls.has(mediaUrl)) return
+
+  preloadedMediaUrls.add(mediaUrl)
 
   if (photo.mediaType === 'video') {
     const video = document.createElement('video')
     video.preload = 'metadata'
-    video.src = photo.originalUrl
+    video.src = mediaUrl
     return
   }
 
   const image = new Image()
   image.decoding = 'async'
-  image.src = photo.originalUrl
+  image.src = mediaUrl
 }
 
 const preloadNearbyPhotos = () => {
@@ -154,8 +167,6 @@ const preloadNearbyPhotos = () => {
   preloadPhotoMedia(props.photos[props.currentIndex])
   preloadPhotoMedia(props.photos[props.currentIndex - 1])
   preloadPhotoMedia(props.photos[props.currentIndex + 1])
-  preloadPhotoMedia(props.photos[props.currentIndex - 2])
-  preloadPhotoMedia(props.photos[props.currentIndex + 2])
 }
 
 // 当 PhotoViewer 关闭时重置状态
@@ -976,7 +987,7 @@ const swiperModules = [Navigation, Keyboard, Virtual]
                 <video
                   v-if="currentPhoto.mediaType === 'video'"
                   :key="`fullscreen-video-${currentPhoto.id}`"
-                  :src="currentPhoto.originalUrl || undefined"
+                  :src="getVideoUrl(currentPhoto) || undefined"
                   :poster="currentPhoto.thumbnailUrl || undefined"
                   class="h-full w-full object-contain"
                   controls
@@ -992,7 +1003,7 @@ const swiperModules = [Navigation, Keyboard, Virtual]
                   class="h-full w-full object-contain"
                   :loading-indicator-ref="loadingIndicatorRef || null"
                   :is-current-image="true"
-                  :src="currentPhoto.originalUrl!"
+                  :src="getViewingUrl(currentPhoto)"
                   :thumbnail-src="currentPhoto.thumbnailUrl!"
                   :thumbhash="currentPhoto.thumbnailHash"
                   :alt="currentPhoto.title || ''"
@@ -1053,7 +1064,7 @@ const swiperModules = [Navigation, Keyboard, Virtual]
                     <!-- Standalone video -->
                     <video
                       v-if="photo.mediaType === 'video'"
-                      :src="photo.originalUrl || undefined"
+                      :src="getVideoUrl(photo) || undefined"
                       :poster="photo.thumbnailUrl || undefined"
                       class="h-full w-full object-contain"
                       controls
@@ -1073,7 +1084,7 @@ const swiperModules = [Navigation, Keyboard, Virtual]
                       }"
                       :loading-indicator-ref="loadingIndicatorRef || null"
                       :is-current-image="index === currentIndex"
-                      :src="photo.originalUrl!"
+                      :src="getViewingUrl(photo)"
                       :thumbnail-src="photo.thumbnailUrl!"
                       :thumbhash="photo.thumbnailHash"
                       :alt="photo.title || ''"

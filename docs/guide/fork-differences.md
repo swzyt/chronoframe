@@ -6,22 +6,23 @@ The comparison below describes the fork-specific behavior currently maintained i
 
 ## Feature Comparison
 
-| Area | Upstream | This fork |
-| --- | --- | --- |
-| User model | Primarily a single administrator | Multiple local users with administrator and regular-user roles |
-| User provisioning | No administrator-managed local-user workflow | Administrators can create users, reset passwords, enable or disable accounts, change roles, and delete users |
-| Registration | No public registration | No public registration; accounts are created by administrators |
-| Content ownership | Gallery content is managed as instance-wide data | Photos, albums, and asynchronous tasks have an owner |
-| Dashboard permissions | Administrator-oriented dashboard | Regular users only access the dashboard, their photos, and their albums |
-| Cross-user access | Not applicable to the single-owner model | Regular users can only query or modify their own content; administrators can manage all content |
-| Public gallery | Public content is directly available | Public non-hidden content from all users is aggregated |
-| Public display modes | Home gallery, albums, and globe | Adds a photo-flow wall for the currently visible public photos |
-| Visitor protection | Site-wide password gate | Visitors can preview a configurable number of photos and albums, then enter a password to unlock all public content |
-| Protected media | Storage URLs may be exposed by the normal upstream flow | Original images, thumbnails, Live Photos, and downloads are checked by the application before being returned |
-| Video media | Image and Live Photo oriented | Adds MP4 upload, processing, thumbnail/metadata extraction, and browser-playable video handling |
-| Map providers | Mapbox-oriented map flow | Adds Amap/Gaode map display and Amap reverse-geocoding support for mainland-China friendly deployments |
-| Share previews | Standard route preview behavior | Adds authenticated media-backed Open Graph preview routes for photos and videos |
-| Languages | Existing upstream translations | Fork-specific UI is translated into Simplified Chinese, Traditional Chinese (Taiwan and Hong Kong), English, Japanese, and Russian |
+| Area                    | Upstream                                                | This fork                                                                                                                                                                               |
+| ----------------------- | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| User model              | Primarily a single administrator                        | Multiple local users with administrator and regular-user roles                                                                                                                          |
+| User provisioning       | No administrator-managed local-user workflow            | Administrators can create users, reset passwords, enable or disable accounts, change roles, and delete users                                                                            |
+| Registration            | No public registration                                  | No public registration; accounts are created by administrators                                                                                                                          |
+| Content ownership       | Gallery content is managed as instance-wide data        | Photos, albums, and asynchronous tasks have an owner                                                                                                                                    |
+| Dashboard permissions   | Administrator-oriented dashboard                        | Regular users only access the dashboard, their photos, and their albums                                                                                                                 |
+| Cross-user access       | Not applicable to the single-owner model                | Regular users can only query or modify their own content; administrators can manage all content                                                                                         |
+| Public gallery          | Public content is directly available                    | Public non-hidden content from all users is aggregated                                                                                                                                  |
+| Public display modes    | Home gallery, albums, and globe                         | Adds a photo-flow wall for the currently visible public photos                                                                                                                          |
+| Visitor protection      | Site-wide password gate                                 | Visitors can preview a configurable number of photos and albums, then enter a password to unlock all public content                                                                     |
+| Protected media         | Storage URLs may be exposed by the normal upstream flow | Original images, thumbnails, Live Photos, and downloads are checked by the application before being returned                                                                            |
+| Low-cost media browsing | Detail pages may browse original images directly        | Image uploads generate a 2560px WebP display asset; detail, fullscreen, and nearby preload flows use the display asset by default while originals stay available for explicit downloads |
+| Video media             | Image and Live Photo oriented                           | Adds MP4 upload, processing, thumbnail/metadata extraction, and browser-playable video handling                                                                                         |
+| Map providers           | Mapbox-oriented map flow                                | Adds Amap/Gaode map display and Amap reverse-geocoding support for mainland-China friendly deployments                                                                                  |
+| Share previews          | Standard route preview behavior                         | Adds authenticated media-backed Open Graph preview routes for photos and videos                                                                                                         |
+| Languages               | Existing upstream translations                          | Fork-specific UI is translated into Simplified Chinese, Traditional Chinese (Taiwan and Hong Kong), English, Japanese, and Russian                                                      |
 
 ## Users and Roles
 

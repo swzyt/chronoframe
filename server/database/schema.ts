@@ -62,6 +62,7 @@ export const photos = sqliteTable('photos', {
   dateTaken: text('date_taken'),
   storageKey: text('storage_key'),
   thumbnailKey: text('thumbnail_key'),
+  displayKey: text('display_key'),
   fileSize: integer('file_size'),
   lastModified: text('last_modified'),
   originalUrl: text('original_url'),
