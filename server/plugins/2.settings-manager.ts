@@ -259,10 +259,23 @@ async function migrateRuntimeSetting({
   }
 
   try {
+    const db = useDB()
+    const existingSetting = db
+      .select()
+      .from(tables.settings)
+      .where(
+        and(
+          eq(tables.settings.namespace, namespace),
+          eq(tables.settings.key, key),
+        ),
+      )
+      .get()
     const currentValue = await settingsManager.get(namespace as any, key as any)
     const defaultValue = getDefaultSettingValue(namespace, key)
     const hasUserCustomizedValue =
-      currentValue !== null && !isSameSettingValue(currentValue, defaultValue)
+      existingSetting?.updatedBy != null ||
+      (currentValue !== null &&
+        !isSameSettingValue(currentValue, defaultValue))
 
     if (hasUserCustomizedValue) {
       _logger.info(
