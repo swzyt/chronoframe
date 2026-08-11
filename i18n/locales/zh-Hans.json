@@ -619,7 +619,8 @@
       "maxFileSize": "最大 {size}MB",
       "buttons": {
         "upload": "上传照片",
-        "queue": "任务队列"
+        "queue": "任务队列",
+        "shareUpload": "分享上传"
       },
       "uploader": {
         "label": "拖放或点击选择照片",
@@ -927,7 +928,51 @@
           "goToQueue": "队列管理"
         }
       },
-      "previewTitle": "照片预览"
+      "previewTitle": "照片预览",
+      "uploadShare": {
+        "title": "分享上传链接",
+        "description": "生成一个公开上传入口，访问者无需登录即可把照片上传到你的照片库。",
+        "form": {
+          "label": "链接名称",
+          "labelDescription": "仅后台可见，用于区分不同活动或朋友。",
+          "labelPlaceholder": "例如：旅行照片收集",
+          "expiresInDays": "有效天数",
+          "maxUploads": "最多上传数量",
+          "maxUploadsPlaceholder": "不限制"
+        },
+        "actions": {
+          "create": "创建并复制链接",
+          "copy": "复制链接",
+          "enable": "启用",
+          "disable": "停用",
+          "delete": "删除"
+        },
+        "latest": {
+          "title": "链接已创建",
+          "description": "原始链接只会显示这一次，请现在复制并保存。"
+        },
+        "list": {
+          "title": "已创建的链接",
+          "emptyTitle": "还没有分享链接",
+          "emptyDescription": "创建链接后，访问者即可通过该页面上传照片。",
+          "untitled": "未命名链接",
+          "active": "启用中",
+          "inactive": "已停用",
+          "stats": "已上传 {count}/{max}",
+          "expiresAt": "过期时间：{date}",
+          "noExpiry": "不过期"
+        },
+        "messages": {
+          "loadFailed": "加载分享链接失败",
+          "created": "分享链接已创建",
+          "copied": "链接已复制到剪贴板",
+          "copiedTitle": "已复制链接",
+          "createFailed": "创建分享链接失败",
+          "updateFailed": "更新分享链接失败",
+          "deleted": "分享链接已删除",
+          "deleteFailed": "删除分享链接失败"
+        }
+      }
     },
     "albums": {
       "title": "相簿管理",
@@ -1842,6 +1887,52 @@
   "photo": {
     "image": {
       "loadError": "图片加载失败"
+    }
+  },
+  "uploadShare": {
+    "page": {
+      "title": "上传照片",
+      "heading": "上传你的照片",
+      "description": "你上传的文件会进入 {owner} 的照片库，处理完成后由站点所有者管理展示。"
+    },
+    "kicker": "Guest upload",
+    "owner": "接收方",
+    "actions": {
+      "backHome": "回到首页",
+      "uploadSelected": "上传 {count} 个文件",
+      "selectFiles": "请选择文件"
+    },
+    "uploader": {
+      "label": "选择或拖入照片",
+      "description": "支持常见图片、Live Photo MOV 和 MP4，单个文件最大 {maxSize} MB。"
+    },
+    "limit": {
+      "maxSize": "单个文件最大 {size} MB",
+      "count": "上传次数 {used}/{total}",
+      "expiresAt": "有效期至 {date}"
+    },
+    "invalid": {
+      "title": "上传链接不可用",
+      "description": "这个链接可能已过期、被停用或达到上传上限。"
+    },
+    "status": {
+      "waiting": "等待中",
+      "preparing": "准备中",
+      "uploading": "上传中",
+      "processing": "处理中",
+      "completed": "已提交处理",
+      "error": "失败"
+    },
+    "errors": {
+      "unsupported": "不支持的文件格式",
+      "tooLarge": "文件超过 {maxSize} MB 限制",
+      "uploadFailed": "上传失败"
+    },
+    "toast": {
+      "finished": {
+        "title": "上传完成",
+        "description": "成功提交 {count}/{total} 个文件。"
+      }
     }
   }
 }

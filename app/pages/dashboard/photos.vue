@@ -23,6 +23,20 @@ type ManagedPhoto = Photo & {
 
 type BatchAlbumMode = 'replace' | 'add' | 'remove'
 
+interface UploadShare {
+  id: number
+  label: string | null
+  isActive: boolean
+  uploadCount: number
+  maxUploads: number | null
+  expiresAt: string | null
+  lastUsedAt: string | null
+  createdAt: string
+  updatedAt: string
+  token?: string
+  url?: string
+}
+
 // 列名显示映射
 const columnNameMap = computed<Record<string, string>>(() => ({
   thumbnailUrl: $t('dashboard.photos.table.columns.thumbnail.title'),
@@ -623,6 +637,16 @@ const toast = useToast()
 const selectedFiles = ref<File[]>([])
 const isUploadSlideoverOpen = ref(false)
 const uploadEraseLocationEnabled = ref(systemUploadEraseLocationDefault.value)
+const isUploadShareSlideoverOpen = ref(false)
+const uploadShares = ref<UploadShare[]>([])
+const uploadSharesLoading = ref(false)
+const uploadShareCreating = ref(false)
+const latestUploadShareUrl = ref('')
+const uploadShareForm = reactive({
+  label: '',
+  expiresInDays: 30,
+  maxUploads: null as number | null,
+})
 
 const hasSelectedFiles = computed(() => selectedFiles.value.length > 0)
 
@@ -661,6 +685,105 @@ watch(isUploadSlideoverOpen, (open) => {
 const openUploadSlideover = () => {
   uploadEraseLocationEnabled.value = systemUploadEraseLocationDefault.value
   isUploadSlideoverOpen.value = true
+}
+
+const loadUploadShares = async () => {
+  uploadSharesLoading.value = true
+  try {
+    uploadShares.value = await $fetch('/api/upload-shares')
+  } catch (error: any) {
+    toast.add({
+      title: $t('dashboard.photos.uploadShare.messages.loadFailed'),
+      description: error?.message || $t('dashboard.photos.messages.error'),
+      color: 'error',
+    })
+  } finally {
+    uploadSharesLoading.value = false
+  }
+}
+
+const openUploadShareSlideover = async () => {
+  isUploadShareSlideoverOpen.value = true
+  latestUploadShareUrl.value = ''
+  await loadUploadShares()
+}
+
+const createUploadShare = async () => {
+  uploadShareCreating.value = true
+  try {
+    const share = await $fetch<UploadShare>('/api/upload-shares', {
+      method: 'POST',
+      body: {
+        label: uploadShareForm.label || undefined,
+        expiresInDays: uploadShareForm.expiresInDays,
+        maxUploads: uploadShareForm.maxUploads || null,
+      },
+    })
+    latestUploadShareUrl.value = share.url || ''
+    uploadShares.value = [share, ...uploadShares.value]
+    if (share.url && import.meta.client) {
+      await navigator.clipboard?.writeText(share.url)
+    }
+    toast.add({
+      title: $t('dashboard.photos.uploadShare.messages.created'),
+      description: share.url
+        ? $t('dashboard.photos.uploadShare.messages.copied')
+        : undefined,
+      color: 'success',
+    })
+  } catch (error: any) {
+    toast.add({
+      title: $t('dashboard.photos.uploadShare.messages.createFailed'),
+      description: error?.message || $t('dashboard.photos.messages.error'),
+      color: 'error',
+    })
+  } finally {
+    uploadShareCreating.value = false
+  }
+}
+
+const copyLatestUploadShareUrl = async () => {
+  if (!latestUploadShareUrl.value || !import.meta.client) return
+  await navigator.clipboard?.writeText(latestUploadShareUrl.value)
+  toast.add({
+    title: $t('dashboard.photos.uploadShare.messages.copiedTitle'),
+    color: 'success',
+  })
+}
+
+const setUploadShareActive = async (share: UploadShare, isActive: boolean) => {
+  try {
+    const updated = await $fetch<UploadShare>(`/api/upload-shares/${share.id}`, {
+      method: 'PATCH',
+      body: { isActive },
+    })
+    uploadShares.value = uploadShares.value.map((item) =>
+      item.id === share.id ? { ...item, ...updated } : item,
+    )
+  } catch (error: any) {
+    toast.add({
+      title: $t('dashboard.photos.uploadShare.messages.updateFailed'),
+      description: error?.message || $t('dashboard.photos.messages.error'),
+      color: 'error',
+    })
+  }
+}
+
+const deleteUploadShare = async (share: UploadShare) => {
+  try {
+    await $fetch(`/api/upload-shares/${share.id}`, { method: 'DELETE' })
+    uploadShares.value = uploadShares.value.filter((item) => item.id !== share.id)
+    toast.add({
+      title: $t('dashboard.photos.uploadShare.messages.deleted'),
+      color: 'success',
+    })
+  } catch (error: any) {
+    toast.add({
+      title: $t('dashboard.photos.uploadShare.messages.deleteFailed'),
+      description: error?.message || $t('dashboard.photos.messages.error'),
+      color: 'error',
+    })
+  }
 }
 
 watch(isEditModalOpen, (open) => {
@@ -2536,6 +2659,16 @@ onUnmounted(() => {
               }}</span>
             </UButton>
             <UButton
+              variant="soft"
+              color="neutral"
+              icon="tabler:share-3"
+              @click="openUploadShareSlideover"
+            >
+              <span class="hidden sm:inline">{{
+                $t('dashboard.photos.buttons.shareUpload')
+              }}</span>
+            </UButton>
+            <UButton
               icon="tabler:cloud-upload"
               @click="openUploadSlideover"
             >
@@ -2688,6 +2821,232 @@ onUnmounted(() => {
                       : $t('dashboard.photos.buttons.upload')
                   }}
                 </UButton>
+              </div>
+            </div>
+          </template>
+        </USlideover>
+
+        <USlideover
+          v-model:open="isUploadShareSlideoverOpen"
+          :title="$t('dashboard.photos.uploadShare.title')"
+          :description="$t('dashboard.photos.uploadShare.description')"
+          :ui="{
+            content: 'sm:max-w-2xl',
+            header:
+              'px-6 py-5 border-b border-neutral-200 dark:border-neutral-800',
+            body: 'p-6',
+          }"
+        >
+          <template #body>
+            <div class="space-y-6">
+              <UCard
+                variant="soft"
+                class="border border-neutral-200/80 dark:border-neutral-800/80"
+              >
+                <div class="space-y-4">
+                  <UFormField
+                    :label="$t('dashboard.photos.uploadShare.form.label')"
+                    :description="
+                      $t('dashboard.photos.uploadShare.form.labelDescription')
+                    "
+                  >
+                    <UInput
+                      v-model="uploadShareForm.label"
+                      :placeholder="
+                        $t('dashboard.photos.uploadShare.form.labelPlaceholder')
+                      "
+                    />
+                  </UFormField>
+
+                  <div class="grid gap-4 sm:grid-cols-2">
+                    <UFormField
+                      :label="
+                        $t('dashboard.photos.uploadShare.form.expiresInDays')
+                      "
+                    >
+                      <UInput
+                        v-model.number="uploadShareForm.expiresInDays"
+                        type="number"
+                        min="1"
+                        max="365"
+                      />
+                    </UFormField>
+                    <UFormField
+                      :label="$t('dashboard.photos.uploadShare.form.maxUploads')"
+                    >
+                      <UInput
+                        v-model.number="uploadShareForm.maxUploads"
+                        type="number"
+                        min="1"
+                        :placeholder="
+                          $t(
+                            'dashboard.photos.uploadShare.form.maxUploadsPlaceholder',
+                          )
+                        "
+                      />
+                    </UFormField>
+                  </div>
+
+                  <UButton
+                    icon="tabler:link-plus"
+                    :loading="uploadShareCreating"
+                    @click="createUploadShare"
+                  >
+                    {{ $t('dashboard.photos.uploadShare.actions.create') }}
+                  </UButton>
+                </div>
+              </UCard>
+
+              <UAlert
+                v-if="latestUploadShareUrl"
+                color="success"
+                variant="soft"
+                icon="tabler:copy-check"
+                :title="$t('dashboard.photos.uploadShare.latest.title')"
+                :description="$t('dashboard.photos.uploadShare.latest.description')"
+              >
+                <template #description>
+                  <div class="mt-2 space-y-3">
+                    <code
+                      class="block break-all rounded-xl bg-white/70 p-3 text-xs text-neutral-700 dark:bg-neutral-950/50 dark:text-neutral-200"
+                    >
+                      {{ latestUploadShareUrl }}
+                    </code>
+                    <UButton
+                      size="sm"
+                      variant="soft"
+                      icon="tabler:copy"
+                      @click="copyLatestUploadShareUrl"
+                    >
+                      {{ $t('dashboard.photos.uploadShare.actions.copy') }}
+                    </UButton>
+                  </div>
+                </template>
+              </UAlert>
+
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <h3 class="text-sm font-medium text-neutral-900 dark:text-white">
+                    {{ $t('dashboard.photos.uploadShare.list.title') }}
+                  </h3>
+                  <UButton
+                    size="xs"
+                    variant="ghost"
+                    icon="tabler:refresh"
+                    :loading="uploadSharesLoading"
+                    @click="loadUploadShares"
+                  >
+                    {{ $t('dashboard.photos.toolbar.refresh') }}
+                  </UButton>
+                </div>
+
+                <div
+                  v-if="uploadSharesLoading"
+                  class="space-y-2"
+                >
+                  <USkeleton class="h-20 w-full" />
+                  <USkeleton class="h-20 w-full" />
+                </div>
+
+                <UAlert
+                  v-else-if="uploadShares.length === 0"
+                  color="neutral"
+                  variant="soft"
+                  icon="tabler:link"
+                  :title="$t('dashboard.photos.uploadShare.list.emptyTitle')"
+                  :description="
+                    $t('dashboard.photos.uploadShare.list.emptyDescription')
+                  "
+                />
+
+                <div v-else class="space-y-3">
+                  <div
+                    v-for="share in uploadShares"
+                    :key="share.id"
+                    class="rounded-2xl border border-neutral-200/80 bg-white p-4 dark:border-neutral-800/80 dark:bg-neutral-900"
+                  >
+                    <div class="flex items-start justify-between gap-3">
+                      <div class="min-w-0 space-y-1">
+                        <div class="flex items-center gap-2">
+                          <p
+                            class="truncate text-sm font-medium text-neutral-900 dark:text-white"
+                          >
+                            {{
+                              share.label ||
+                              $t('dashboard.photos.uploadShare.list.untitled')
+                            }}
+                          </p>
+                          <UBadge
+                            :color="share.isActive ? 'success' : 'neutral'"
+                            variant="soft"
+                          >
+                            {{
+                              share.isActive
+                                ? $t('dashboard.photos.uploadShare.list.active')
+                                : $t(
+                                    'dashboard.photos.uploadShare.list.inactive',
+                                  )
+                            }}
+                          </UBadge>
+                        </div>
+                        <p class="text-xs text-neutral-500 dark:text-neutral-400">
+                          {{
+                            $t('dashboard.photos.uploadShare.list.stats', {
+                              count: share.uploadCount,
+                              max: share.maxUploads || '∞',
+                            })
+                          }}
+                        </p>
+                        <p class="text-xs text-neutral-500 dark:text-neutral-400">
+                          {{
+                            share.expiresAt
+                              ? $t(
+                                  'dashboard.photos.uploadShare.list.expiresAt',
+                                  {
+                                    date: new Date(
+                                      share.expiresAt,
+                                    ).toLocaleString(),
+                                  },
+                                )
+                              : $t(
+                                  'dashboard.photos.uploadShare.list.noExpiry',
+                                )
+                          }}
+                        </p>
+                      </div>
+                      <div class="flex shrink-0 gap-2">
+                        <UButton
+                          size="xs"
+                          variant="soft"
+                          :color="share.isActive ? 'warning' : 'success'"
+                          :icon="
+                            share.isActive ? 'tabler:link-off' : 'tabler:link'
+                          "
+                          @click="setUploadShareActive(share, !share.isActive)"
+                        >
+                          {{
+                            share.isActive
+                              ? $t(
+                                  'dashboard.photos.uploadShare.actions.disable',
+                                )
+                              : $t(
+                                  'dashboard.photos.uploadShare.actions.enable',
+                                )
+                          }}
+                        </UButton>
+                        <UButton
+                          size="xs"
+                          variant="soft"
+                          color="error"
+                          icon="tabler:trash"
+                          @click="deleteUploadShare(share)"
+                        >
+                          {{ $t('dashboard.photos.uploadShare.actions.delete') }}
+                        </UButton>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </template>

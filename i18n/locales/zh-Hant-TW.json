@@ -545,7 +545,8 @@
       "maxFileSize": "最大 {size}MB",
       "buttons": {
         "upload": "上傳照片",
-        "queue": "任務佇列"
+        "queue": "任務佇列",
+        "shareUpload": "Share upload"
       },
       "uploader": {
         "label": "拖曳或點擊選擇照片",
@@ -853,7 +854,51 @@
           "goToQueue": "佇列管理"
         }
       },
-      "previewTitle": "照片預覽"
+      "previewTitle": "照片預覽",
+      "uploadShare": {
+        "title": "Share upload link",
+        "description": "Create a public upload page so visitors can upload photos into your library without signing in.",
+        "form": {
+          "label": "Link name",
+          "labelDescription": "Only visible in the dashboard, useful for events or friends.",
+          "labelPlaceholder": "e.g. Trip photo collection",
+          "expiresInDays": "Valid days",
+          "maxUploads": "Upload limit",
+          "maxUploadsPlaceholder": "Unlimited"
+        },
+        "actions": {
+          "create": "Create and copy link",
+          "copy": "Copy link",
+          "enable": "Enable",
+          "disable": "Disable",
+          "delete": "Delete"
+        },
+        "latest": {
+          "title": "Link created",
+          "description": "The original link is shown only once. Copy and save it now."
+        },
+        "list": {
+          "title": "Created links",
+          "emptyTitle": "No upload links yet",
+          "emptyDescription": "After creating a link, visitors can upload photos from that page.",
+          "untitled": "Untitled link",
+          "active": "Active",
+          "inactive": "Inactive",
+          "stats": "Uploaded {count}/{max}",
+          "expiresAt": "Expires at {date}",
+          "noExpiry": "No expiry"
+        },
+        "messages": {
+          "loadFailed": "Failed to load upload links",
+          "created": "Upload link created",
+          "copied": "Link copied to clipboard",
+          "copiedTitle": "Link copied",
+          "createFailed": "Failed to create upload link",
+          "updateFailed": "Failed to update upload link",
+          "deleted": "Upload link deleted",
+          "deleteFailed": "Failed to delete upload link"
+        }
+      }
     },
     "albums": {
       "title": "相簿管理",
@@ -1831,6 +1876,52 @@
   "photo": {
     "image": {
       "loadError": "圖片載入失敗"
+    }
+  },
+  "uploadShare": {
+    "page": {
+      "title": "Upload photos",
+      "heading": "Upload your photos",
+      "description": "Your files will be uploaded into {owner}'s photo library and managed by the site owner after processing."
+    },
+    "kicker": "Guest upload",
+    "owner": "Receiver",
+    "actions": {
+      "backHome": "Back home",
+      "uploadSelected": "Upload {count} files",
+      "selectFiles": "Select files"
+    },
+    "uploader": {
+      "label": "Select or drop photos",
+      "description": "Supports common images, Live Photo MOV, and MP4. Max {maxSize} MB per file."
+    },
+    "limit": {
+      "maxSize": "Max {size} MB per file",
+      "count": "Uploads {used}/{total}",
+      "expiresAt": "Valid until {date}"
+    },
+    "invalid": {
+      "title": "Upload link unavailable",
+      "description": "This link may have expired, been disabled, or reached its upload limit."
+    },
+    "status": {
+      "waiting": "Waiting",
+      "preparing": "Preparing",
+      "uploading": "Uploading",
+      "processing": "Processing",
+      "completed": "Submitted",
+      "error": "Failed"
+    },
+    "errors": {
+      "unsupported": "Unsupported file format",
+      "tooLarge": "File exceeds the {maxSize} MB limit",
+      "uploadFailed": "Upload failed"
+    },
+    "toast": {
+      "finished": {
+        "title": "Upload finished",
+        "description": "Submitted {count}/{total} files successfully."
+      }
     }
   }
 }

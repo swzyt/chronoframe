@@ -215,6 +215,39 @@ export const albumPhotos = sqliteTable(
   ],
 )
 
+export const uploadShares = sqliteTable(
+  'upload_shares',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    tokenHash: text('token_hash').notNull().unique(),
+    ownerUserId: integer('owner_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdByUserId: integer('created_by_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    label: text('label'),
+    isActive: integer('is_active', { mode: 'boolean' })
+      .default(true)
+      .notNull(),
+    uploadCount: integer('upload_count').default(0).notNull(),
+    maxUploads: integer('max_uploads'),
+    expiresAt: integer('expires_at', { mode: 'timestamp' }),
+    lastUsedAt: integer('last_used_at', { mode: 'timestamp' }),
+    createdAt: integer('created_at', { mode: 'timestamp' })
+      .notNull()
+      .default(sql`(unixepoch())`),
+    updatedAt: integer('updated_at', { mode: 'timestamp' })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [
+    uniqueIndex('idx_upload_shares_token_hash').on(t.tokenHash),
+    index('idx_upload_shares_owner_user_id').on(t.ownerUserId),
+    index('idx_upload_shares_active_expires').on(t.isActive, t.expiresAt),
+  ],
+)
+
 export const settings = sqliteTable(
   'settings',
   {
