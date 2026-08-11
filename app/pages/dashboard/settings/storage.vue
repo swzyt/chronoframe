@@ -29,10 +29,9 @@ const {
   data: availableStorage,
   refresh: refreshAvailableStorage,
   status: availableStorageStatus,
-} =
-  await useFetch<SettingStorageProvider[]>(
-    '/api/system/settings/storage-config',
-  )
+} = await useFetch<SettingStorageProvider[]>(
+  '/api/system/settings/storage-config',
+)
 
 const PROVIDER_ICON = {
   s3: 'tabler:brand-aws',
@@ -42,51 +41,65 @@ const PROVIDER_ICON = {
 
 const availableStorageColumns = computed<TableColumn<SettingStorageProvider>[]>(
   () => [
-  {
-    accessorKey: 'status',
-    header: '',
-    meta: {
-      class: {
-        th: 'w-10',
+    {
+      accessorKey: 'status',
+      header: '',
+      meta: {
+        class: {
+          th: 'w-10',
+        },
+      },
+      cell: (cell) => {
+        const isActive =
+          currentStorageProvider.value?.value === cell.row.original.id
+        return h(UChip, {
+          size: 'md',
+          inset: true,
+          standalone: true,
+          color: isActive ? 'success' : undefined,
+          ui: {
+            base: !isActive ? 'bg-neutral-200 dark:bg-neutral-700' : '',
+          },
+        })
       },
     },
-    cell: (cell) => {
-      const isActive =
-        currentStorageProvider.value?.value === cell.row.original.id
-      return h(UChip, {
-        size: 'md',
-        inset: true,
-        standalone: true,
-        color: isActive ? 'success' : undefined,
-        ui: {
-          base: !isActive ? 'bg-neutral-200 dark:bg-neutral-700' : '',
-        },
-      })
+    { accessorKey: 'name', header: $t('settings.storage.table.columns.name') },
+    {
+      accessorKey: 'provider',
+      header: $t('settings.storage.table.columns.type'),
     },
-  },
-  { accessorKey: 'name', header: $t('settings.storage.table.columns.name') },
-  { accessorKey: 'provider', header: $t('settings.storage.table.columns.type') },
-  {
-    accessorKey: 'actions',
-    header: $t('settings.storage.table.columns.actions'),
-    cell: (cell) => {
-      return h('div', { class: 'flex items-center gap-2' }, [
-        h(
-          UButton,
-          {
-            size: 'sm',
-            variant: 'soft',
-            color: 'error',
-            icon: 'tabler:trash',
-            disabled:
-              currentStorageProvider.value?.value === cell.row.original.id,
-            onClick: () => onStorageDelete(cell.row.original.id),
-          },
-          { default: () => $t('common.actions.delete') },
-        ),
-      ])
+    {
+      accessorKey: 'actions',
+      header: $t('settings.storage.table.columns.actions'),
+      cell: (cell) => {
+        return h('div', { class: 'flex items-center gap-2' }, [
+          h(
+            UButton,
+            {
+              size: 'sm',
+              variant: 'soft',
+              color: 'neutral',
+              icon: 'tabler:edit',
+              onClick: () => openEditStorage(cell.row.original.id),
+            },
+            { default: () => $t('settings.storage.actions.edit') },
+          ),
+          h(
+            UButton,
+            {
+              size: 'sm',
+              variant: 'soft',
+              color: 'error',
+              icon: 'tabler:trash',
+              disabled:
+                currentStorageProvider.value?.value === cell.row.original.id,
+              onClick: () => onStorageDelete(cell.row.original.id),
+            },
+            { default: () => $t('common.actions.delete') },
+          ),
+        ])
+      },
     },
-  },
   ],
 )
 
@@ -99,7 +112,9 @@ const storageSettingsState = reactive<{
 })
 
 const isStorageDefaultDirty = computed(() => {
-  return storageSettingsState.storageConfigId !== currentStorageProvider.value?.value
+  return (
+    storageSettingsState.storageConfigId !== currentStorageProvider.value?.value
+  )
 })
 
 const resetStorageDefault = () => {
@@ -132,9 +147,21 @@ const handleStorageSettingsSubmit = async (close?: () => void) => {
 }
 
 const providerOptions = computed(() => [
-  { label: $t('settings.storage.providers.s3'), value: 's3', icon: PROVIDER_ICON.s3 },
-  { label: $t('settings.storage.providers.local'), value: 'local', icon: PROVIDER_ICON.local },
-  { label: $t('settings.storage.providers.openlist'), value: 'openlist', icon: PROVIDER_ICON.openlist },
+  {
+    label: $t('settings.storage.providers.s3'),
+    value: 's3',
+    icon: PROVIDER_ICON.s3,
+  },
+  {
+    label: $t('settings.storage.providers.local'),
+    value: 'local',
+    icon: PROVIDER_ICON.local,
+  },
+  {
+    label: $t('settings.storage.providers.openlist'),
+    value: 'openlist',
+    icon: PROVIDER_ICON.openlist,
+  },
 ])
 
 const storageConfigState = reactive<{
@@ -151,9 +178,27 @@ const storageConfigState = reactive<{
   } as any,
 })
 
+const editStorageState = reactive<{
+  id?: number
+  name: string
+  provider: string
+  config: Partial<StorageConfig>
+}>({
+  id: undefined,
+  name: '',
+  provider: 's3',
+  config: {
+    provider: 's3',
+    region: 'auto',
+    prefix: '/photos',
+  } as any,
+})
+
+const isEditStorageOpen = ref(false)
+const isEditStorageLoading = ref(false)
+
 // 根据 provider 值动态选择对应的 schema
-const currentStorageSchema = computed(() => {
-  const provider = storageConfigState.provider
+const getStorageSchema = (provider: string) => {
   switch (provider) {
     case 'local':
       return localStorageConfigSchema
@@ -163,7 +208,15 @@ const currentStorageSchema = computed(() => {
     default:
       return s3StorageConfigSchema
   }
-})
+}
+
+const currentStorageSchema = computed(() =>
+  getStorageSchema(storageConfigState.provider),
+)
+
+const currentEditStorageSchema = computed(() =>
+  getStorageSchema(editStorageState.provider),
+)
 
 // 获取存储配置的默认值
 const getStorageConfigDefaults = (provider: string): Partial<StorageConfig> => {
@@ -193,8 +246,7 @@ const getStorageConfigDefaults = (provider: string): Partial<StorageConfig> => {
 }
 
 // 动态生成 fields-config，包含翻译键
-const storageFieldsConfig = computed<Record<string, any>>(() => {
-  const provider = storageConfigState.provider
+const getStorageFieldsConfig = (provider: string): Record<string, any> => {
   const baseKey = `settings.storage.${provider}`
 
   switch (provider) {
@@ -228,6 +280,10 @@ const storageFieldsConfig = computed<Record<string, any>>(() => {
         token: {
           label: $t(`${baseKey}.token.label`),
           description: $t(`${baseKey}.token.description`),
+          inputProps: {
+            type: 'password',
+            autocomplete: 'new-password',
+          },
         },
         uploadEndpoint: {
           label: $t(`${baseKey}.uploadEndpoint.label`),
@@ -285,10 +341,18 @@ const storageFieldsConfig = computed<Record<string, any>>(() => {
         accessKeyId: {
           label: $t(`${baseKey}.accessKeyId.label`),
           description: $t(`${baseKey}.accessKeyId.description`),
+          inputProps: {
+            type: 'password',
+            autocomplete: 'new-password',
+          },
         },
         secretAccessKey: {
           label: $t(`${baseKey}.secretAccessKey.label`),
           description: $t(`${baseKey}.secretAccessKey.description`),
+          inputProps: {
+            type: 'password',
+            autocomplete: 'new-password',
+          },
         },
         forcePathStyle: {
           label: $t(`${baseKey}.forcePathStyle.label`),
@@ -300,7 +364,15 @@ const storageFieldsConfig = computed<Record<string, any>>(() => {
         },
       }
   }
-})
+}
+
+const storageFieldsConfig = computed<Record<string, any>>(() =>
+  getStorageFieldsConfig(storageConfigState.provider),
+)
+
+const editStorageFieldsConfig = computed<Record<string, any>>(() =>
+  getStorageFieldsConfig(editStorageState.provider),
+)
 
 const onStorageConfigSubmit = async (
   event: { data: Partial<StorageConfig> },
@@ -336,6 +408,71 @@ const onStorageConfigSubmit = async (
   }
 }
 
+const openEditStorage = async (storageId: number) => {
+  isEditStorageOpen.value = true
+  isEditStorageLoading.value = true
+
+  try {
+    const storage = await $fetch<SettingStorageProvider>(
+      `/api/system/settings/storage-config/${storageId}`,
+    )
+    editStorageState.id = storage.id
+    editStorageState.name = storage.name
+    editStorageState.provider = storage.provider
+    editStorageState.config = {
+      ...getStorageConfigDefaults(storage.provider),
+      ...(storage.config as Partial<StorageConfig>),
+      provider: storage.provider,
+    } as Partial<StorageConfig>
+  } catch (error) {
+    isEditStorageOpen.value = false
+    toast.add({
+      title: $t('settings.storage.messages.loadError'),
+      description: (error as Error).message,
+      color: 'error',
+    })
+  } finally {
+    isEditStorageLoading.value = false
+  }
+}
+
+const onStorageConfigUpdate = async (
+  event: { data: Partial<StorageConfig> },
+  close?: () => void,
+) => {
+  if (!editStorageState.id) return
+
+  try {
+    await $fetch(`/api/system/settings/storage-config/${editStorageState.id}`, {
+      method: 'PUT',
+      body: {
+        name: editStorageState.name,
+        provider: editStorageState.provider,
+        config: {
+          ...event.data,
+          provider: editStorageState.provider,
+        },
+      },
+    })
+    await Promise.all([
+      refreshAvailableStorage(),
+      refreshCurrentStorageProvider(),
+    ])
+    toast.add({
+      title: $t('settings.storage.messages.updated'),
+      color: 'success',
+    })
+    close?.()
+    isEditStorageOpen.value = false
+  } catch (error) {
+    toast.add({
+      title: $t('settings.storage.messages.updateError'),
+      description: (error as Error).message,
+      color: 'error',
+    })
+  }
+}
+
 const onStorageDelete = async (storageId: number) => {
   try {
     await $fetch(`/api/system/settings/storage-config/${storageId}`, {
@@ -364,8 +501,12 @@ const onStorageDelete = async (storageId: number) => {
 
     <template #body>
       <div class="mx-auto w-full max-w-5xl space-y-6">
-        <section class="space-y-2 border-b border-neutral-200 pb-4 dark:border-neutral-800">
-          <h2 class="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
+        <section
+          class="space-y-2 border-b border-neutral-200 pb-4 dark:border-neutral-800"
+        >
+          <h2
+            class="text-xl font-semibold text-neutral-900 dark:text-neutral-100"
+          >
             {{ $t('title.storageSettings') }}
           </h2>
           <p class="text-sm text-neutral-600 dark:text-neutral-400">
@@ -373,9 +514,15 @@ const onStorageDelete = async (storageId: number) => {
           </p>
         </section>
 
-        <section class="rounded-md border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950">
-          <header class="border-b border-neutral-200 px-5 py-4 dark:border-neutral-800">
-            <h3 class="text-base font-semibold text-neutral-900 dark:text-neutral-100">
+        <section
+          class="rounded-md border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950"
+        >
+          <header
+            class="border-b border-neutral-200 px-5 py-4 dark:border-neutral-800"
+          >
+            <h3
+              class="text-base font-semibold text-neutral-900 dark:text-neutral-100"
+            >
               {{ $t('settings.storage.sections.currentDefault') }}
             </h3>
           </header>
@@ -424,7 +571,9 @@ const onStorageDelete = async (storageId: number) => {
             </UFormField>
           </div>
 
-          <footer class="border-t border-neutral-200 px-5 py-4 dark:border-neutral-800">
+          <footer
+            class="border-t border-neutral-200 px-5 py-4 dark:border-neutral-800"
+          >
             <div
               v-if="isStorageDefaultDirty"
               class="mb-3 rounded-md border border-warning-200 bg-warning-50 px-3 py-2 text-sm text-warning-800 dark:border-warning-900/60 dark:bg-warning-950/30 dark:text-warning-200"
@@ -457,7 +606,9 @@ const onStorageDelete = async (storageId: number) => {
                     color="neutral"
                     variant="subtle"
                     :title="$t('settings.storage.changeModal.alertTitle')"
-                    :description="$t('settings.storage.changeModal.alertDescription')"
+                    :description="
+                      $t('settings.storage.changeModal.alertDescription')
+                    "
                     icon="tabler:arrows-exchange"
                   />
                 </template>
@@ -483,9 +634,15 @@ const onStorageDelete = async (storageId: number) => {
           </footer>
         </section>
 
-        <section class="rounded-md border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950">
-          <header class="flex w-full items-center justify-between border-b border-neutral-200 px-5 py-4 dark:border-neutral-800">
-            <h3 class="text-base font-semibold text-neutral-900 dark:text-neutral-100">
+        <section
+          class="rounded-md border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950"
+        >
+          <header
+            class="flex w-full items-center justify-between border-b border-neutral-200 px-5 py-4 dark:border-neutral-800"
+          >
+            <h3
+              class="text-base font-semibold text-neutral-900 dark:text-neutral-100"
+            >
               {{ $t('settings.storage.sections.management') }}
             </h3>
             <div>
@@ -522,7 +679,9 @@ const onStorageDelete = async (storageId: number) => {
                         :items="providerOptions"
                         label-key="label"
                         value-key="value"
-                        :placeholder="$t('settings.storage.form.typePlaceholder')"
+                        :placeholder="
+                          $t('settings.storage.form.typePlaceholder')
+                        "
                         @update:model-value="
                           (val: string) => {
                             storageConfigState.provider = val
@@ -568,6 +727,97 @@ const onStorageDelete = async (storageId: number) => {
                     icon="tabler:check"
                     type="submit"
                     form="createStorageForm"
+                  />
+                </template>
+              </USlideover>
+
+              <USlideover
+                v-model:open="isEditStorageOpen"
+                :title="$t('settings.storage.editSlideover.title')"
+                :description="$t('settings.storage.editSlideover.description')"
+                :ui="{ footer: 'justify-end' }"
+              >
+                <template #body="{ close }">
+                  <div
+                    v-if="isEditStorageLoading"
+                    class="space-y-4"
+                  >
+                    <USkeleton class="h-10 w-full" />
+                    <USkeleton class="h-10 w-full" />
+                    <USkeleton class="h-32 w-full" />
+                  </div>
+
+                  <div
+                    v-else
+                    class="space-y-4"
+                  >
+                    <UAlert
+                      color="neutral"
+                      variant="subtle"
+                      icon="tabler:shield-lock"
+                      :title="$t('settings.storage.editSlideover.secretTitle')"
+                      :description="
+                        $t('settings.storage.editSlideover.secretDescription')
+                      "
+                    />
+
+                    <UFormField
+                      :label="$t('settings.storage.form.typeLabel')"
+                      class="w-full"
+                      :ui="{
+                        container: 'sm:max-w-full',
+                      }"
+                    >
+                      <USelectMenu
+                        v-model="editStorageState.provider"
+                        disabled
+                        :icon="
+                          PROVIDER_ICON[
+                            editStorageState.provider as keyof typeof PROVIDER_ICON
+                          ] || 'tabler:database'
+                        "
+                        :items="providerOptions"
+                        label-key="label"
+                        value-key="value"
+                      />
+                    </UFormField>
+
+                    <UFormField
+                      :label="$t('settings.storage.form.nameLabel')"
+                      required
+                      :ui="{
+                        container: 'sm:max-w-full',
+                      }"
+                    >
+                      <UInput v-model="editStorageState.name" />
+                    </UFormField>
+
+                    <USeparator />
+
+                    <AutoForm
+                      id="editStorageForm"
+                      :schema="currentEditStorageSchema"
+                      :state="editStorageState.config"
+                      :fields-config="editStorageFieldsConfig"
+                      @submit="onStorageConfigUpdate($event, close)"
+                    />
+                  </div>
+                </template>
+
+                <template #footer="{ close }">
+                  <UButton
+                    :label="$t('common.actions.cancel')"
+                    color="neutral"
+                    variant="outline"
+                    @click="close"
+                  />
+                  <UButton
+                    :label="$t('settings.storage.actions.update')"
+                    variant="soft"
+                    icon="tabler:device-floppy"
+                    type="submit"
+                    form="editStorageForm"
+                    :disabled="isEditStorageLoading"
                   />
                 </template>
               </USlideover>

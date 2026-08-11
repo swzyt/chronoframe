@@ -127,6 +127,13 @@
       "when": 1785851649362,
       "tag": "0017_absent_corsair",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1785971709918,
+      "tag": "0018_default_location_language_zh_hans",
+      "breakpoints": true
     }
   ]
 }

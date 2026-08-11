@@ -13,6 +13,33 @@ export interface GeocodingProvider {
   reverseGeocode(lat: number, lon: number): Promise<LocationInfo | null>
 }
 
+const DEFAULT_LOCATION_LANGUAGE = 'zh-Hans'
+
+const normalizeLocationLanguage = (language?: string | null) => {
+  switch (language) {
+    case 'zh':
+    case 'zh-CN':
+      return 'zh-Hans'
+    case 'zh-TW':
+      return 'zh-Hant-TW'
+    case 'zh-HK':
+      return 'zh-Hant-HK'
+    default:
+      return language || DEFAULT_LOCATION_LANGUAGE
+  }
+}
+
+const toMapboxLanguage = (language?: string | null) => {
+  const normalized = normalizeLocationLanguage(language)
+  switch (normalized) {
+    case 'zh-Hant-TW':
+    case 'zh-Hant-HK':
+      return 'zh-Hant'
+    default:
+      return normalized
+  }
+}
+
 const wgs84ToGcj02 = (lng: number, lat: number): [number, number] => {
   if (lng < 72.004 || lng > 137.8347 || lat < 0.8293 || lat > 55.8271) {
     return [lng, lat]
@@ -28,34 +55,19 @@ const wgs84ToGcj02 = (lng: number, lat: number): [number, number] => {
       0.2 * y * y +
       0.1 * x * y +
       0.2 * Math.sqrt(Math.abs(x))
+    value += ((20 * Math.sin(6 * x * pi) + 20 * Math.sin(2 * x * pi)) * 2) / 3
+    value += ((20 * Math.sin(y * pi) + 40 * Math.sin((y / 3) * pi)) * 2) / 3
     value +=
-      ((20 * Math.sin(6 * x * pi) + 20 * Math.sin(2 * x * pi)) * 2) / 3
-    value +=
-      ((20 * Math.sin(y * pi) + 40 * Math.sin((y / 3) * pi)) * 2) / 3
-    value +=
-      ((160 * Math.sin((y / 12) * pi) +
-        320 * Math.sin((y * pi) / 30)) *
-        2) /
-      3
+      ((160 * Math.sin((y / 12) * pi) + 320 * Math.sin((y * pi) / 30)) * 2) / 3
     return value
   }
   const transformLng = (x: number, y: number) => {
     let value =
-      300 +
-      x +
-      2 * y +
-      0.1 * x * x +
-      0.1 * x * y +
-      0.1 * Math.sqrt(Math.abs(x))
+      300 + x + 2 * y + 0.1 * x * x + 0.1 * x * y + 0.1 * Math.sqrt(Math.abs(x))
+    value += ((20 * Math.sin(6 * x * pi) + 20 * Math.sin(2 * x * pi)) * 2) / 3
+    value += ((20 * Math.sin(x * pi) + 40 * Math.sin((x / 3) * pi)) * 2) / 3
     value +=
-      ((20 * Math.sin(6 * x * pi) + 20 * Math.sin(2 * x * pi)) * 2) / 3
-    value +=
-      ((20 * Math.sin(x * pi) + 40 * Math.sin((x / 3) * pi)) * 2) / 3
-    value +=
-      ((150 * Math.sin((x / 12) * pi) +
-        300 * Math.sin((x / 30) * pi)) *
-        2) /
-      3
+      ((150 * Math.sin((x / 12) * pi) + 300 * Math.sin((x / 30) * pi)) * 2) / 3
     return value
   }
   let deltaLat = transformLat(lng - 105, lat - 35)
@@ -64,11 +76,8 @@ const wgs84ToGcj02 = (lng: number, lat: number): [number, number] => {
   let magic = Math.sin(radLat)
   magic = 1 - ee * magic * magic
   const sqrtMagic = Math.sqrt(magic)
-  deltaLat =
-    (deltaLat * 180) /
-    (((a * (1 - ee)) / (magic * sqrtMagic)) * pi)
-  deltaLng =
-    (deltaLng * 180) / ((a / sqrtMagic) * Math.cos(radLat) * pi)
+  deltaLat = (deltaLat * 180) / (((a * (1 - ee)) / (magic * sqrtMagic)) * pi)
+  deltaLng = (deltaLng * 180) / ((a / sqrtMagic) * Math.cos(radLat) * pi)
   return [lng + deltaLng, lat + deltaLat]
 }
 
@@ -164,9 +173,12 @@ export class MapboxGeocodingProvider implements GeocodingProvider {
           // 应用速率限制
           await this.applyRateLimit()
 
-          // 获取设置的地理编码语言，默认 'en'
-          const language =
-            (await settingsManager.get<string>('location', 'language')) || 'en'
+          // 获取设置的地理编码语言，默认简体中文
+          const language = await settingsManager.get<string>(
+            'location',
+            'language',
+            DEFAULT_LOCATION_LANGUAGE,
+          )
 
           const url = new URL('/search/geocode/v6/reverse', this.baseUrl)
           url.searchParams.set('access_token', this.accessToken)
@@ -174,14 +186,7 @@ export class MapboxGeocodingProvider implements GeocodingProvider {
           url.searchParams.set('latitude', lat.toString())
           url.searchParams.set('types', 'address,place,district,region,country')
 
-          // 映射 Mapbox 首选语言格式
-          let mapboxLang = language
-          if (language === 'zh-CN') {
-            mapboxLang = 'zh-Hans'
-          } else if (language === 'zh-TW') {
-            mapboxLang = 'zh-Hant'
-          }
-          url.searchParams.set('language', mapboxLang)
+          url.searchParams.set('language', toMapboxLanguage(language))
 
           logger.location.info(`Mapbox API URL: ${url.toString()}`)
 
@@ -280,16 +285,21 @@ export class NominatimGeocodingProvider implements GeocodingProvider {
           // 应用速率限制
           await this.applyRateLimit()
 
-          // 获取设置的地理编码语言，默认 'en'
-          const language =
-            (await settingsManager.get<string>('location', 'language')) || 'en'
+          // 获取设置的地理编码语言，默认简体中文
+          const language = normalizeLocationLanguage(
+            await settingsManager.get<string>(
+              'location',
+              'language',
+              DEFAULT_LOCATION_LANGUAGE,
+            ),
+          )
 
           const url = new URL('/reverse', this.baseUrl)
           url.searchParams.set('lat', lat.toString())
           url.searchParams.set('lon', lon.toString())
           url.searchParams.set('format', 'json')
           url.searchParams.set('addressdetails', '1')
-          url.searchParams.set('accept-language', `${language},en`)
+          url.searchParams.set('accept-language', `${language},zh-CN,en`)
 
           const response = await fetch(url.toString(), {
             headers: {

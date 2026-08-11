@@ -305,9 +305,7 @@ export class SettingsManager {
    * Trigger storage provider switch
    * @param providerId Provider ID to switch to
    */
-  private async triggerStorageProviderSwitch(
-    providerId: number,
-  ): Promise<void> {
+  async triggerStorageProviderSwitch(providerId: number): Promise<void> {
     try {
       // Dynamically import to avoid circular dependency issues
       const { getGlobalStorageManager, setGlobalStorageManager } =
@@ -469,9 +467,25 @@ export class SettingsManager {
       db.update(tables.settings_storage_providers)
         .set({
           ...providerConfig,
+          updatedAt: new Date(),
         })
         .where(eq(tables.settings_storage_providers.id, id))
         .run()
+
+      const activeProviderId = await settingsManager.get<number>(
+        'storage',
+        'provider',
+      )
+      if (activeProviderId === id) {
+        setImmediate(() => {
+          settingsManager.triggerStorageProviderSwitch(id).catch((error) => {
+            settingsManager._logger.error(
+              'Failed to refresh active storage provider:',
+              error,
+            )
+          })
+        })
+      }
     },
 
     async deleteProvider(id: number): Promise<void> {

@@ -357,7 +357,7 @@ export const DEFAULT_SETTINGS = [
     namespace: 'location',
     key: 'language',
     type: 'string',
-    defaultValue: 'en',
+    defaultValue: 'zh-Hans',
     enum: i18nOptions.locales.map(({ language }) => language),
     label: 'settings.location.language.label',
     description: 'settings.location.language.description',

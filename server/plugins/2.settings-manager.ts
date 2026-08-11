@@ -36,59 +36,83 @@ async function migrateRuntimeConfigToSettings() {
 
   try {
     // Migrate app settings
-    if (
-      process.env.NUXT_PUBLIC_APP_TITLE ||
-      process.env.NUXT_PUBLIC_APP_SLOGAN ||
-      process.env.NUXT_PUBLIC_APP_AUTHOR ||
-      process.env.NUXT_PUBLIC_APP_AVATAR_URL
-    ) {
-      _logger.info('Migrating app settings')
-      const appSettings = {
-        title: config.public.app.title,
-        slogan: config.public.app.slogan,
-        author: config.public.app.author,
-        avatarUrl: config.public.app.avatarUrl,
-      }
+    const appSettings = [
+      {
+        env: 'NUXT_PUBLIC_APP_TITLE',
+        key: 'title',
+        value: config.public.app.title,
+      },
+      {
+        env: 'NUXT_PUBLIC_APP_SLOGAN',
+        key: 'slogan',
+        value: config.public.app.slogan,
+      },
+      {
+        env: 'NUXT_PUBLIC_APP_AUTHOR',
+        key: 'author',
+        value: config.public.app.author,
+      },
+      {
+        env: 'NUXT_PUBLIC_APP_AVATAR_URL',
+        key: 'avatarUrl',
+        value: config.public.app.avatarUrl,
+      },
+    ]
 
-      for (const [key, value] of Object.entries(appSettings)) {
-        if (value) {
-          try {
-            await settingsManager.set('app', key as any, value, undefined, true)
-            _logger.debug(`Migrated app.${key}`)
-          } catch (error) {
-            _logger.warn(`Failed to migrate app.${key}:`, error)
-          }
-        }
+    if (appSettings.some((setting) => hasRuntimeEnv(setting.env))) {
+      _logger.info('Migrating app settings')
+
+      for (const setting of appSettings) {
+        await migrateRuntimeSetting({
+          namespace: 'app',
+          key: setting.key,
+          value: setting.value,
+          env: setting.env,
+          logger: _logger,
+        })
       }
     }
 
     // Migrate map settings
-    if (
-      process.env.NUXT_PUBLIC_MAP_PROVIDER ||
-      process.env.NUXT_PUBLIC_MAPBOX_ACCESS_TOKEN ||
-      process.env.NUXT_MAPBOX_ACCESS_TOKEN ||
-      process.env.NUXT_PUBLIC_MAP_MAPBOX_STYLE ||
-      process.env.NUXT_PUBLIC_MAP_MAPLIBRE_TOKEN ||
-      process.env.NUXT_PUBLIC_MAP_MAPLIBRE_STYLE
-    ) {
-      _logger.info('Migrating map settings')
-      const mapSettings = {
-        provider: config.public.map.provider,
-        'mapbox.token': config.mapbox?.accessToken || '',
-        'mapbox.style': config.public.map.mapbox?.style || '',
-        'maplibre.token': config.public.map.maplibre?.token || '',
-        'maplibre.style': config.public.map.maplibre?.style || '',
-      }
+    const mapSettings = [
+      {
+        env: 'NUXT_PUBLIC_MAP_PROVIDER',
+        key: 'provider',
+        value: config.public.map.provider,
+      },
+      {
+        env: ['NUXT_PUBLIC_MAPBOX_ACCESS_TOKEN', 'NUXT_MAPBOX_ACCESS_TOKEN'],
+        key: 'mapbox.token',
+        value: config.mapbox?.accessToken || '',
+      },
+      {
+        env: 'NUXT_PUBLIC_MAP_MAPBOX_STYLE',
+        key: 'mapbox.style',
+        value: config.public.map.mapbox?.style || '',
+      },
+      {
+        env: 'NUXT_PUBLIC_MAP_MAPLIBRE_TOKEN',
+        key: 'maplibre.token',
+        value: config.public.map.maplibre?.token || '',
+      },
+      {
+        env: 'NUXT_PUBLIC_MAP_MAPLIBRE_STYLE',
+        key: 'maplibre.style',
+        value: config.public.map.maplibre?.style || '',
+      },
+    ]
 
-      for (const [key, value] of Object.entries(mapSettings)) {
-        if (value) {
-          try {
-            await settingsManager.set('map', key as any, value, undefined, true)
-            _logger.debug(`Migrated map.${key}`)
-          } catch (error) {
-            _logger.warn(`Failed to migrate map.${key}:`, error)
-          }
-        }
+    if (mapSettings.some((setting) => hasRuntimeEnv(setting.env))) {
+      _logger.info('Migrating map settings')
+
+      for (const setting of mapSettings) {
+        await migrateRuntimeSetting({
+          namespace: 'map',
+          key: setting.key,
+          value: setting.value,
+          env: setting.env,
+          logger: _logger,
+        })
       }
     }
 
@@ -117,7 +141,13 @@ async function migrateRuntimeConfigToSettings() {
     for (const [key, value] of Object.entries(githubOauthSettings)) {
       if (typeof value === 'string' && value.length > 0) {
         try {
-          await settingsManager.set('system', key as any, value, undefined, true)
+          await settingsManager.set(
+            'system',
+            key as any,
+            value,
+            undefined,
+            true,
+          )
           _logger.debug(`Migrated system.${key}`)
         } catch (error) {
           _logger.warn(`Failed to migrate system.${key}:`, error)
@@ -146,7 +176,8 @@ async function migrateRuntimeConfigToSettings() {
         } else {
           try {
             // Check if a provider of the same type already exists
-            const existingProviders = await settingsManager.storage.getProviders()
+            const existingProviders =
+              await settingsManager.storage.getProviders()
             const sameTypeProviderExists = existingProviders.some(
               (provider) => provider.provider === storageProvider,
             )
@@ -187,6 +218,69 @@ async function migrateRuntimeConfigToSettings() {
     _logger.info('Configuration migration completed')
   } catch (error) {
     _logger.error('Failed to migrate configurations:', error)
+  }
+}
+
+const hasRuntimeEnv = (env: string | string[]) => {
+  const keys = Array.isArray(env) ? env : [env]
+  return keys.some((key) =>
+    Object.prototype.hasOwnProperty.call(process.env, key),
+  )
+}
+
+const getDefaultSettingValue = (namespace: string, key: string) =>
+  DEFAULT_SETTINGS.find(
+    (setting) => setting.namespace === namespace && setting.key === key,
+  )?.defaultValue
+
+const isSameSettingValue = (left: unknown, right: unknown) =>
+  JSON.stringify(left ?? null) === JSON.stringify(right ?? null)
+
+async function migrateRuntimeSetting({
+  namespace,
+  key,
+  value,
+  env,
+  logger: _logger,
+}: {
+  namespace: string
+  key: string
+  value: unknown
+  env: string | string[]
+  logger: ReturnType<typeof logger.dynamic>
+}) {
+  if (!hasRuntimeEnv(env)) return
+
+  if (value === undefined || value === null || value === '') {
+    _logger.debug(
+      `Skipping ${namespace}.${key}: runtime environment value is empty`,
+    )
+    return
+  }
+
+  try {
+    const currentValue = await settingsManager.get(namespace as any, key as any)
+    const defaultValue = getDefaultSettingValue(namespace, key)
+    const hasUserCustomizedValue =
+      currentValue !== null && !isSameSettingValue(currentValue, defaultValue)
+
+    if (hasUserCustomizedValue) {
+      _logger.info(
+        `Skipping ${namespace}.${key}: database value has been customized`,
+      )
+      return
+    }
+
+    await settingsManager.set(
+      namespace as any,
+      key as any,
+      value as any,
+      undefined,
+      true,
+    )
+    _logger.debug(`Migrated ${namespace}.${key}`)
+  } catch (error) {
+    _logger.warn(`Failed to migrate ${namespace}.${key}:`, error)
   }
 }
 
@@ -293,9 +387,9 @@ function isRuntimeProviderConfigUsable(config: any): boolean {
     case 's3':
       return Boolean(
         config.endpoint &&
-          config.bucket &&
-          config.accessKeyId &&
-          config.secretAccessKey,
+        config.bucket &&
+        config.accessKeyId &&
+        config.secretAccessKey,
       )
     case 'local':
       return Boolean(config.basePath)

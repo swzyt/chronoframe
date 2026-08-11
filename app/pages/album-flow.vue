@@ -34,7 +34,6 @@ const photosPerColumn = computed(() => (isMobile.value ? 8 : 10))
 const columnDurations = computed(() =>
   Array.from({ length: columnCount.value }, (_, index) => 34 + index * 5),
 )
-const pausedColumnIndex = ref<number | null>(null)
 
 const columns = computed(() => {
   const cols: Photo[][] = Array.from({ length: columnCount.value }, () => [])
@@ -65,7 +64,9 @@ useHead({
 </script>
 
 <template>
-  <main class="relative min-h-[100dvh] overflow-hidden bg-neutral-950 text-white">
+  <main
+    class="relative min-h-[100dvh] overflow-hidden bg-neutral-950 text-white"
+  >
     <ClientOnly>
       <div
         v-if="flowPhotos.length"
@@ -76,11 +77,6 @@ useHead({
             v-for="(column, colIndex) in columns"
             :key="colIndex"
             class="album-flow-column relative flex-1 overflow-hidden"
-            :class="{ 'is-paused': pausedColumnIndex === colIndex }"
-            @pointerenter="pausedColumnIndex = colIndex"
-            @pointerleave="pausedColumnIndex = null"
-            @focusin="pausedColumnIndex = colIndex"
-            @focusout="pausedColumnIndex = null"
           >
             <div
               class="album-flow-track flex flex-col gap-0 will-change-transform"
@@ -120,8 +116,12 @@ useHead({
           </div>
         </div>
 
-        <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,transparent_0%,rgba(10,10,10,0.12)_34%,rgba(10,10,10,0.78)_100%)]" />
-        <div class="pointer-events-none absolute inset-0 bg-linear-to-b from-neutral-950/30 via-transparent to-neutral-950/40" />
+        <div
+          class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,transparent_0%,rgba(10,10,10,0.12)_34%,rgba(10,10,10,0.78)_100%)]"
+        />
+        <div
+          class="pointer-events-none absolute inset-0 bg-linear-to-b from-neutral-950/30 via-transparent to-neutral-950/40"
+        />
       </div>
 
       <template #fallback>
@@ -129,7 +129,9 @@ useHead({
       </template>
     </ClientOnly>
 
-    <nav class="absolute inset-x-0 top-0 z-10 flex items-center justify-between gap-3 p-4 sm:p-6">
+    <nav
+      class="absolute inset-x-0 top-0 z-10 flex items-center justify-between gap-3 p-4 sm:p-6"
+    >
       <UButton
         variant="soft"
         color="neutral"
@@ -202,12 +204,6 @@ useHead({
 
 .album-flow-scroll-up {
   animation: album-flow-up linear infinite;
-}
-
-.album-flow-column.is-paused .album-flow-track,
-.album-flow-column:hover .album-flow-track,
-.album-flow-column:focus-within .album-flow-track {
-  animation-play-state: paused;
 }
 
 @media (prefers-reduced-motion: reduce) {
