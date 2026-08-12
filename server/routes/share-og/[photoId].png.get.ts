@@ -129,6 +129,51 @@ const svgTemplate = ({
   </g>
 </svg>`
 
+const renderFallbackOgImage = async ({
+  headline,
+  title,
+  appTitle,
+}: {
+  headline: string
+  title: string
+  appTitle: string
+}) =>
+  await sharp({
+    create: {
+      width: OG_WIDTH,
+      height: OG_HEIGHT,
+      channels: 3,
+      background: '#09090b',
+    },
+  })
+    .composite([
+      {
+        input: Buffer.from(fallbackMediaTemplate({ headline, title })),
+        left: OG_WIDTH - MEDIA_WIDTH,
+        top: 0,
+      },
+      {
+        input: Buffer.from(
+          svgTemplate({
+            title,
+            description: '',
+            headline,
+            appTitle: truncate(appTitle, 28),
+            city: '',
+            camera: '',
+            focal: '—',
+            aperture: '—',
+            exposure: '—',
+            iso: '—',
+          }),
+        ),
+        left: 0,
+        top: 0,
+      },
+    ])
+    .png()
+    .toBuffer()
+
 export default eventHandler(async (event) => {
   const rawPhotoId =
     getRouterParam(event, 'photoId') ||
@@ -202,20 +247,29 @@ export default eventHandler(async (event) => {
     media = Buffer.from(fallbackMediaTemplate({ headline, title }))
   }
 
-  const image = await sharp({
-    create: {
-      width: OG_WIDTH,
-      height: OG_HEIGHT,
-      channels: 3,
-      background: '#09090b',
-    },
-  })
-    .composite([
-      { input: media, left: OG_WIDTH - MEDIA_WIDTH, top: 0 },
-      { input: overlay, left: 0, top: 0 },
-    ])
-    .png()
-    .toBuffer()
+  let image: Buffer
+  try {
+    image = await sharp({
+      create: {
+        width: OG_WIDTH,
+        height: OG_HEIGHT,
+        channels: 3,
+        background: '#09090b',
+      },
+    })
+      .composite([
+        { input: media, left: OG_WIDTH - MEDIA_WIDTH, top: 0 },
+        { input: overlay, left: 0, top: 0 },
+      ])
+      .png()
+      .toBuffer()
+  } catch (error) {
+    logger.image.warn(
+      `Failed to compose share preview for photo ${photo.id}; using fallback card`,
+      error,
+    )
+    image = await renderFallbackOgImage({ headline, title, appTitle })
+  }
 
   setHeader(event, 'Content-Type', 'image/png')
   setHeader(event, 'Content-Length', String(image.length))

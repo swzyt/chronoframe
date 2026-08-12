@@ -893,6 +893,8 @@
           "created": "Upload link created",
           "copied": "Link copied to clipboard",
           "copiedTitle": "Link copied",
+          "copyFailed": "The link was created, but the browser did not allow automatic copying. Please copy the link above manually.",
+          "copyFailedTitle": "Copy failed",
           "createFailed": "Failed to create upload link",
           "updateFailed": "Failed to update upload link",
           "deleted": "Upload link deleted",

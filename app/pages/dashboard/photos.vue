@@ -708,6 +708,40 @@ const openUploadShareSlideover = async () => {
   await loadUploadShares()
 }
 
+const copyTextToClipboard = async (text: string) => {
+  if (!text || !import.meta.client) return false
+
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text)
+      return true
+    }
+  } catch {
+    // Fall back to a temporary textarea below. Clipboard API can fail on
+    // non-secure origins or when the browser drops user activation after an
+    // async request.
+  }
+
+  try {
+    const textarea = document.createElement('textarea')
+    textarea.value = text
+    textarea.setAttribute('readonly', '')
+    textarea.style.position = 'fixed'
+    textarea.style.left = '-9999px'
+    textarea.style.top = '0'
+    document.body.appendChild(textarea)
+    textarea.focus()
+    textarea.select()
+    try {
+      return document.execCommand('copy')
+    } finally {
+      document.body.removeChild(textarea)
+    }
+  } catch {
+    return false
+  }
+}
+
 const createUploadShare = async () => {
   uploadShareCreating.value = true
   try {
@@ -721,13 +755,13 @@ const createUploadShare = async () => {
     })
     latestUploadShareUrl.value = share.url || ''
     uploadShares.value = [share, ...uploadShares.value]
-    if (share.url && import.meta.client) {
-      await navigator.clipboard?.writeText(share.url)
-    }
+    const copied = share.url ? await copyTextToClipboard(share.url) : false
     toast.add({
       title: $t('dashboard.photos.uploadShare.messages.created'),
       description: share.url
-        ? $t('dashboard.photos.uploadShare.messages.copied')
+        ? copied
+          ? $t('dashboard.photos.uploadShare.messages.copied')
+          : $t('dashboard.photos.uploadShare.messages.copyFailed')
         : undefined,
       color: 'success',
     })
@@ -744,10 +778,15 @@ const createUploadShare = async () => {
 
 const copyLatestUploadShareUrl = async () => {
   if (!latestUploadShareUrl.value || !import.meta.client) return
-  await navigator.clipboard?.writeText(latestUploadShareUrl.value)
+  const copied = await copyTextToClipboard(latestUploadShareUrl.value)
   toast.add({
-    title: $t('dashboard.photos.uploadShare.messages.copiedTitle'),
-    color: 'success',
+    title: copied
+      ? $t('dashboard.photos.uploadShare.messages.copiedTitle')
+      : $t('dashboard.photos.uploadShare.messages.copyFailedTitle'),
+    description: copied
+      ? undefined
+      : $t('dashboard.photos.uploadShare.messages.copyFailed'),
+    color: copied ? 'success' : 'warning',
   })
 }
 

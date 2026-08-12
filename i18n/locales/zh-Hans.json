@@ -967,6 +967,8 @@
           "created": "分享链接已创建",
           "copied": "链接已复制到剪贴板",
           "copiedTitle": "已复制链接",
+          "copyFailed": "链接已创建，但浏览器未允许自动复制，请手动复制上方链接。",
+          "copyFailedTitle": "复制失败",
           "createFailed": "创建分享链接失败",
           "updateFailed": "更新分享链接失败",
           "deleted": "分享链接已删除",

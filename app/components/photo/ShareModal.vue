@@ -35,12 +35,15 @@ const shareTextAndUrl = computed(() => {
 const ogImageLoading = ref(true)
 const ogImageError = ref(false)
 const loadingTimer = ref<NodeJS.Timeout | null>(null)
+const ogImageReloadKey = ref(0)
 const ogImageUrl = computed(
-  () => `/share-og/${encodeURIComponent(props.photo.id)}.png`,
+  () =>
+    `/share-og/${encodeURIComponent(props.photo.id)}.png?v=${ogImageReloadKey.value}`,
 )
 
 // Reset loading state when photo changes or modal opens
 const resetLoadingState = () => {
+  ogImageReloadKey.value += 1
   ogImageLoading.value = true
   ogImageError.value = false
 
@@ -51,7 +54,7 @@ const resetLoadingState = () => {
 
   // Set a timeout to handle cases where onload/onerror never fires
   loadingTimer.value = setTimeout(() => {
-    if (ogImageLoading.value) {
+    if (props.isOpen && ogImageLoading.value) {
       ogImageLoading.value = false
       ogImageError.value = true
     }
@@ -526,7 +529,7 @@ defineShortcuts({
                   <!-- OG Image -->
                   <img
                     v-show="!ogImageLoading && !ogImageError"
-                    :key="`og-image-${props.photo.id}`"
+                    :key="`og-image-${props.photo.id}-${ogImageReloadKey}`"
                     :src="ogImageUrl"
                     :alt="$t('ui.action.share.ogImage.alt')"
                     class="w-full h-auto aspect-2/1 object-cover rounded"

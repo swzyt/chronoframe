@@ -124,18 +124,17 @@ const uploadOne = async (item: GuestUploadFile) => {
     onProgress: (progress: UploadProgress) => {
       item.progress = progress.percentage
     },
-    onSuccess: async () => {
-      item.status = 'processing'
-      item.progress = 100
-      await submitTask(item.file, prepared.fileKey)
-      item.status = 'completed'
-      item.message = $t('uploadShare.status.completed')
-    },
     onError: (message: string) => {
       item.status = 'error'
       item.message = message
     },
   })
+
+  item.status = 'processing'
+  item.progress = 100
+  await submitTask(item.file, prepared.fileKey)
+  item.status = 'completed'
+  item.message = $t('uploadShare.status.completed')
 }
 
 const startUpload = async () => {
@@ -195,13 +194,13 @@ const startUpload = async () => {
 
 <template>
   <div
-    class="min-h-screen bg-neutral-950 text-white selection:bg-primary-400/30"
+    class="min-h-screen overflow-x-hidden bg-neutral-950 text-white selection:bg-primary-400/30"
   >
     <div
       class="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.32),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(20,184,166,0.24),transparent_36%)]"
     />
 
-    <main class="relative mx-auto flex min-h-screen max-w-4xl flex-col px-5 py-10">
+    <main class="relative mx-auto flex min-h-screen w-full max-w-4xl min-w-0 flex-col px-5 py-10">
       <NuxtLink
         to="/"
         class="mb-8 inline-flex w-fit items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm text-white/80 backdrop-blur transition hover:bg-white/15 hover:text-white"
@@ -211,11 +210,11 @@ const startUpload = async () => {
       </NuxtLink>
 
       <UCard
-        class="border-white/10 bg-white/10 shadow-2xl shadow-black/30 backdrop-blur-xl"
+        class="min-w-0 overflow-hidden border-white/10 bg-white/10 shadow-2xl shadow-black/30 backdrop-blur-xl"
         :ui="{ body: 'p-0 sm:p-0' }"
       >
-        <div class="grid gap-0 md:grid-cols-[0.9fr_1.1fr]">
-          <section class="border-b border-white/10 p-8 md:border-b-0 md:border-r">
+        <div class="grid min-w-0 gap-0 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+          <section class="min-w-0 border-b border-white/10 p-8 md:border-b-0 md:border-r">
             <div v-if="status === 'pending'" class="space-y-4">
               <USkeleton class="h-8 w-48 bg-white/10" />
               <USkeleton class="h-24 w-full bg-white/10" />
@@ -298,8 +297,8 @@ const startUpload = async () => {
             </div>
           </section>
 
-          <section class="p-8">
-            <div v-if="share" class="space-y-6">
+          <section class="min-w-0 p-8">
+            <div v-if="share" class="min-w-0 space-y-6">
               <UFileUpload
                 v-model="selectedFiles"
                 :label="$t('uploadShare.uploader.label')"
@@ -321,8 +320,8 @@ const startUpload = async () => {
                   base: 'border-white/15 bg-white/8 hover:bg-white/12 hover:border-primary-300/50',
                   label: 'text-white',
                   description: 'text-white/55',
-                  file: 'border-white/10 bg-white/8',
-                  fileName: 'text-white',
+                  file: 'min-w-0 border-white/10 bg-white/8',
+                  fileName: 'min-w-0 whitespace-normal break-all text-white',
                   fileSize: 'text-white/50',
                 }"
               />
@@ -344,15 +343,15 @@ const startUpload = async () => {
                 }}
               </UButton>
 
-              <div v-if="uploadingFiles.length" class="space-y-3">
+              <div v-if="uploadingFiles.length" class="min-w-0 space-y-3">
                 <div
                   v-for="item in uploadingFiles"
                   :key="item.id"
-                  class="rounded-2xl border border-white/10 bg-white/8 p-4"
+                  class="min-w-0 rounded-2xl border border-white/10 bg-white/8 p-4"
                 >
-                  <div class="flex items-start justify-between gap-3">
+                  <div class="flex min-w-0 items-start justify-between gap-3">
                     <div class="min-w-0">
-                      <p class="truncate text-sm font-medium">
+                      <p class="break-all text-sm font-medium leading-5">
                         {{ item.file.name }}
                       </p>
                       <p class="text-xs text-white/45">
@@ -368,6 +367,7 @@ const startUpload = async () => {
                             : 'primary'
                       "
                       variant="soft"
+                      class="shrink-0"
                     >
                       {{ $t(`uploadShare.status.${item.status}`) }}
                     </UBadge>
@@ -377,7 +377,7 @@ const startUpload = async () => {
                     class="mt-3"
                     :model-value="item.progress"
                   />
-                  <p v-if="item.message" class="mt-2 text-xs text-white/55">
+                  <p v-if="item.message" class="mt-2 break-words text-xs text-white/55">
                     {{ item.message }}
                   </p>
                 </div>
