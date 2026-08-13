@@ -2,6 +2,7 @@
 import { Icon as IconifyIcon, addIcon } from '@iconify/vue'
 import { init as initIconBundle } from '#build/nuxt-icon-client-bundle'
 import { formatCameraInfo } from '~/utils/camera'
+import { normalizePhotoDescription } from '~~/shared/utils/photo-description'
 
 initIconBundle(addIcon)
 
@@ -25,7 +26,10 @@ const title = computed(() =>
   (photo?.title || config.public.app.title).slice(0, 60),
 )
 const description = computed(() =>
-  (photo ? photo.description || '' : config.public.app.title).slice(0, 200),
+  (photo
+    ? normalizePhotoDescription(photo.description)
+    : config.public.app.title
+  ).slice(0, 200),
 )
 const thumbnailUrl = ref<string>()
 const signedThumbnailUrl = (

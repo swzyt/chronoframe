@@ -220,6 +220,7 @@ export const uploadShares = sqliteTable(
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
     tokenHash: text('token_hash').notNull().unique(),
+    token: text('token'),
     ownerUserId: integer('owner_user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),

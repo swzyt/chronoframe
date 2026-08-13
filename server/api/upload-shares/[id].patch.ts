@@ -43,5 +43,5 @@ export default defineEventHandler(async (event) => {
     .returning()
     .get()
 
-  return serializeUploadShare(updated)
+  return serializeUploadShare(updated, event)
 })

@@ -32,6 +32,7 @@ export default defineEventHandler(async (event) => {
     .insert(tables.uploadShares)
     .values({
       tokenHash,
+      token,
       ownerUserId: user.id,
       createdByUserId: user.id,
       label: body.label || null,
@@ -42,8 +43,6 @@ export default defineEventHandler(async (event) => {
     .get()
 
   return {
-    ...serializeUploadShare(inserted),
-    token,
-    url: buildUploadShareUrl(event, token),
+    ...serializeUploadShare(inserted, event),
   }
 })

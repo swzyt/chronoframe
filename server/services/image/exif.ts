@@ -6,6 +6,7 @@ import type { NeededExif, PhotoInfo } from '../../../shared/types/photo'
 import type { ExifDateTime, Tags } from 'exiftool-vendored'
 import { exiftool } from 'exiftool-vendored'
 import { noop } from 'es-toolkit'
+import { normalizePhotoDescription } from '~~/shared/utils/photo-description'
 import { withRetry, RetryPresets, RetryConditions } from '../../utils/retry'
 
 const neededKeys: Array<keyof Tags | (string & {})> = [
@@ -511,13 +512,13 @@ export const extractPhotoInfo = (
   }
 
   const description =
-    pickFirstText(
+    normalizePhotoDescription(pickFirstText(
       exifData?.Description,
       exifData?.ImageDescription,
       exifData?.CaptionAbstract,
       exifData?.XPComment,
       exifData?.UserComment,
-    ) || ''
+    )) || ''
 
   return {
     title,

@@ -875,7 +875,7 @@
         },
         "latest": {
           "title": "Link created",
-          "description": "The original link is shown only once. Copy and save it now."
+          "description": "連結也會保存在下方列表中，重新整理頁面後仍可再次複製。"
         },
         "list": {
           "title": "Created links",
@@ -886,7 +886,9 @@
           "inactive": "Inactive",
           "stats": "Uploaded {count}/{max}",
           "expiresAt": "Expires at {date}",
-          "noExpiry": "No expiry"
+          "noExpiry": "No expiry",
+          "unrecoverableTitle": "舊連結無法重新顯示",
+          "unrecoverableDescription": "這個連結建立於保存原始連結功能之前，系統只保留了校驗雜湊，無法還原原始網址；如需再次複製，請重新建立一個連結。"
         },
         "messages": {
           "loadFailed": "Failed to load upload links",

@@ -21,6 +21,7 @@ export function buildUploadShareUrl(event: H3Event, token: string) {
 
 export function serializeUploadShare(
   share: typeof tables.uploadShares.$inferSelect,
+  event?: H3Event,
 ) {
   return {
     id: share.id,
@@ -32,6 +33,8 @@ export function serializeUploadShare(
     lastUsedAt: share.lastUsedAt?.toISOString() || null,
     createdAt: share.createdAt.toISOString(),
     updatedAt: share.updatedAt.toISOString(),
+    token: share.token || null,
+    url: event && share.token ? buildUploadShareUrl(event, share.token) : null,
   }
 }
 

@@ -949,7 +949,7 @@
         },
         "latest": {
           "title": "链接已创建",
-          "description": "原始链接只会显示这一次，请现在复制并保存。"
+          "description": "链接也会保存在下方列表中，刷新页面后仍可再次复制。"
         },
         "list": {
           "title": "已创建的链接",
@@ -960,7 +960,9 @@
           "inactive": "已停用",
           "stats": "已上传 {count}/{max}",
           "expiresAt": "过期时间：{date}",
-          "noExpiry": "不过期"
+          "noExpiry": "不过期",
+          "unrecoverableTitle": "旧链接无法重新显示",
+          "unrecoverableDescription": "这个链接创建于保存原始链接功能之前，系统只保留了校验哈希，无法还原原始地址；如需再次复制，请重新创建一个链接。"
         },
         "messages": {
           "loadFailed": "加载分享链接失败",

@@ -949,7 +949,7 @@
         },
         "latest": {
           "title": "Link created",
-          "description": "The original link is shown only once. Copy and save it now."
+          "description": "The link is also saved in the list below, so you can copy it again after refreshing."
         },
         "list": {
           "title": "Created links",
@@ -960,7 +960,9 @@
           "inactive": "Inactive",
           "stats": "Uploaded {count}/{max}",
           "expiresAt": "Expires at {date}",
-          "noExpiry": "No expiry"
+          "noExpiry": "No expiry",
+          "unrecoverableTitle": "Legacy link cannot be shown again",
+          "unrecoverableDescription": "This link was created before original upload links were saved. Only its verification hash exists, so the original URL cannot be restored. Create a new link if you need to copy one again."
         },
         "messages": {
           "loadFailed": "Failed to load upload links",

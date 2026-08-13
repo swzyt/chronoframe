@@ -33,8 +33,8 @@ interface UploadShare {
   lastUsedAt: string | null
   createdAt: string
   updatedAt: string
-  token?: string
-  url?: string
+  token?: string | null
+  url?: string | null
 }
 
 // 列名显示映射
@@ -779,6 +779,20 @@ const createUploadShare = async () => {
 const copyLatestUploadShareUrl = async () => {
   if (!latestUploadShareUrl.value || !import.meta.client) return
   const copied = await copyTextToClipboard(latestUploadShareUrl.value)
+  toast.add({
+    title: copied
+      ? $t('dashboard.photos.uploadShare.messages.copiedTitle')
+      : $t('dashboard.photos.uploadShare.messages.copyFailedTitle'),
+    description: copied
+      ? undefined
+      : $t('dashboard.photos.uploadShare.messages.copyFailed'),
+    color: copied ? 'success' : 'warning',
+  })
+}
+
+const copyUploadShareUrl = async (share: UploadShare) => {
+  if (!share.url || !import.meta.client) return
+  const copied = await copyTextToClipboard(share.url)
   toast.add({
     title: copied
       ? $t('dashboard.photos.uploadShare.messages.copiedTitle')
@@ -3052,6 +3066,42 @@ onUnmounted(() => {
                                 )
                           }}
                         </p>
+                        <div
+                          v-if="share.url"
+                          class="mt-3 flex min-w-0 flex-col gap-2 rounded-xl bg-neutral-50 p-3 dark:bg-neutral-950/50 sm:flex-row sm:items-center"
+                        >
+                          <code
+                            class="min-w-0 flex-1 break-all text-xs text-neutral-700 dark:text-neutral-200"
+                          >
+                            {{ share.url }}
+                          </code>
+                          <UButton
+                            size="xs"
+                            variant="soft"
+                            icon="tabler:copy"
+                            class="shrink-0"
+                            @click="copyUploadShareUrl(share)"
+                          >
+                            {{ $t('dashboard.photos.uploadShare.actions.copy') }}
+                          </UButton>
+                        </div>
+                        <UAlert
+                          v-else
+                          class="mt-3"
+                          color="warning"
+                          variant="soft"
+                          icon="tabler:alert-triangle"
+                          :title="
+                            $t(
+                              'dashboard.photos.uploadShare.list.unrecoverableTitle',
+                            )
+                          "
+                          :description="
+                            $t(
+                              'dashboard.photos.uploadShare.list.unrecoverableDescription',
+                            )
+                          "
+                        />
                       </div>
                       <div class="flex shrink-0 gap-2">
                         <UButton

@@ -875,7 +875,7 @@
         },
         "latest": {
           "title": "Link created",
-          "description": "The original link is shown only once. Copy and save it now."
+          "description": "リンクは下の一覧にも保存されるため、ページ更新後も再度コピーできます。"
         },
         "list": {
           "title": "Created links",
@@ -886,7 +886,9 @@
           "inactive": "Inactive",
           "stats": "Uploaded {count}/{max}",
           "expiresAt": "Expires at {date}",
-          "noExpiry": "No expiry"
+          "noExpiry": "No expiry",
+          "unrecoverableTitle": "古いリンクは再表示できません",
+          "unrecoverableDescription": "このリンクは元のリンク保存機能の追加前に作成されたため、検証用ハッシュのみが残っています。元の URL は復元できません。再度コピーする必要がある場合は、新しいリンクを作成してください。"
         },
         "messages": {
           "loadFailed": "Failed to load upload links",

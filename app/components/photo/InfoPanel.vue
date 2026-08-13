@@ -4,6 +4,7 @@ import { motion } from 'motion-v'
 import type { NeededExif } from '../../../shared/types/photo'
 import type { KVData } from './KVRenderer.vue'
 import { formatCameraInfo, formatLensInfo } from '~/utils/camera'
+import { normalizePhotoDescription } from '~~/shared/utils/photo-description'
 
 interface Props {
   currentPhoto: Photo
@@ -21,6 +22,9 @@ interface Album {
 }
 
 const photoOwner = computed(() => (props.currentPhoto as any).owner)
+const displayDescription = computed(() =>
+  normalizePhotoDescription(props.currentPhoto.description),
+)
 
 const dayjs = useDayjs()
 const router = useRouter()
@@ -540,10 +544,10 @@ const onAlbumClick = (albumId: number) => {
       </div>
 
       <div
-        v-if="currentPhoto.description"
+        v-if="displayDescription"
         class="text-sm text-white text-justify"
       >
-        {{ currentPhoto.description }}
+        {{ displayDescription }}
       </div>
 
       <PhotoMiniMap

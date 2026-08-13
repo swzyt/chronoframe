@@ -1,3 +1,5 @@
+import { desc } from 'drizzle-orm'
+
 export default defineEventHandler(async (event) => {
   const user = await requireCurrentUser(event)
 
@@ -5,9 +7,8 @@ export default defineEventHandler(async (event) => {
     .select()
     .from(tables.uploadShares)
     .where(eq(tables.uploadShares.ownerUserId, user.id))
-    .orderBy(tables.uploadShares.createdAt)
+    .orderBy(desc(tables.uploadShares.createdAt))
     .all()
-    .toReversed()
 
-  return shares.map(serializeUploadShare)
+  return shares.map((share) => serializeUploadShare(share, event))
 })

@@ -141,6 +141,13 @@
       "when": 1785974300000,
       "tag": "0019_upload_shares",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1786046400000,
+      "tag": "0020_upload_share_tokens",
+      "breakpoints": true
     }
   ]
 }

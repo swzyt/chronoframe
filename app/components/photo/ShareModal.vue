@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { motion, AnimatePresence } from 'motion-v'
+import { normalizePhotoDescription } from '~~/shared/utils/photo-description'
 
 interface Props {
   isOpen: boolean
@@ -23,7 +24,7 @@ const shareUrl = computed(() => {
 
 const shareText = computed(() => {
   const title = props.photo.title || $t('ui.action.share.fallback.photoTitle')
-  const description = props.photo.description || ''
+  const description = normalizePhotoDescription(props.photo.description)
   return `${$t('ui.action.share.text.prefix')} ${title}${description ? ' - ' + description : ''}`
 })
 

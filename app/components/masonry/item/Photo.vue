@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { formatCameraInfo } from '~/utils/camera'
 import { motion, useDomRef } from 'motion-v'
+import { normalizePhotoDescription } from '~~/shared/utils/photo-description'
 
 interface Props {
   photo: Photo
@@ -40,6 +41,9 @@ const formattedVideoDuration = computed(() => {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
 })
 const photoOwner = computed(() => (props.photo as any).owner)
+const displayDescription = computed(() =>
+  normalizePhotoDescription(props.photo.description),
+)
 
 const resizeObserverRef = ref<ResizeObserver | null>(null)
 const intersectionObserverRef = ref<IntersectionObserver | null>(null)
@@ -606,10 +610,10 @@ onUnmounted(() => {
               {{ photo.title }}
             </p>
             <p
-              v-if="photo.description"
+              v-if="displayDescription"
               class="text-xs text-justify opacity-80 line-clamp-2"
             >
-              {{ photo.description }}
+              {{ displayDescription }}
             </p>
             <p
               v-if="photo.dateTaken || photo.city || photoOwner"

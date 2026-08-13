@@ -949,7 +949,7 @@
         },
         "latest": {
           "title": "Link created",
-          "description": "The original link is shown only once. Copy and save it now."
+          "description": "Ссылка также сохраняется в списке ниже, поэтому её можно снова скопировать после обновления страницы."
         },
         "list": {
           "title": "Created links",
@@ -960,7 +960,9 @@
           "inactive": "Inactive",
           "stats": "Uploaded {count}/{max}",
           "expiresAt": "Expires at {date}",
-          "noExpiry": "No expiry"
+          "noExpiry": "No expiry",
+          "unrecoverableTitle": "Старую ссылку нельзя показать снова",
+          "unrecoverableDescription": "Эта ссылка была создана до сохранения исходных ссылок. В базе остался только проверочный хэш, поэтому исходный URL восстановить нельзя. Создайте новую ссылку, если нужно снова её скопировать."
         },
         "messages": {
           "loadFailed": "Failed to load upload links",

@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import sharp from 'sharp'
 import { settingsManager } from '~~/server/services/settings/settingsManager'
 import { logger } from '~~/server/utils/logger'
+import { normalizePhotoDescription } from '~~/shared/utils/photo-description'
 
 const OG_WIDTH = 1200
 const OG_HEIGHT = 600
@@ -137,42 +138,56 @@ const renderFallbackOgImage = async ({
   headline: string
   title: string
   appTitle: string
-}) =>
-  await sharp({
-    create: {
-      width: OG_WIDTH,
-      height: OG_HEIGHT,
-      channels: 3,
-      background: '#09090b',
-    },
+}) => {
+  const fallbackSvg = svgTemplate({
+    title,
+    description: '',
+    headline,
+    appTitle: truncate(appTitle, 28),
+    city: '',
+    camera: '',
+    focal: '—',
+    aperture: '—',
+    exposure: '—',
+    iso: '—',
   })
-    .composite([
-      {
-        input: Buffer.from(fallbackMediaTemplate({ headline, title })),
-        left: OG_WIDTH - MEDIA_WIDTH,
-        top: 0,
+
+  try {
+    return await sharp(Buffer.from(fallbackSvg)).png().toBuffer()
+  } catch (error) {
+    logger.image.warn('Failed to render SVG share preview fallback; using plain PNG', error)
+    return await sharp({
+      create: {
+        width: OG_WIDTH,
+        height: OG_HEIGHT,
+        channels: 3,
+        background: '#09090b',
       },
-      {
-        input: Buffer.from(
-          svgTemplate({
-            title,
-            description: '',
-            headline,
-            appTitle: truncate(appTitle, 28),
-            city: '',
-            camera: '',
-            focal: '—',
-            aperture: '—',
-            exposure: '—',
-            iso: '—',
-          }),
-        ),
-        left: 0,
-        top: 0,
+    })
+      .png()
+      .toBuffer()
+  }
+}
+
+const renderFallbackMediaImage = async (headline: string, title: string) => {
+  try {
+    return await sharp(Buffer.from(fallbackMediaTemplate({ headline, title })))
+      .png()
+      .toBuffer()
+  } catch (error) {
+    logger.image.warn('Failed to render share preview media fallback; using plain media block', error)
+    return await sharp({
+      create: {
+        width: MEDIA_WIDTH,
+        height: OG_HEIGHT,
+        channels: 3,
+        background: '#111827',
       },
-    ])
-    .png()
-    .toBuffer()
+    })
+      .png()
+      .toBuffer()
+  }
+}
 
 export default eventHandler(async (event) => {
   const rawPhotoId =
@@ -205,50 +220,50 @@ export default eventHandler(async (event) => {
   const exposure = exifValue(exif, 'ExposureTime')
   const headline = photo.mediaType === 'video' ? 'VIDEO' : 'PHOTO'
   const title = truncate(photo.title || appTitle, 16)
-  const overlay = Buffer.from(
-    svgTemplate({
-      title,
-      description: truncate(photo.description || '', 30),
-      headline,
-      appTitle: truncate(appTitle, 28),
-      city: truncate(photo.city || photo.locationName || '', 20),
-      camera: truncate(camera, 28),
-      focal: truncate(exifValue(exif, 'FocalLengthIn35mmFormat') || '—', 8),
-      aperture: truncate(
-        exifValue(exif, 'FNumber') ? `f/${exifValue(exif, 'FNumber')}` : '—',
-        8,
-      ),
-      exposure: truncate(exposure ? `${exposure}s` : '—', 10),
-      iso: truncate(exifValue(exif, 'ISO') || '—', 8),
-    }),
-  )
-
-  let media: Buffer
-  if (mediaKey) {
-    try {
-      const { storageProvider } = useStorageProvider(event)
-      const mediaBuffer = await storageProvider.get(mediaKey)
-      if (!mediaBuffer) {
-        throw new Error(`Storage returned empty media for key: ${mediaKey}`)
-      }
-      media = await sharp(mediaBuffer, { limitInputPixels: false })
-        .rotate()
-        .resize(MEDIA_WIDTH, OG_HEIGHT, { fit: 'cover' })
-        .png()
-        .toBuffer()
-    } catch (error) {
-      logger.image.warn(
-        `Failed to load share preview media for photo ${photo.id}; using fallback card`,
-        error,
-      )
-      media = Buffer.from(fallbackMediaTemplate({ headline, title }))
-    }
-  } else {
-    media = Buffer.from(fallbackMediaTemplate({ headline, title }))
-  }
-
   let image: Buffer
   try {
+    const overlay = Buffer.from(
+      svgTemplate({
+        title,
+        description: truncate(normalizePhotoDescription(photo.description), 30),
+        headline,
+        appTitle: truncate(appTitle, 28),
+        city: truncate(photo.city || photo.locationName || '', 20),
+        camera: truncate(camera, 28),
+        focal: truncate(exifValue(exif, 'FocalLengthIn35mmFormat') || '—', 8),
+        aperture: truncate(
+          exifValue(exif, 'FNumber') ? `f/${exifValue(exif, 'FNumber')}` : '—',
+          8,
+        ),
+        exposure: truncate(exposure ? `${exposure}s` : '—', 10),
+        iso: truncate(exifValue(exif, 'ISO') || '—', 8),
+      }),
+    )
+
+    let media: Buffer
+    if (mediaKey) {
+      try {
+        const { storageProvider } = useStorageProvider(event)
+        const mediaBuffer = await storageProvider.get(mediaKey)
+        if (!mediaBuffer) {
+          throw new Error(`Storage returned empty media for key: ${mediaKey}`)
+        }
+        media = await sharp(mediaBuffer, { limitInputPixels: false })
+          .rotate()
+          .resize(MEDIA_WIDTH, OG_HEIGHT, { fit: 'cover' })
+          .png()
+          .toBuffer()
+      } catch (error) {
+        logger.image.warn(
+          `Failed to load share preview media for photo ${photo.id}; using fallback card`,
+          error,
+        )
+        media = await renderFallbackMediaImage(headline, title)
+      }
+    } else {
+      media = await renderFallbackMediaImage(headline, title)
+    }
+
     image = await sharp({
       create: {
         width: OG_WIDTH,
