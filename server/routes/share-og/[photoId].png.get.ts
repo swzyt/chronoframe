@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import sharp from 'sharp'
 import { settingsManager } from '~~/server/services/settings/settingsManager'
+import { getLegacyLocalMedia } from '~~/server/utils/legacy-local-media'
 import { logger } from '~~/server/utils/logger'
 import { normalizePhotoDescription } from '~~/shared/utils/photo-description'
 
@@ -76,6 +77,7 @@ const svgTemplate = ({
   aperture,
   exposure,
   iso,
+  fullBackground = true,
 }: {
   title: string
   description: string
@@ -87,6 +89,7 @@ const svgTemplate = ({
   aperture: string
   exposure: string
   iso: string
+  fullBackground?: boolean
 }) => `
 <svg width="${OG_WIDTH}" height="${OG_HEIGHT}" viewBox="0 0 ${OG_WIDTH} ${OG_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
   <defs>
@@ -104,9 +107,13 @@ const svgTemplate = ({
       <feDropShadow dx="0" dy="18" stdDeviation="20" flood-color="#000000" flood-opacity="0.35"/>
     </filter>
   </defs>
-  <rect width="1200" height="600" fill="url(#bg)"/>
+  ${
+    fullBackground
+      ? `<rect width="1200" height="600" fill="url(#bg)"/>
   <circle cx="150" cy="90" r="220" fill="#fb7185" opacity="0.12"/>
-  <circle cx="430" cy="560" r="260" fill="#38bdf8" opacity="0.08"/>
+  <circle cx="430" cy="560" r="260" fill="#38bdf8" opacity="0.08"/>`
+      : ''
+  }
   <rect x="0" y="0" width="760" height="600" fill="url(#photoFade)"/>
   <g filter="url(#softShadow)">
     <text x="72" y="82" fill="#f43f5e" font-family="Inter, Noto Sans SC, Arial, sans-serif" font-size="34" font-weight="800" letter-spacing="2">${escapeXml(headline)} · ${escapeXml(appTitle)}</text>
@@ -189,6 +196,98 @@ const renderFallbackMediaImage = async (headline: string, title: string) => {
   }
 }
 
+const normalizeMediaKey = (key?: string | null) =>
+  key?.trim().replace(/^\/+/, '') || null
+
+const keyFromProxyUrl = (url?: string | null) => {
+  const value = url?.trim()
+  if (!value) return null
+
+  const pathname = (() => {
+    try {
+      return new URL(value, 'http://chronoframe.local').pathname
+    } catch {
+      return value
+    }
+  })()
+
+  for (const prefix of ['/image/', '/storage/']) {
+    if (pathname.startsWith(prefix)) {
+      return decodeURIComponent(pathname.slice(prefix.length)).replace(/^\/+/, '')
+    }
+  }
+
+  return null
+}
+
+const uniqueMediaKeys = (
+  ...keys: Array<string | null | undefined>
+): string[] => [
+  ...new Set(keys.map(normalizeMediaKey).filter((key): key is string => !!key)),
+]
+
+const getSharePreviewCandidateKeys = (
+  photo: typeof tables.photos.$inferSelect,
+) => {
+  if (photo.mediaType === 'video') {
+    return uniqueMediaKeys(
+      photo.thumbnailKey,
+      photo.displayKey,
+      keyFromProxyUrl(photo.thumbnailUrl),
+      keyFromProxyUrl(photo.originalUrl),
+      photo.storageKey,
+    )
+  }
+
+  return uniqueMediaKeys(
+    photo.displayKey,
+    photo.storageKey,
+    photo.thumbnailKey,
+    keyFromProxyUrl(photo.originalUrl),
+    keyFromProxyUrl(photo.thumbnailUrl),
+  )
+}
+
+const loadSharePreviewMedia = async (
+  event: Parameters<typeof useStorageProvider>[0],
+  photo: typeof tables.photos.$inferSelect,
+  headline: string,
+  title: string,
+) => {
+  const { storageProvider } = useStorageProvider(event)
+  const candidateKeys = getSharePreviewCandidateKeys(photo)
+
+  for (const mediaKey of candidateKeys) {
+    try {
+      const mediaBuffer =
+        (await storageProvider.get(mediaKey)) ||
+        (await getLegacyLocalMedia(mediaKey))
+      if (!mediaBuffer) {
+        logger.image.warn(
+          `Share preview media candidate not found for photo ${photo.id}: ${mediaKey}`,
+        )
+        continue
+      }
+
+      return await sharp(mediaBuffer, { limitInputPixels: false })
+        .rotate()
+        .resize(MEDIA_WIDTH, OG_HEIGHT, { fit: 'cover' })
+        .png()
+        .toBuffer()
+    } catch (error) {
+      logger.image.warn(
+        `Failed to decode share preview media candidate for photo ${photo.id}: ${mediaKey}`,
+        error,
+      )
+    }
+  }
+
+  logger.image.warn(
+    `No usable share preview media found for photo ${photo.id}; using fallback card`,
+  )
+  return await renderFallbackMediaImage(headline, title)
+}
+
 export default eventHandler(async (event) => {
   const rawPhotoId =
     getRouterParam(event, 'photoId') ||
@@ -210,7 +309,6 @@ export default eventHandler(async (event) => {
 
   await requirePublicPhotoAccess(event, photoId)
 
-  const mediaKey = photo.thumbnailKey || photo.displayKey || photo.storageKey
   const appTitle =
     (await settingsManager.get<string>('app', 'title')) || 'ChronoFrame'
   const exif = photo.exif
@@ -237,32 +335,11 @@ export default eventHandler(async (event) => {
         ),
         exposure: truncate(exposure ? `${exposure}s` : '—', 10),
         iso: truncate(exifValue(exif, 'ISO') || '—', 8),
+        fullBackground: false,
       }),
     )
 
-    let media: Buffer
-    if (mediaKey) {
-      try {
-        const { storageProvider } = useStorageProvider(event)
-        const mediaBuffer = await storageProvider.get(mediaKey)
-        if (!mediaBuffer) {
-          throw new Error(`Storage returned empty media for key: ${mediaKey}`)
-        }
-        media = await sharp(mediaBuffer, { limitInputPixels: false })
-          .rotate()
-          .resize(MEDIA_WIDTH, OG_HEIGHT, { fit: 'cover' })
-          .png()
-          .toBuffer()
-      } catch (error) {
-        logger.image.warn(
-          `Failed to load share preview media for photo ${photo.id}; using fallback card`,
-          error,
-        )
-        media = await renderFallbackMediaImage(headline, title)
-      }
-    } else {
-      media = await renderFallbackMediaImage(headline, title)
-    }
+    const media = await loadSharePreviewMedia(event, photo, headline, title)
 
     image = await sharp({
       create: {
