@@ -19,7 +19,7 @@ RUN NODE_OPTIONS="--max-old-space-size=8192" pnpm run build
 RUN find ./.output -type f -name '*.map' -delete
 
 FROM node:22.23.1-alpine AS runtime_deps
-RUN apk add --no-cache ca-certificates perl exiftool ffmpeg \
+RUN apk add --no-cache ca-certificates perl exiftool ffmpeg font-noto font-noto-cjk \
 	&& mkdir -p /tmp \
 	&& chmod 1777 /tmp \
 	&& install -Dm755 "$(readlink -f /usr/bin/perl)" /opt/runtime-bin/perl \
@@ -40,6 +40,8 @@ COPY --from=runtime_deps /opt/runtime-bin/ffprobe /usr/bin/ffprobe
 COPY --from=runtime_deps /usr/lib /usr/lib
 COPY --from=runtime_deps /usr/share /usr/share
 COPY --from=runtime_deps /lib /lib
+COPY --from=runtime_deps /etc/fonts /etc/fonts
+COPY --from=runtime_deps /var/cache/fontconfig /var/cache/fontconfig
 COPY --from=runtime_deps /etc/ssl /etc/ssl
 COPY --from=runtime_deps /tmp /tmp
 
@@ -55,6 +57,7 @@ ENV NITRO_HOST=0.0.0.0
 ENV DATABASE_URL=./data/app.sqlite3
 ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 ENV NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt
+ENV FONTCONFIG_PATH=/etc/fonts
 ENV EXIFTOOL_PATH=/usr/bin/exiftool
 ENV FFMPEG_PATH=/usr/bin/ffmpeg
 ENV FFPROBE_PATH=/usr/bin/ffprobe

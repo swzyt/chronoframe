@@ -7,7 +7,7 @@ import { normalizePhotoDescription } from '~~/shared/utils/photo-description'
 
 const OG_WIDTH = 1200
 const OG_HEIGHT = 600
-const MEDIA_WIDTH = 720
+const MEDIA_WIDTH = OG_WIDTH
 
 const escapeXml = (value: unknown) =>
   String(value ?? '')
@@ -99,8 +99,8 @@ const svgTemplate = ({
       <stop offset="100%" stop-color="#020617"/>
     </linearGradient>
     <linearGradient id="photoFade" x1="0" x2="1" y1="0" y2="0">
-      <stop offset="0%" stop-color="#09090b"/>
-      <stop offset="38%" stop-color="#09090b" stop-opacity="0.82"/>
+      <stop offset="0%" stop-color="#09090b" stop-opacity="0.92"/>
+      <stop offset="38%" stop-color="#09090b" stop-opacity="0.72"/>
       <stop offset="100%" stop-color="#09090b" stop-opacity="0"/>
     </linearGradient>
     <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
@@ -114,7 +114,7 @@ const svgTemplate = ({
   <circle cx="430" cy="560" r="260" fill="#38bdf8" opacity="0.08"/>`
       : ''
   }
-  <rect x="0" y="0" width="760" height="600" fill="url(#photoFade)"/>
+  <rect x="0" y="0" width="860" height="600" fill="url(#photoFade)"/>
   <g filter="url(#softShadow)">
     <text x="72" y="82" fill="#f43f5e" font-family="Inter, Noto Sans SC, Arial, sans-serif" font-size="34" font-weight="800" letter-spacing="2">${escapeXml(headline)} · ${escapeXml(appTitle)}</text>
     <text x="72" y="174" fill="#ffffff" font-family="Inter, Noto Sans SC, Arial, sans-serif" font-size="76" font-weight="900">${escapeXml(title)}</text>
@@ -350,7 +350,7 @@ export default eventHandler(async (event) => {
       },
     })
       .composite([
-        { input: media, left: OG_WIDTH - MEDIA_WIDTH, top: 0 },
+        { input: media, left: 0, top: 0 },
         { input: overlay, left: 0, top: 0 },
       ])
       .png()
