@@ -4,6 +4,7 @@ import type { Photo, PipelineQueueItem } from '~~/server/utils/db'
 import { h, resolveComponent } from 'vue'
 import { Icon, UBadge } from '#components'
 import ThumbImage from '~/components/ui/ThumbImage.vue'
+import { copyTextToClipboard } from '~/utils/clipboard'
 
 const UCheckbox = resolveComponent('UCheckbox')
 const UAvatar = resolveComponent('UAvatar')
@@ -708,40 +709,6 @@ const openUploadShareSlideover = async () => {
   await loadUploadShares()
 }
 
-const copyTextToClipboard = async (text: string) => {
-  if (!text || !import.meta.client) return false
-
-  try {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(text)
-      return true
-    }
-  } catch {
-    // Fall back to a temporary textarea below. Clipboard API can fail on
-    // non-secure origins or when the browser drops user activation after an
-    // async request.
-  }
-
-  try {
-    const textarea = document.createElement('textarea')
-    textarea.value = text
-    textarea.setAttribute('readonly', '')
-    textarea.style.position = 'fixed'
-    textarea.style.left = '-9999px'
-    textarea.style.top = '0'
-    document.body.appendChild(textarea)
-    textarea.focus()
-    textarea.select()
-    try {
-      return document.execCommand('copy')
-    } finally {
-      document.body.removeChild(textarea)
-    }
-  } catch {
-    return false
-  }
-}
-
 const createUploadShare = async () => {
   uploadShareCreating.value = true
   try {
@@ -755,14 +722,8 @@ const createUploadShare = async () => {
     })
     latestUploadShareUrl.value = share.url || ''
     uploadShares.value = [share, ...uploadShares.value]
-    const copied = share.url ? await copyTextToClipboard(share.url) : false
     toast.add({
       title: $t('dashboard.photos.uploadShare.messages.created'),
-      description: share.url
-        ? copied
-          ? $t('dashboard.photos.uploadShare.messages.copied')
-          : $t('dashboard.photos.uploadShare.messages.copyFailed')
-        : undefined,
       color: 'success',
     })
   } catch (error: any) {

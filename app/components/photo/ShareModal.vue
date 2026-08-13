@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { motion, AnimatePresence } from 'motion-v'
 import { normalizePhotoDescription } from '~~/shared/utils/photo-description'
+import { copyTextToClipboard } from '~/utils/clipboard'
 
 interface Props {
   isOpen: boolean
@@ -190,23 +191,24 @@ const shareToLinkedIn = () => {
 
 // Copy functions
 const copyLink = async () => {
-  try {
-    await navigator.clipboard.writeText(shareTextAndUrl.value)
+  const copied = await copyTextToClipboard(shareUrl.value)
+  if (copied) {
     toast.add({
       title: $t('ui.action.share.success.linkCopied'),
       color: 'success',
       icon: 'tabler:check',
       duration: 3000,
     })
-  } catch (error) {
-    toast.add({
-      title: $t('ui.action.share.error.linkCopyFailed'),
-      description: (error as Error)?.message || $t('common.unknownError'),
-      color: 'error',
-      icon: 'tabler:x',
-      duration: 3000,
-    })
+    return
   }
+
+  toast.add({
+    title: $t('ui.action.share.error.linkCopyFailed'),
+    description: $t('common.unknownError'),
+    color: 'error',
+    icon: 'tabler:x',
+    duration: 3000,
+  })
 }
 
 // Native share (for mobile devices)
