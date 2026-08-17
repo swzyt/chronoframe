@@ -14,6 +14,7 @@ type PipelineQueuePayload =
   | {
       type: 'photo'
       storageKey: string
+      contentHash?: string | null
       eraseLocation?: boolean
     }
   | {
@@ -23,6 +24,7 @@ type PipelineQueuePayload =
   | {
       type: 'video'
       storageKey: string
+      contentHash?: string | null
     }
   | {
       type: 'photo-reverse-geocoding'
@@ -64,6 +66,7 @@ export const photos = sqliteTable(
     videoPlaybackKey: text('video_playback_key'),
     dateTaken: text('date_taken'),
     storageKey: text('storage_key'),
+    contentHash: text('content_hash'),
     thumbnailKey: text('thumbnail_key'),
     displayKey: text('display_key'),
     fileSize: integer('file_size'),
@@ -89,6 +92,7 @@ export const photos = sqliteTable(
   },
   (t) => [
     index('idx_photos_storage_key').on(t.storageKey),
+    index('idx_photos_owner_content_hash').on(t.ownerUserId, t.contentHash),
     index('idx_photos_thumbnail_key').on(t.thumbnailKey),
     index('idx_photos_display_key').on(t.displayKey),
     index('idx_photos_video_playback_key').on(t.videoPlaybackKey),

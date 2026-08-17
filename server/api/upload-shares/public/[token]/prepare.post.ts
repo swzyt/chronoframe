@@ -1,16 +1,54 @@
 import path from 'node:path'
 import { z } from 'zod'
+import { and, eq } from 'drizzle-orm'
 import {
   generateSafePhotoId,
   generateSafeVideoId,
 } from '~~/server/utils/file-utils'
 import { settingsManager } from '~~/server/services/settings/settingsManager'
+import {
+  findDuplicatePhotoByContentHash,
+  normalizeContentHash,
+  sha256Hex,
+} from '~~/server/utils/photo-duplicate'
 
 const VIDEO_EXTENSIONS = new Set(['.mov', '.mp4'])
 
 const isVideoFile = (fileName: string, contentType?: string | null) => {
   if (contentType?.toLowerCase().startsWith('video/')) return true
   return VIDEO_EXTENSIONS.has(path.extname(fileName).toLowerCase())
+}
+
+const legacyPhotoMatchesContentHash = async (
+  storageProvider: ReturnType<typeof useStorageProvider>['storageProvider'],
+  existingPhoto: {
+    id: string
+    storageKey: string | null
+    contentHash?: string | null
+  },
+  contentHash: string | null,
+) => {
+  if (!contentHash || existingPhoto.contentHash || !existingPhoto.storageKey) {
+    return false
+  }
+
+  const existingBuffer = await storageProvider.get(existingPhoto.storageKey)
+  if (!existingBuffer) {
+    return false
+  }
+
+  const existingHash = sha256Hex(existingBuffer)
+  if (existingHash !== contentHash) {
+    return false
+  }
+
+  useDB()
+    .update(tables.photos)
+    .set({ contentHash })
+    .where(eq(tables.photos.id, existingPhoto.id))
+    .run()
+  existingPhoto.contentHash = contentHash
+  return true
 }
 
 export default defineEventHandler(async (event) => {
@@ -23,8 +61,10 @@ export default defineEventHandler(async (event) => {
     z.object({
       fileName: z.string().min(1).max(255),
       contentType: z.string().optional(),
+      contentHash: z.string().optional(),
     }).parse,
   )
+  const contentHash = normalizeContentHash(body.contentHash)
 
   const objectKey = buildUploadShareStorageKey(
     event,
@@ -43,11 +83,41 @@ export default defineEventHandler(async (event) => {
     const photoId = isVideoFile(body.fileName, body.contentType)
       ? generateSafeVideoId(objectKey)
       : generateSafePhotoId(objectKey)
-    const existingPhoto = useDB()
-      .select({ id: tables.photos.id, title: tables.photos.title })
-      .from(tables.photos)
-      .where(eq(tables.photos.id, photoId))
-      .get()
+    let existingPhoto = findDuplicatePhotoByContentHash(
+      share.ownerUserId,
+      contentHash,
+    )
+
+    if (!existingPhoto) {
+      const legacyIdPhoto = useDB()
+        .select({
+          id: tables.photos.id,
+          title: tables.photos.title,
+          storageKey: tables.photos.storageKey,
+          contentHash: tables.photos.contentHash,
+        })
+        .from(tables.photos)
+        .where(
+          and(
+            eq(tables.photos.id, photoId),
+            eq(tables.photos.ownerUserId, share.ownerUserId),
+          ),
+        )
+        .get()
+
+      if (!contentHash) {
+        existingPhoto = legacyIdPhoto
+      } else if (
+        legacyIdPhoto &&
+        (await legacyPhotoMatchesContentHash(
+          storageProvider,
+          legacyIdPhoto,
+          contentHash,
+        ))
+      ) {
+        existingPhoto = legacyIdPhoto
+      }
+    }
 
     if (existingPhoto) {
       throw createError({
@@ -78,6 +148,7 @@ export default defineEventHandler(async (event) => {
     return {
       signedUrl,
       fileKey: objectKey,
+      contentHash,
       expiresIn: 3600,
     }
   }
@@ -85,6 +156,7 @@ export default defineEventHandler(async (event) => {
   return {
     signedUrl: `/api/upload-shares/public/${encodeURIComponent(token)}/upload?key=${encodeURIComponent(objectKey)}`,
     fileKey: objectKey,
+    contentHash,
     expiresIn: 3600,
   }
 })

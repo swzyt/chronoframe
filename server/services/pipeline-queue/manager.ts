@@ -31,9 +31,43 @@ import { processMotionPhotoFromXmp } from '../video/motion-photo'
 import { processMp4Video } from '../video/processor'
 import { getStorageManager } from '~~/server/plugins/3.storage'
 import { createTempDir } from '~~/server/utils/temp-dir'
+import {
+  generateSafePhotoId,
+  generateSafePhotoIdWithStorageHash,
+} from '~~/server/utils/file-utils'
+import {
+  normalizeContentHash,
+  sha256Hex,
+} from '~~/server/utils/photo-duplicate'
 
 const storageProxyUrl = (key: string) =>
   `/image/${key.replace(/^\/+/, '').split('/').map(encodeURIComponent).join('/')}`
+
+const resolvePhotoIdForStorageKey = (
+  storageKey: string,
+  ownerUserId: number,
+) => {
+  const legacyPhotoId = generateSafePhotoId(storageKey)
+  const existingPhoto = useDB()
+    .select({
+      id: tables.photos.id,
+      storageKey: tables.photos.storageKey,
+      ownerUserId: tables.photos.ownerUserId,
+    })
+    .from(tables.photos)
+    .where(eq(tables.photos.id, legacyPhotoId))
+    .get()
+
+  if (
+    !existingPhoto ||
+    (existingPhoto.ownerUserId === ownerUserId &&
+      existingPhoto.storageKey === storageKey)
+  ) {
+    return legacyPhotoId
+  }
+
+  return generateSafePhotoIdWithStorageHash(storageKey)
+}
 
 const EXIF_LOCATION_KEYS = [
   'GPSAltitude',
@@ -284,7 +318,7 @@ export class QueueManager {
         }
         const { storageKey } = payload
         const storageProvider = getStorageManager().getProvider()
-        const photoId = generateSafePhotoId(storageKey)
+        const photoId = resolvePhotoIdForStorageKey(storageKey, task.ownerUserId)
 
         try {
           this.logger.info(`Start processing task ${taskId}: ${storageKey}`)
@@ -312,6 +346,9 @@ export class QueueManager {
           if (!imageBuffers) {
             throw new Error('Preprocessing failed')
           }
+          const contentHash =
+            normalizeContentHash(payload.contentHash) ||
+            sha256Hex(imageBuffers.raw)
 
           // STEP 2: 元数据处理 - 使用 Sharp 处理图片元数据
           await this.updateTaskStage(taskId, 'metadata')
@@ -469,6 +506,7 @@ export class QueueManager {
             audioCodec: null,
             videoPlaybackKey: null,
             storageKey: storageKey,
+            contentHash,
             thumbnailKey: thumbnailObject.key,
             displayKey: displayObject.key,
             fileSize: storageObject.size || null,
@@ -745,6 +783,8 @@ export class QueueManager {
         )
         const videoBuffer = await storageProvider.get(payload.storageKey)
         if (!videoBuffer) throw new Error('Storage object not found')
+        const contentHash =
+          normalizeContentHash(payload.contentHash) || sha256Hex(videoBuffer)
 
         await this.updateTaskStage(taskId, 'metadata')
         const processed = await processMp4Video(videoBuffer, payload.storageKey)
@@ -800,6 +840,7 @@ export class QueueManager {
           videoPlaybackKey,
           dateTaken: processed.dateTaken,
           storageKey: payload.storageKey,
+          contentHash,
           thumbnailKey: thumbnailObject.key,
           displayKey: null,
           fileSize: storageObject?.size || videoBuffer.length,

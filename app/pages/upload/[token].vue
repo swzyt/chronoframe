@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { UploadProgress } from '~/composables/useUpload'
+import { calculateFileSha256 } from '~/utils/sha256'
 
 definePageMeta({
   layout: false,
@@ -80,7 +81,11 @@ const validateFile = (file: File) => {
   return null
 }
 
-const submitTask = async (file: File, fileKey: string) => {
+const submitTask = async (
+  file: File,
+  fileKey: string,
+  contentHash: string,
+) => {
   const lowerName = file.name.toLowerCase()
   const isMovFile = file.type === 'video/quicktime' || lowerName.endsWith('.mov')
   const isMp4File = file.type === 'video/mp4' || lowerName.endsWith('.mp4')
@@ -93,6 +98,7 @@ const submitTask = async (file: File, fileKey: string) => {
         payload: {
           type: isMovFile ? 'live-photo-video' : isMp4File ? 'video' : 'photo',
           storageKey: fileKey,
+          ...(isMovFile ? {} : { contentHash }),
         },
       },
     },
@@ -106,6 +112,7 @@ const uploadOne = async (item: GuestUploadFile) => {
   const uploadManager = useUpload({
     timeout: 10 * 60 * 1000,
   })
+  const contentHash = await calculateFileSha256(item.file)
 
   const prepared = await $fetch(
     `/api/upload-shares/public/${encodeURIComponent(token.value)}/prepare`,
@@ -114,6 +121,7 @@ const uploadOne = async (item: GuestUploadFile) => {
       body: {
         fileName: item.file.name,
         contentType: item.file.type || 'application/octet-stream',
+        contentHash,
       },
     },
   )
@@ -132,7 +140,7 @@ const uploadOne = async (item: GuestUploadFile) => {
 
   item.status = 'processing'
   item.progress = 100
-  await submitTask(item.file, prepared.fileKey)
+  await submitTask(item.file, prepared.fileKey, contentHash)
   item.status = 'completed'
   item.message = $t('uploadShare.status.completed')
 }

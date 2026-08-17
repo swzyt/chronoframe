@@ -148,6 +148,13 @@
       "when": 1786046400000,
       "tag": "0020_upload_share_tokens",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1787086800000,
+      "tag": "0021_photo_content_hash",
+      "breakpoints": true
     }
   ]
 }

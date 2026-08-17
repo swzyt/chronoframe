@@ -1,11 +1,16 @@
 import path from 'path'
 import { useStorageProvider } from '~~/server/utils/useStorageProvider'
-import { eq, sql } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import {
   generateSafePhotoId,
   generateSafeVideoId,
 } from '~~/server/utils/file-utils'
 import { settingsManager } from '~~/server/services/settings/settingsManager'
+import {
+  findDuplicatePhotoByContentHash,
+  normalizeContentHash,
+  sha256Hex,
+} from '~~/server/utils/photo-duplicate'
 
 const VIDEO_EXTENSIONS = new Set(['.mov', '.mp4'])
 
@@ -89,6 +94,38 @@ const uniqueStorageKey = (storageKey: string) => {
   return candidate
 }
 
+const legacyPhotoMatchesContentHash = async (
+  storageProvider: ReturnType<typeof useStorageProvider>['storageProvider'],
+  existingPhoto: {
+    id: string
+    storageKey: string | null
+    contentHash?: string | null
+  },
+  contentHash: string | null,
+) => {
+  if (!contentHash || existingPhoto.contentHash || !existingPhoto.storageKey) {
+    return false
+  }
+
+  const existingBuffer = await storageProvider.get(existingPhoto.storageKey)
+  if (!existingBuffer) {
+    return false
+  }
+
+  const existingHash = sha256Hex(existingBuffer)
+  if (existingHash !== contentHash) {
+    return false
+  }
+
+  useDB()
+    .update(tables.photos)
+    .set({ contentHash })
+    .where(eq(tables.photos.id, existingPhoto.id))
+    .run()
+  existingPhoto.contentHash = contentHash
+  return true
+}
+
 export default eventHandler(async (event) => {
   const user = await requireCurrentUser(event)
   const { storageProvider } = useStorageProvider(event)
@@ -96,6 +133,7 @@ export default eventHandler(async (event) => {
 
   const body = await readBody(event)
   const { fileName, contentType, skipDuplicateCheck } = body
+  const contentHash = normalizeContentHash(body.contentHash)
   const isVideoUpload = fileName ? isVideoFile(fileName, contentType) : false
 
   if (!fileName) {
@@ -133,18 +171,40 @@ export default eventHandler(async (event) => {
           : generateSafePhotoId(objectKey)
       const db = useDB()
 
-      existingPhoto = await db
-        .select({
-          id: tables.photos.id,
-          title: tables.photos.title,
-          storageKey: tables.photos.storageKey,
-          originalUrl: tables.photos.originalUrl,
-          thumbnailUrl: tables.photos.thumbnailUrl,
-          dateTaken: tables.photos.dateTaken,
-        })
-        .from(tables.photos)
-        .where(eq(tables.photos.id, photoId))
-        .get()
+      existingPhoto = findDuplicatePhotoByContentHash(user.id, contentHash)
+      if (!existingPhoto) {
+        const legacyIdPhoto = await db
+          .select({
+            id: tables.photos.id,
+            title: tables.photos.title,
+            storageKey: tables.photos.storageKey,
+            originalUrl: tables.photos.originalUrl,
+            thumbnailUrl: tables.photos.thumbnailUrl,
+            dateTaken: tables.photos.dateTaken,
+            contentHash: tables.photos.contentHash,
+          })
+          .from(tables.photos)
+          .where(
+            and(
+              eq(tables.photos.id, photoId),
+              eq(tables.photos.ownerUserId, user.id),
+            ),
+          )
+          .get()
+
+        if (!contentHash) {
+          existingPhoto = legacyIdPhoto
+        } else if (
+          legacyIdPhoto &&
+          (await legacyPhotoMatchesContentHash(
+            storageProvider,
+            legacyIdPhoto,
+            contentHash,
+          ))
+        ) {
+          existingPhoto = legacyIdPhoto
+        }
+      }
 
       if (
         existingPhoto &&
@@ -212,6 +272,7 @@ export default eventHandler(async (event) => {
       const response: any = {
         signedUrl,
         fileKey: objectKey,
+        contentHash,
         expiresIn: 3600,
       }
 
@@ -238,6 +299,7 @@ export default eventHandler(async (event) => {
     const response: any = {
       signedUrl: internalUploadUrl,
       fileKey: objectKey,
+      contentHash,
       expiresIn: 3600,
     }
 

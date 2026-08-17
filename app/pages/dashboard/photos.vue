@@ -5,6 +5,7 @@ import { h, resolveComponent } from 'vue'
 import { Icon, UBadge } from '#components'
 import ThumbImage from '~/components/ui/ThumbImage.vue'
 import { copyTextToClipboard } from '~/utils/clipboard'
+import { calculateFileSha256 } from '~/utils/sha256'
 
 const UCheckbox = resolveComponent('UCheckbox')
 const UAvatar = resolveComponent('UAvatar')
@@ -78,6 +79,7 @@ const systemUploadEraseLocationDefault = computed(() => {
 
 const dayjs = useDayjs()
 const requestFetch = useRequestFetch()
+
 const route = useRoute()
 const router = useRouter()
 
@@ -439,13 +441,15 @@ const uploadImage = async (
   }
 
   try {
-    // 第一步：获取预签名 URL
+    // 第一步：计算内容指纹并获取预签名 URL
     uploadingFile.status = 'preparing'
+    const contentHash = await calculateFileSha256(file)
     const signedUrlResponse = await $fetch('/api/photos', {
       method: 'POST',
       body: {
         fileName: file.name,
         contentType: file.type,
+        contentHash,
       },
     })
 
@@ -535,8 +539,11 @@ const uploadImage = async (
                     : 'photo',
                 storageKey: signedUrlResponse.fileKey,
                 ...(isMovFile || isMp4File
-                  ? {}
+                  ? isMp4File
+                    ? { contentHash }
+                    : {}
                   : {
+                      contentHash,
                       eraseLocation:
                         eraseLocationOnUpload ??
                         systemUploadEraseLocationDefault.value,

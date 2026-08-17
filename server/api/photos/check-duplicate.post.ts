@@ -5,6 +5,10 @@ import {
   generateSafePhotoId,
   generateSafeVideoId,
 } from '~~/server/utils/file-utils'
+import {
+  findDuplicatePhotoByContentHash,
+  normalizeContentHash,
+} from '~~/server/utils/photo-duplicate'
 
 const generateMediaId = (storageKey: string) =>
   path.extname(storageKey).toLowerCase() === '.mp4'
@@ -26,17 +30,18 @@ export default defineEventHandler(async (event) => {
       z.object({
         fileNames: z.array(z.string()).optional(),
         storageKeys: z.array(z.string()).optional(),
+        contentHashes: z.array(z.string()).optional(),
       }).parse,
     )
 
-    if (!fileNames && !storageKeys) {
+    if (!fileNames && !storageKeys && !contentHashes) {
       throw createError({
         statusCode: 400,
         statusMessage: t('upload.error.required.title'),
         data: {
           title: t('upload.error.required.title'),
           message: t('upload.error.required.message', {
-            field: 'fileNames or storageKeys',
+            field: 'fileNames, storageKeys or contentHashes',
           }),
         },
       })
@@ -44,6 +49,22 @@ export default defineEventHandler(async (event) => {
 
     const db = useDB()
     const results = []
+
+    if (contentHashes && contentHashes.length > 0) {
+      for (const rawHash of contentHashes) {
+        const contentHash = normalizeContentHash(rawHash)
+        const existingPhoto = contentHash
+          ? findDuplicatePhotoByContentHash(user.id, contentHash)
+          : null
+
+        results.push({
+          contentHash: rawHash,
+          normalizedContentHash: contentHash,
+          exists: !!existingPhoto,
+          photo: existingPhoto || null,
+        })
+      }
+    }
 
     // 检查文件名
     if (fileNames && fileNames.length > 0) {
@@ -74,12 +95,10 @@ export default defineEventHandler(async (event) => {
           })
           .from(tables.photos)
           .where(
-            user.isAdmin
-              ? eq(tables.photos.id, photoId)
-              : and(
-                  eq(tables.photos.id, photoId),
-                  eq(tables.photos.ownerUserId, user.id),
-                ),
+            and(
+              eq(tables.photos.id, photoId),
+              eq(tables.photos.ownerUserId, user.id),
+            ),
           )
           .get()
 
@@ -112,12 +131,10 @@ export default defineEventHandler(async (event) => {
           })
           .from(tables.photos)
           .where(
-            user.isAdmin
-              ? eq(tables.photos.id, photoId)
-              : and(
-                  eq(tables.photos.id, photoId),
-                  eq(tables.photos.ownerUserId, user.id),
-                ),
+            and(
+              eq(tables.photos.id, photoId),
+              eq(tables.photos.ownerUserId, user.id),
+            ),
           )
           .get()
 

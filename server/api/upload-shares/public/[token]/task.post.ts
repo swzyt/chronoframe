@@ -8,6 +8,7 @@ export default defineEventHandler(async (event) => {
     z.object({
       type: z.literal('photo'),
       storageKey: z.string().nonempty(),
+      contentHash: z.string().regex(/^[a-f0-9]{64}$/i).optional(),
       eraseLocation: z.boolean().optional(),
     }),
     z.object({
@@ -17,6 +18,7 @@ export default defineEventHandler(async (event) => {
     z.object({
       type: z.literal('video'),
       storageKey: z.string().nonempty(),
+      contentHash: z.string().regex(/^[a-f0-9]{64}$/i).optional(),
     }),
   ])
 
