@@ -648,7 +648,9 @@
       },
       "stats": {
         "photos": "照片",
-        "livePhotos": "Live Photo"
+        "livePhotos": "Live Photo",
+        "totalPhotos": "共 {count} 张照片",
+        "currentPagePhotos": "本页 {count} 张"
       },
       "table": {
         "columns": {

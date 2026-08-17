@@ -574,7 +574,9 @@
       },
       "stats": {
         "photos": "枚の写真",
-        "livePhotos": "枚のライブフォト"
+        "livePhotos": "枚のライブフォト",
+        "totalPhotos": "合計 {count} 枚",
+        "currentPagePhotos": "このページ {count} 枚"
       },
       "table": {
         "columns": {

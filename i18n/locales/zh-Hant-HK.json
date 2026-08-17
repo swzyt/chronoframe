@@ -574,7 +574,9 @@
       },
       "stats": {
         "photos": "張相片",
-        "livePhotos": "張實況相片"
+        "livePhotos": "張實況相片",
+        "totalPhotos": "共 {count} 張相片",
+        "currentPagePhotos": "本頁 {count} 張"
       },
       "table": {
         "columns": {

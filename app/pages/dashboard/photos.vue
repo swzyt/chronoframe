@@ -861,20 +861,6 @@ const totalRowsCount = computed((): number => {
   return table.value?.tableApi?.getFilteredRowModel().rows.length || 0
 })
 
-const livePhotoStats = computed(() => {
-  if (!filteredPhotos.value) return { total: 0, livePhotos: 0, staticPhotos: 0 }
-
-  const total = filteredPhotos.value.length
-  const livePhotos = filteredPhotos.value.filter(
-    (photo: Photo) => photo.isLivePhoto,
-  ).length
-  const staticPhotos = filteredPhotos.value.filter(
-    (photo: Photo) => photo.mediaType !== 'video' && !photo.isLivePhoto,
-  ).length
-
-  return { total, livePhotos, staticPhotos }
-})
-
 const photoFilter = ref<'all' | 'livephoto' | 'static' | 'video'>('all')
 const serverPhotoSearch = ref(
   typeof route.query.search === 'string' ? route.query.search : '',
@@ -3126,32 +3112,33 @@ onUnmounted(() => {
               </span>
               <div class="flex items-center gap-1 sm:gap-2 sm:ml-1">
                 <UBadge
-                  v-if="livePhotoStats.staticPhotos > 0"
+                  variant="soft"
+                  color="primary"
+                  size="sm"
+                >
+                  <span class="hidden sm:inline">
+                    {{
+                      $t('dashboard.photos.stats.totalPhotos', {
+                        count: totalManagedPhotos,
+                      })
+                    }}
+                  </span>
+                  <span class="sm:hidden">{{ totalManagedPhotos }}</span>
+                </UBadge>
+                <UBadge
+                  v-if="filteredData.length !== totalManagedPhotos"
                   variant="soft"
                   color="neutral"
                   size="sm"
                 >
-                  <span class="hidden sm:inline"
-                    >{{ livePhotoStats.staticPhotos }}
-                    {{ $t('dashboard.photos.stats.photos') }}</span
-                  >
-                  <span class="sm:hidden"
-                    >{{ livePhotoStats.staticPhotos }}P</span
-                  >
-                </UBadge>
-                <UBadge
-                  v-if="livePhotoStats.livePhotos > 0"
-                  variant="soft"
-                  color="warning"
-                  size="sm"
-                >
-                  <span class="hidden sm:inline"
-                    >{{ livePhotoStats.livePhotos }}
-                    {{ $t('dashboard.photos.stats.livePhotos') }}</span
-                  >
-                  <span class="sm:hidden"
-                    >{{ livePhotoStats.livePhotos }}LP</span
-                  >
+                  <span class="hidden sm:inline">
+                    {{
+                      $t('dashboard.photos.stats.currentPagePhotos', {
+                        count: filteredData.length,
+                      })
+                    }}
+                  </span>
+                  <span class="sm:hidden">{{ filteredData.length }}</span>
                 </UBadge>
               </div>
             </div>
