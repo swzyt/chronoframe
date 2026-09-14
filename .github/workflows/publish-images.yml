@@ -34,7 +34,7 @@ jobs:
           image="$(echo "$image" | tr '[:upper:]' '[:lower:]')"
 
           ref_name="${GITHUB_REF_NAME}"
-          ref_tag="$(echo "$ref_name" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9._-]+/-/g; s/^-+|-+$//g')"
+          ref_tag="$(echo "$ref_name" | tr '[:upper:]' '[:lower:]' | sed -E "s/[^a-z0-9._-]+/-/g; s/^-+|-+$//g")"
           short_sha="${GITHUB_SHA::7}"
 
           tags=()
@@ -58,23 +58,42 @@ jobs:
           {
             echo "## Docker image metadata"
             echo
-            echo "Image: \`${image}\`"
+            echo "Images:"
+            echo
+            echo "- Node.js: \`${image}\`"
+            echo "- Go: \`${image}-go\`"
             echo
             echo "Tags:"
-            printf -- '- `%s`\n' "${tags[@]}"
+            printf -- "- \`%s\`\n" "${tags[@]}"
           } >> "$GITHUB_STEP_SUMMARY"
 
   build:
-    name: Build ${{ matrix.arch }} image
+    name: Build ${{ matrix.component }} ${{ matrix.arch }} image
     needs: prepare
     strategy:
       fail-fast: false
       matrix:
         include:
-          - arch: amd64
+          - component: node
+            arch: amd64
             runner: ubuntu-24.04
-          - arch: arm64
+            dockerfile: Dockerfile
+            image_suffix: ''
+          - component: node
+            arch: arm64
             runner: ubuntu-24.04-arm
+            dockerfile: Dockerfile
+            image_suffix: ''
+          - component: go
+            arch: amd64
+            runner: ubuntu-24.04
+            dockerfile: backend/go/Dockerfile
+            image_suffix: '-go'
+          - component: go
+            arch: arm64
+            runner: ubuntu-24.04-arm
+            dockerfile: backend/go/Dockerfile
+            image_suffix: '-go'
     runs-on: ${{ matrix.runner }}
 
     steps:
@@ -91,11 +110,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push ${{ matrix.arch }} image
+      - name: Build and push ${{ matrix.component }} ${{ matrix.arch }} image
         env:
-          IMAGE: ${{ needs.prepare.outputs.image }}
+          IMAGE: ${{ needs.prepare.outputs.image }}${{ matrix.image_suffix }}
           TAGS: ${{ needs.prepare.outputs.tags }}
           ARCH: ${{ matrix.arch }}
+          COMPONENT: ${{ matrix.component }}
+          DOCKERFILE: ${{ matrix.dockerfile }}
         run: |
           set -euo pipefail
 
@@ -107,17 +128,26 @@ jobs:
 
           docker buildx build \
             --platform "linux/${ARCH}" \
+            --file "${DOCKERFILE}" \
             --push \
-            --cache-from "type=gha,scope=${ARCH}" \
-            --cache-to "type=gha,mode=max,scope=${ARCH}" \
+            --cache-from "type=gha,scope=${COMPONENT}-${ARCH}" \
+            --cache-to "type=gha,mode=max,scope=${COMPONENT}-${ARCH}" \
             "${tag_args[@]}" \
             .
 
   manifest:
-    name: Publish multi-architecture manifests
+    name: Publish ${{ matrix.component }} multi-architecture manifest
     needs:
       - prepare
       - build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - component: node
+            image_suffix: ''
+          - component: go
+            image_suffix: '-go'
     runs-on: ubuntu-24.04
 
     steps:
@@ -133,7 +163,7 @@ jobs:
 
       - name: Create manifests
         env:
-          IMAGE: ${{ needs.prepare.outputs.image }}
+          IMAGE: ${{ needs.prepare.outputs.image }}${{ matrix.image_suffix }}
           TAGS: ${{ needs.prepare.outputs.tags }}
         run: |
           set -euo pipefail
@@ -149,23 +179,24 @@ jobs:
 
       - name: Write image summary
         env:
-          IMAGE: ${{ needs.prepare.outputs.image }}
+          IMAGE: ${{ needs.prepare.outputs.image }}${{ matrix.image_suffix }}
           TAGS: ${{ needs.prepare.outputs.tags }}
+          COMPONENT: ${{ matrix.component }}
         run: |
           {
-            echo "## Docker image published"
+            echo "## ${COMPONENT} Docker image published"
             echo
             echo "Image:"
             echo
-            echo '```text'
+            echo "\`\`\`text"
             echo "$IMAGE"
-            echo '```'
+            echo "\`\`\`"
             echo
             echo "Tags:"
             echo
-            echo '```text'
+            echo "\`\`\`text"
             echo "$TAGS"
-            echo '```'
+            echo "\`\`\`"
             echo
             echo "Platforms: linux/amd64, linux/arm64"
           } >> "$GITHUB_STEP_SUMMARY"

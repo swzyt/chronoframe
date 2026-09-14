@@ -25,6 +25,7 @@ RUN apk add --no-cache ca-certificates exiftool ffmpeg font-noto font-noto-cjk i
 
 WORKDIR /app
 COPY --from=build /out/chronoframe-go /usr/local/bin/chronoframe-go
+COPY backend/contracts /app/contracts
 
 USER 10001:10001
 EXPOSE 8080
@@ -36,6 +37,7 @@ ENV CFRAME_GO_ADDR=:8080 \
     CFRAME_GO_MIGRATE_ONLY=false \
     CFRAME_PIPELINE_CONSUMER=none \
     CFRAME_BACKUP_SCHEDULER=none \
+    CFRAME_ROUTE_MANIFEST=/app/contracts/routes.yaml \
     DATABASE_URL=/app/data/app.sqlite3
 
 ENTRYPOINT ["/usr/local/bin/chronoframe-go"]

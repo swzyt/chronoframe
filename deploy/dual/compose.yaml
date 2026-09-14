@@ -13,6 +13,7 @@ services:
         condition: service_healthy
 
   node:
+    image: ${CFRAME_NODE_IMAGE:-chronoframe-node:dev}
     build:
       context: ../..
       dockerfile: Dockerfile
@@ -56,6 +57,7 @@ services:
       start_period: 5s
 
   go:
+    image: ${CFRAME_GO_IMAGE:-chronoframe-go:dev}
     build:
       context: ../..
       dockerfile: backend/go/Dockerfile

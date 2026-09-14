@@ -1090,6 +1090,21 @@ pnpm dual:config
 pnpm dual:up
 ```
 
+`Publish Images` 工作流会为 Node 和 Go 分别发布多架构镜像：`ghcr.io/<owner>/chronoframe` 与
+`ghcr.io/<owner>/chronoframe-go`。要在本机用同一 SHA 的已发布镜像复验双栈，可显式指定镜像并禁止
+Compose 从工作区重新构建：
+
+```bash
+export CFRAME_NODE_IMAGE=ghcr.io/<owner>/chronoframe:sha-<short-sha>
+export CFRAME_GO_IMAGE=ghcr.io/<owner>/chronoframe-go:sha-<short-sha>
+
+docker compose -f deploy/dual/compose.yaml pull node go
+docker compose -f deploy/dual/compose.yaml up --no-build -d
+```
+
+不设置这两个变量时，现有 `pnpm dual:up` 仍从当前工作区构建
+`chronoframe-node:dev` 与 `chronoframe-go:dev`，开发流程保持不变。
+
 完整 Go owner 模式使用单独命令，直连端口默认是 `38080`，可用 `CFRAME_DUAL_GO_PORT` 覆盖：
 
 ```bash

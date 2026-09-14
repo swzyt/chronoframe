@@ -40,3 +40,8 @@ pnpm test:go
 pnpm contracts:check
 docker build -f backend/go/Dockerfile .
 ```
+
+The `Publish Images` GitHub Actions workflow publishes the production image to
+`ghcr.io/<owner>/chronoframe-go`. The image contains the shared route contract
+at `/app/contracts/routes.yaml` and publishes the same branch, SHA and release
+tags as the Node.js image.
