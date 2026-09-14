@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://chronoframe.dev/contracts/routes.schema.json",
+  "title": "ChronoFrame route ownership manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "defaultReadOwner", "routes", "actors"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "version": { "type": "integer", "minimum": 1 },
+    "defaultReadOwner": { "$ref": "#/$defs/owner" },
+    "description": { "type": "string" },
+    "routes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/route" }
+    },
+    "actors": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/actor" }
+    }
+  },
+  "$defs": {
+    "owner": { "enum": ["node", "go"] },
+    "maturity": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "node": { "enum": ["experimental", "verified", "stable"] },
+        "go": { "enum": ["experimental", "verified", "stable"] }
+      }
+    },
+    "ownershipFields": {
+      "type": "object",
+      "required": [
+        "id",
+        "method",
+        "path",
+        "source",
+        "sourceType",
+        "capability",
+        "owner",
+        "sideEffect",
+        "auth",
+        "maturity",
+        "allowCompare",
+        "allowShadow",
+        "userSelectable"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$" },
+        "method": { "type": "string" },
+        "path": { "type": "string" },
+        "source": { "type": "string", "minLength": 1 },
+        "sourceType": { "type": "string", "minLength": 1 },
+        "capability": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        },
+        "owner": { "$ref": "#/$defs/owner" },
+        "sideEffect": { "type": "string", "minLength": 1 },
+        "auth": { "type": "string", "minLength": 1 },
+        "maturity": { "$ref": "#/$defs/maturity" },
+        "allowCompare": { "type": "boolean" },
+        "allowShadow": { "type": "boolean" },
+        "userSelectable": { "type": "boolean" }
+      }
+    },
+    "route": {
+      "allOf": [
+        { "$ref": "#/$defs/ownershipFields" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["openapiOperationId"],
+          "properties": {
+            "id": true,
+            "method": {
+              "enum": [
+                "GET",
+                "POST",
+                "PUT",
+                "PATCH",
+                "DELETE",
+                "HEAD",
+                "OPTIONS"
+              ]
+            },
+            "path": { "type": "string", "pattern": "^/" },
+            "source": true,
+            "sourceType": { "enum": ["filesystem", "framework", "virtual"] },
+            "capability": true,
+            "owner": true,
+            "sideEffect": true,
+            "auth": true,
+            "maturity": true,
+            "allowCompare": true,
+            "allowShadow": true,
+            "userSelectable": true,
+            "openapiOperationId": {
+              "type": "string",
+              "pattern": "^[a-z][A-Za-z0-9]*$"
+            },
+            "catchAllParameters": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      ]
+    },
+    "actor": {
+      "allOf": [
+        { "$ref": "#/$defs/ownershipFields" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "id": true,
+            "method": { "const": "ACTOR" },
+            "path": { "type": "string", "pattern": "^actor://" },
+            "source": true,
+            "sourceType": { "const": "runtime" },
+            "capability": true,
+            "owner": true,
+            "sideEffect": true,
+            "auth": { "const": "internal" },
+            "maturity": true,
+            "allowCompare": { "const": false },
+            "allowShadow": { "const": false },
+            "userSelectable": { "const": false }
+          }
+        }
+      ]
+    }
+  }
+}

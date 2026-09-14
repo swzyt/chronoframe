@@ -4,7 +4,7 @@
 
 ## 步骤 1：在 DEFAULT_SETTINGS 中添加字段定义
 
-编辑 `server/services/settings/contants.ts`，在 `DEFAULT_SETTINGS` 中对应的命名空间部分添加：
+编辑 `backend/nodejs/services/settings/contants.ts`，在 `DEFAULT_SETTINGS` 中对应的命名空间部分添加：
 
 ```typescript
 // NAMESPACE: app
@@ -35,7 +35,7 @@
 
 ## 步骤 2：添加 UI 配置
 
-编辑 `server/services/settings/ui-config.ts`，在对应的 UI 配置对象中添加：
+编辑 `backend/nodejs/services/settings/ui-config.ts`，在对应的 UI 配置对象中添加：
 
 ```typescript
 export const APP_SETTINGS_UI: Record<string, FieldUIConfig> = {

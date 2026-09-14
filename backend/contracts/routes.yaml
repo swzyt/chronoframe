@@ -1,0 +1,1763 @@
+{
+  "$schema": "./routes.schema.json",
+  "version": 1,
+  "defaultReadOwner": "node",
+  "description": "ChronoFrame language-neutral HTTP and runtime ownership contract. Node remains the stable fallback and actor owner; the runtime Go switch registry in backend/nodejs/utils/backend-routing.ts may select the independent Go implementation for explicitly registered operations. This file uses the JSON subset of YAML 1.2 so it can be validated without third-party parser dependencies.",
+  "routes": [
+    {
+      "id": "access.config.read",
+      "method": "GET",
+      "path": "/api/access/config",
+      "source": "backend/nodejs/api/access/config.get.ts",
+      "sourceType": "filesystem",
+      "capability": "access-control",
+      "owner": "node",
+      "sideEffect": "none",
+      "auth": "admin",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": true,
+      "allowShadow": true,
+      "userSelectable": true,
+      "openapiOperationId": "getAccessConfig"
+    },
+    {
+      "id": "access.config.update",
+      "method": "PUT",
+      "path": "/api/access/config",
+      "source": "backend/nodejs/api/access/config.put.ts",
+      "sourceType": "filesystem",
+      "capability": "access-control",
+      "owner": "node",
+      "sideEffect": "database",
+      "auth": "admin",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "updateAccessConfig"
+    },
+    {
+      "id": "access.status.read",
+      "method": "GET",
+      "path": "/api/access/status",
+      "source": "backend/nodejs/api/access/status.get.ts",
+      "sourceType": "filesystem",
+      "capability": "access-control",
+      "owner": "node",
+      "sideEffect": "none",
+      "auth": "preview",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": true,
+      "allowShadow": true,
+      "userSelectable": true,
+      "openapiOperationId": "getAccessStatus"
+    },
+    {
+      "id": "access.verify",
+      "method": "POST",
+      "path": "/api/access/verify",
+      "source": "backend/nodejs/api/access/verify.post.ts",
+      "sourceType": "filesystem",
+      "capability": "access-control",
+      "owner": "node",
+      "sideEffect": "session",
+      "auth": "anonymous",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "verifyAccessPassword"
+    },
+    {
+      "id": "admin.users.delete",
+      "method": "DELETE",
+      "path": "/api/admin/users/{id}",
+      "source": "backend/nodejs/api/admin/users/[id].delete.ts",
+      "sourceType": "filesystem",
+      "capability": "users-admin",
+      "owner": "node",
+      "sideEffect": "database",
+      "auth": "admin",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "deleteAdminUser"
+    },
+    {
+      "id": "admin.users.update",
+      "method": "PATCH",
+      "path": "/api/admin/users/{id}",
+      "source": "backend/nodejs/api/admin/users/[id].patch.ts",
+      "sourceType": "filesystem",
+      "capability": "users-admin",
+      "owner": "node",
+      "sideEffect": "database",
+      "auth": "admin",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "updateAdminUser"
+    },
+    {
+      "id": "admin.users.list",
+      "method": "GET",
+      "path": "/api/admin/users",
+      "source": "backend/nodejs/api/admin/users/index.get.ts",
+      "sourceType": "filesystem",
+      "capability": "users-admin",
+      "owner": "node",
+      "sideEffect": "none",
+      "auth": "admin",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": true,
+      "allowShadow": true,
+      "userSelectable": true,
+      "openapiOperationId": "listAdminUsers"
+    },
+    {
+      "id": "admin.users.create",
+      "method": "POST",
+      "path": "/api/admin/users",
+      "source": "backend/nodejs/api/admin/users/index.post.ts",
+      "sourceType": "filesystem",
+      "capability": "users-admin",
+      "owner": "node",
+      "sideEffect": "database",
+      "auth": "admin",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "createAdminUser"
+    },
+    {
+      "id": "albums.delete",
+      "method": "DELETE",
+      "path": "/api/albums/{albumId}",
+      "source": "backend/nodejs/api/albums/[albumId]/index.delete.ts",
+      "sourceType": "filesystem",
+      "capability": "albums-write",
+      "owner": "node",
+      "sideEffect": "database",
+      "auth": "user-owner",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "deleteAlbum"
+    },
+    {
+      "id": "albums.detail",
+      "method": "GET",
+      "path": "/api/albums/{albumId}",
+      "source": "backend/nodejs/api/albums/[albumId]/index.get.ts",
+      "sourceType": "filesystem",
+      "capability": "albums-read",
+      "owner": "node",
+      "sideEffect": "none",
+      "auth": "public-or-user-owner",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": true,
+      "allowShadow": true,
+      "userSelectable": true,
+      "openapiOperationId": "getAlbum"
+    },
+    {
+      "id": "albums.update",
+      "method": "PUT",
+      "path": "/api/albums/{albumId}",
+      "source": "backend/nodejs/api/albums/[albumId]/index.put.ts",
+      "sourceType": "filesystem",
+      "capability": "albums-write",
+      "owner": "node",
+      "sideEffect": "database",
+      "auth": "user-owner",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "updateAlbum"
+    },
+    {
+      "id": "albums.photos.remove",
+      "method": "DELETE",
+      "path": "/api/albums/{albumId}/photos/{photoId}",
+      "source": "backend/nodejs/api/albums/[albumId]/photos/[photoId].delete.ts",
+      "sourceType": "filesystem",
+      "capability": "albums-write",
+      "owner": "node",
+      "sideEffect": "database",
+      "auth": "user-owner",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "removePhotoFromAlbum"
+    },
+    {
+      "id": "albums.list",
+      "method": "GET",
+      "path": "/api/albums",
+      "source": "backend/nodejs/api/albums/index.get.ts",
+      "sourceType": "filesystem",
+      "capability": "albums-read",
+      "owner": "node",
+      "sideEffect": "none",
+      "auth": "public-or-user-owner",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": true,
+      "allowShadow": true,
+      "userSelectable": true,
+      "openapiOperationId": "listAlbums"
+    },
+    {
+      "id": "albums.create",
+      "method": "POST",
+      "path": "/api/albums",
+      "source": "backend/nodejs/api/albums/index.post.ts",
+      "sourceType": "filesystem",
+      "capability": "albums-write",
+      "owner": "node",
+      "sideEffect": "database",
+      "auth": "user",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "createAlbum"
+    },
+    {
+      "id": "identity.github.callback",
+      "method": "GET",
+      "path": "/api/auth/github",
+      "source": "backend/nodejs/api/auth/github.get.ts",
+      "sourceType": "filesystem",
+      "capability": "identity",
+      "owner": "node",
+      "sideEffect": "database-session",
+      "auth": "oauth-callback",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "githubOAuthCallback"
+    },
+    {
+      "id": "identity.login",
+      "method": "POST",
+      "path": "/api/login",
+      "source": "backend/nodejs/api/login.post.ts",
+      "sourceType": "filesystem",
+      "capability": "identity",
+      "owner": "node",
+      "sideEffect": "session",
+      "auth": "anonymous",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "login"
+    },
+    {
+      "id": "identity.logout",
+      "method": "GET",
+      "path": "/api/logout",
+      "source": "backend/nodejs/api/logout.get.ts",
+      "sourceType": "filesystem",
+      "capability": "identity",
+      "owner": "node",
+      "sideEffect": "session",
+      "auth": "session",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "logout"
+    },
+    {
+      "id": "photos.albums.read",
+      "method": "GET",
+      "path": "/api/photos/{photoId}/albums",
+      "source": "backend/nodejs/api/photos/[photoId]/albums.get.ts",
+      "sourceType": "filesystem",
+      "capability": "albums-read",
+      "owner": "node",
+      "sideEffect": "none",
+      "auth": "public-or-user-owner",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": true,
+      "allowShadow": true,
+      "userSelectable": true,
+      "openapiOperationId": "getPhotoAlbums"
+    },
+    {
+      "id": "photos.albums.update",
+      "method": "PUT",
+      "path": "/api/photos/{photoId}/albums",
+      "source": "backend/nodejs/api/photos/[photoId]/albums.put.ts",
+      "sourceType": "filesystem",
+      "capability": "albums-write",
+      "owner": "node",
+      "sideEffect": "database",
+      "auth": "user-owner",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "updatePhotoAlbums"
+    },
+    {
+      "id": "photos.delete",
+      "method": "DELETE",
+      "path": "/api/photos/{photoId}",
+      "source": "backend/nodejs/api/photos/[photoId]/index.delete.ts",
+      "sourceType": "filesystem",
+      "capability": "photos-write",
+      "owner": "node",
+      "sideEffect": "database-storage-queue",
+      "auth": "user-owner",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "deletePhoto"
+    },
+    {
+      "id": "photos.update",
+      "method": "PUT",
+      "path": "/api/photos/{photoId}",
+      "source": "backend/nodejs/api/photos/[photoId]/index.put.ts",
+      "sourceType": "filesystem",
+      "capability": "photos-write",
+      "owner": "node",
+      "sideEffect": "database",
+      "auth": "user-owner",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "updatePhoto"
+    },
+    {
+      "id": "photos.livephoto.read",
+      "method": "GET",
+      "path": "/api/photos/{photoId}/livephoto",
+      "source": "backend/nodejs/api/photos/[photoId]/livephoto.get.ts",
+      "sourceType": "filesystem",
+      "capability": "media-read",
+      "owner": "node",
+      "sideEffect": "none",
+      "auth": "preview",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": true,
+      "allowShadow": true,
+      "userSelectable": true,
+      "openapiOperationId": "getPhotoLivePhoto"
+    },
+    {
+      "id": "photos.reactions.delete",
+      "method": "DELETE",
+      "path": "/api/photos/{photoId}/reactions",
+      "source": "backend/nodejs/api/photos/[photoId]/reactions.ts",
+      "sourceType": "filesystem",
+      "capability": "reactions-write",
+      "owner": "node",
+      "sideEffect": "database",
+      "auth": "preview",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "deletePhotoReaction"
+    },
+    {
+      "id": "photos.reactions.read",
+      "method": "GET",
+      "path": "/api/photos/{photoId}/reactions",
+      "source": "backend/nodejs/api/photos/[photoId]/reactions.ts",
+      "sourceType": "filesystem",
+      "capability": "reactions-read",
+      "owner": "node",
+      "sideEffect": "none",
+      "auth": "preview",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": true,
+      "allowShadow": true,
+      "userSelectable": true,
+      "openapiOperationId": "getPhotoReactions"
+    },
+    {
+      "id": "photos.reactions.create",
+      "method": "POST",
+      "path": "/api/photos/{photoId}/reactions",
+      "source": "backend/nodejs/api/photos/[photoId]/reactions.ts",
+      "sourceType": "filesystem",
+      "capability": "reactions-write",
+      "owner": "node",
+      "sideEffect": "database",
+      "auth": "preview",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "createPhotoReaction"
+    },
+    {
+      "id": "photos.albums.bulk-update",
+      "method": "PUT",
+      "path": "/api/photos/albums",
+      "source": "backend/nodejs/api/photos/albums.put.ts",
+      "sourceType": "filesystem",
+      "capability": "albums-write",
+      "owner": "node",
+      "sideEffect": "database",
+      "auth": "user-owner",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "bulkUpdatePhotoAlbums"
+    },
+    {
+      "id": "photos.duplicate.check",
+      "method": "POST",
+      "path": "/api/photos/check-duplicate",
+      "source": "backend/nodejs/api/photos/check-duplicate.post.ts",
+      "sourceType": "filesystem",
+      "capability": "photos-read",
+      "owner": "node",
+      "sideEffect": "none",
+      "auth": "user-owner",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "checkDuplicatePhoto"
+    },
+    {
+      "id": "photos.exif.reindex",
+      "method": "POST",
+      "path": "/api/photos/exif/reindex",
+      "source": "backend/nodejs/api/photos/exif/reindex.post.ts",
+      "sourceType": "filesystem",
+      "capability": "photos-write",
+      "owner": "node",
+      "sideEffect": "database-storage-queue",
+      "auth": "admin",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "reindexPhotoExif"
+    },
+    {
+      "id": "photos.list",
+      "method": "GET",
+      "path": "/api/photos",
+      "source": "backend/nodejs/api/photos/index.get.ts",
+      "sourceType": "filesystem",
+      "capability": "photos-read",
+      "owner": "node",
+      "sideEffect": "none",
+      "auth": "public-or-user-owner",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": true,
+      "allowShadow": true,
+      "userSelectable": true,
+      "openapiOperationId": "listPhotos"
+    },
+    {
+      "id": "photos.create",
+      "method": "POST",
+      "path": "/api/photos",
+      "source": "backend/nodejs/api/photos/index.post.ts",
+      "sourceType": "filesystem",
+      "capability": "photos-write",
+      "owner": "node",
+      "sideEffect": "database-storage-queue",
+      "auth": "user",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "createPhoto"
+    },
+    {
+      "id": "photos.livephoto.manage",
+      "method": "POST",
+      "path": "/api/photos/livephoto/manage",
+      "source": "backend/nodejs/api/photos/livephoto/manage.post.ts",
+      "sourceType": "filesystem",
+      "capability": "photos-write",
+      "owner": "node",
+      "sideEffect": "database-storage-queue",
+      "auth": "admin",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "manageLivePhotos"
+    },
+    {
+      "id": "photos.map",
+      "method": "GET",
+      "path": "/api/photos/map",
+      "source": "backend/nodejs/api/photos/map.get.ts",
+      "sourceType": "filesystem",
+      "capability": "photos-read",
+      "owner": "node",
+      "sideEffect": "none",
+      "auth": "preview",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": true,
+      "allowShadow": true,
+      "userSelectable": true,
+      "openapiOperationId": "getPhotoMap"
+    },
+    {
+      "id": "photos.reactions.list",
+      "method": "GET",
+      "path": "/api/photos/reactions",
+      "source": "backend/nodejs/api/photos/reactions.get.ts",
+      "sourceType": "filesystem",
+      "capability": "reactions-read",
+      "owner": "node",
+      "sideEffect": "none",
+      "auth": "preview",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": true,
+      "allowShadow": true,
+      "userSelectable": true,
+      "openapiOperationId": "listPhotoReactions"
+    },
+    {
+      "id": "photos.status",
+      "method": "GET",
+      "path": "/api/photos/status",
+      "source": "backend/nodejs/api/photos/status.get.ts",
+      "sourceType": "filesystem",
+      "capability": "photos-read",
+      "owner": "node",
+      "sideEffect": "none",
+      "auth": "user-owner",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": true,
+      "allowShadow": true,
+      "userSelectable": true,
+      "openapiOperationId": "getPhotoStatus"
+    },
+    {
+      "id": "photos.upload",
+      "method": "PUT",
+      "path": "/api/photos/upload",
+      "source": "backend/nodejs/api/photos/upload.put.ts",
+      "sourceType": "filesystem",
+      "capability": "photos-write",
+      "owner": "node",
+      "sideEffect": "storage",
+      "auth": "user-owner",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "uploadPhotoObject"
+    },
+    {
+      "id": "photos.visible",
+      "method": "GET",
+      "path": "/api/photos/visible",
+      "source": "backend/nodejs/api/photos/visible.get.ts",
+      "sourceType": "filesystem",
+      "capability": "photos-read",
+      "owner": "node",
+      "sideEffect": "none",
+      "auth": "preview",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": true,
+      "allowShadow": true,
+      "userSelectable": true,
+      "openapiOperationId": "listVisiblePhotos"
+    },
+    {
+      "id": "identity.profile",
+      "method": "GET",
+      "path": "/api/profile",
+      "source": "backend/nodejs/api/profile.get.ts",
+      "sourceType": "filesystem",
+      "capability": "identity",
+      "owner": "node",
+      "sideEffect": "none",
+      "auth": "user",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": true,
+      "allowShadow": true,
+      "userSelectable": true,
+      "openapiOperationId": "getProfile"
+    },
+    {
+      "id": "queue.add-task",
+      "method": "POST",
+      "path": "/api/queue/add-task",
+      "source": "backend/nodejs/api/queue/add-task.post.ts",
+      "sourceType": "filesystem",
+      "capability": "pipeline-control",
+      "owner": "node",
+      "sideEffect": "database-queue",
+      "auth": "user-owner",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "addQueueTask"
+    },
+    {
+      "id": "queue.add-tasks",
+      "method": "POST",
+      "path": "/api/queue/add-tasks",
+      "source": "backend/nodejs/api/queue/add-tasks.post.ts",
+      "sourceType": "filesystem",
+      "capability": "pipeline-control",
+      "owner": "node",
+      "sideEffect": "database-queue",
+      "auth": "user-owner",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "addQueueTasks"
+    },
+    {
+      "id": "queue.task-stats",
+      "method": "GET",
+      "path": "/api/queue/stats/{taskId}",
+      "source": "backend/nodejs/api/queue/stats/[taskId].get.ts",
+      "sourceType": "filesystem",
+      "capability": "pipeline-control",
+      "owner": "node",
+      "sideEffect": "none",
+      "auth": "user-owner",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": true,
+      "allowShadow": true,
+      "userSelectable": true,
+      "openapiOperationId": "getQueueTaskStats"
+    },
+    {
+      "id": "queue.stats",
+      "method": "GET",
+      "path": "/api/queue/stats",
+      "source": "backend/nodejs/api/queue/stats/index.ts",
+      "sourceType": "filesystem",
+      "capability": "pipeline-control",
+      "owner": "node",
+      "sideEffect": "none",
+      "auth": "admin",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": true,
+      "allowShadow": true,
+      "userSelectable": true,
+      "openapiOperationId": "getQueueStats"
+    },
+    {
+      "id": "queue.clear",
+      "method": "DELETE",
+      "path": "/api/queue/task/clear",
+      "source": "backend/nodejs/api/queue/task/clear.delete.ts",
+      "sourceType": "filesystem",
+      "capability": "pipeline-control",
+      "owner": "node",
+      "sideEffect": "database-queue",
+      "auth": "admin",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "clearQueueTasks"
+    },
+    {
+      "id": "queue.tasks.list",
+      "method": "GET",
+      "path": "/api/queue/task/list",
+      "source": "backend/nodejs/api/queue/task/list.get.ts",
+      "sourceType": "filesystem",
+      "capability": "pipeline-control",
+      "owner": "node",
+      "sideEffect": "none",
+      "auth": "admin",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": true,
+      "allowShadow": true,
+      "userSelectable": true,
+      "openapiOperationId": "listQueueTasks"
+    },
+    {
+      "id": "queue.retry-batch",
+      "method": "POST",
+      "path": "/api/queue/task/retry-batch",
+      "source": "backend/nodejs/api/queue/task/retry-batch.post.ts",
+      "sourceType": "filesystem",
+      "capability": "pipeline-control",
+      "owner": "node",
+      "sideEffect": "database-queue",
+      "auth": "admin",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "retryQueueTasks"
+    },
+    {
+      "id": "queue.retry",
+      "method": "POST",
+      "path": "/api/queue/task/retry",
+      "source": "backend/nodejs/api/queue/task/retry.post.ts",
+      "sourceType": "filesystem",
+      "capability": "pipeline-control",
+      "owner": "node",
+      "sideEffect": "database-queue",
+      "auth": "admin",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "retryQueueTask"
+    },
+    {
+      "id": "system.backup.run",
+      "method": "POST",
+      "path": "/api/system/backup/run",
+      "source": "backend/nodejs/api/system/backup/run.post.ts",
+      "sourceType": "filesystem",
+      "capability": "backup-control",
+      "owner": "node",
+      "sideEffect": "filesystem-external",
+      "auth": "admin",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "runSystemBackup"
+    },
+    {
+      "id": "system.logs",
+      "method": "GET",
+      "path": "/api/system/logs",
+      "source": "backend/nodejs/api/system/logs.ts",
+      "sourceType": "filesystem",
+      "capability": "system-observability",
+      "owner": "node",
+      "sideEffect": "filesystem",
+      "auth": "admin",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "streamSystemLogs"
+    },
+    {
+      "id": "system.backend.status",
+      "method": "GET",
+      "path": "/api/system/backend/status",
+      "source": "backend/nodejs/api/system/backend/status.get.ts",
+      "sourceType": "filesystem",
+      "capability": "system-observability",
+      "owner": "node",
+      "sideEffect": "network",
+      "auth": "admin",
+      "maturity": {
+        "node": "stable"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "getBackendStatus"
+    },
+    {
+      "id": "settings.namespace.read",
+      "method": "GET",
+      "path": "/api/system/settings/{namespace}",
+      "source": "backend/nodejs/api/system/settings/[namespace].get.ts",
+      "sourceType": "filesystem",
+      "capability": "settings-control",
+      "owner": "node",
+      "sideEffect": "none",
+      "auth": "admin",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": true,
+      "allowShadow": true,
+      "userSelectable": true,
+      "openapiOperationId": "getSettingsNamespace"
+    },
+    {
+      "id": "settings.key.read",
+      "method": "GET",
+      "path": "/api/system/settings/{namespace}/{key}",
+      "source": "backend/nodejs/api/system/settings/[namespace]/[key].ts",
+      "sourceType": "filesystem",
+      "capability": "settings-control",
+      "owner": "node",
+      "sideEffect": "none",
+      "auth": "admin",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": true,
+      "allowShadow": true,
+      "userSelectable": true,
+      "openapiOperationId": "getSetting"
+    },
+    {
+      "id": "settings.key.update",
+      "method": "PUT",
+      "path": "/api/system/settings/{namespace}/{key}",
+      "source": "backend/nodejs/api/system/settings/[namespace]/[key].ts",
+      "sourceType": "filesystem",
+      "capability": "settings-control",
+      "owner": "node",
+      "sideEffect": "database",
+      "auth": "admin",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "updateSetting"
+    },
+    {
+      "id": "settings.public.read",
+      "method": "GET",
+      "path": "/api/system/settings/all",
+      "source": "backend/nodejs/api/system/settings/all.get.ts",
+      "sourceType": "filesystem",
+      "capability": "settings-public-read",
+      "owner": "node",
+      "sideEffect": "none",
+      "auth": "anonymous",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": true,
+      "allowShadow": true,
+      "userSelectable": true,
+      "openapiOperationId": "getPublicSettings"
+    },
+    {
+      "id": "settings.batch.update",
+      "method": "PUT",
+      "path": "/api/system/settings/batch",
+      "source": "backend/nodejs/api/system/settings/batch.put.ts",
+      "sourceType": "filesystem",
+      "capability": "settings-control",
+      "owner": "node",
+      "sideEffect": "database",
+      "auth": "admin",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "updateSettingsBatch"
+    },
+    {
+      "id": "settings.fields",
+      "method": "GET",
+      "path": "/api/system/settings/fields",
+      "source": "backend/nodejs/api/system/settings/fields.get.ts",
+      "sourceType": "filesystem",
+      "capability": "settings-control",
+      "owner": "node",
+      "sideEffect": "none",
+      "auth": "admin",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": true,
+      "allowShadow": true,
+      "userSelectable": true,
+      "openapiOperationId": "getSettingFields"
+    },
+    {
+      "id": "settings.schema",
+      "method": "GET",
+      "path": "/api/system/settings/schema",
+      "source": "backend/nodejs/api/system/settings/schema.get.ts",
+      "sourceType": "filesystem",
+      "capability": "settings-control",
+      "owner": "node",
+      "sideEffect": "none",
+      "auth": "admin",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": true,
+      "allowShadow": true,
+      "userSelectable": true,
+      "openapiOperationId": "getSettingsSchema"
+    },
+    {
+      "id": "settings.storage-config.delete",
+      "method": "DELETE",
+      "path": "/api/system/settings/storage-config/{id}",
+      "source": "backend/nodejs/api/system/settings/storage-config/[id].ts",
+      "sourceType": "filesystem",
+      "capability": "settings-control",
+      "owner": "node",
+      "sideEffect": "database-storage",
+      "auth": "admin",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "deleteStorageConfig"
+    },
+    {
+      "id": "settings.storage-config.read",
+      "method": "GET",
+      "path": "/api/system/settings/storage-config/{id}",
+      "source": "backend/nodejs/api/system/settings/storage-config/[id].ts",
+      "sourceType": "filesystem",
+      "capability": "settings-control",
+      "owner": "node",
+      "sideEffect": "none",
+      "auth": "admin",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": true,
+      "allowShadow": true,
+      "userSelectable": true,
+      "openapiOperationId": "getStorageConfig"
+    },
+    {
+      "id": "settings.storage-config.update",
+      "method": "PUT",
+      "path": "/api/system/settings/storage-config/{id}",
+      "source": "backend/nodejs/api/system/settings/storage-config/[id].ts",
+      "sourceType": "filesystem",
+      "capability": "settings-control",
+      "owner": "node",
+      "sideEffect": "database-storage",
+      "auth": "admin",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "updateStorageConfig"
+    },
+    {
+      "id": "settings.storage-config.list",
+      "method": "GET",
+      "path": "/api/system/settings/storage-config",
+      "source": "backend/nodejs/api/system/settings/storage-config/index.ts",
+      "sourceType": "filesystem",
+      "capability": "settings-control",
+      "owner": "node",
+      "sideEffect": "none",
+      "auth": "admin",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": true,
+      "allowShadow": true,
+      "userSelectable": true,
+      "openapiOperationId": "listStorageConfigs"
+    },
+    {
+      "id": "settings.storage-config.create",
+      "method": "POST",
+      "path": "/api/system/settings/storage-config",
+      "source": "backend/nodejs/api/system/settings/storage-config/index.ts",
+      "sourceType": "filesystem",
+      "capability": "settings-control",
+      "owner": "node",
+      "sideEffect": "database-storage",
+      "auth": "admin",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "createStorageConfig"
+    },
+    {
+      "id": "system.stats",
+      "method": "GET",
+      "path": "/api/system/stats",
+      "source": "backend/nodejs/api/system/stats.get.ts",
+      "sourceType": "filesystem",
+      "capability": "system-observability",
+      "owner": "node",
+      "sideEffect": "none",
+      "auth": "session",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": true,
+      "allowShadow": true,
+      "userSelectable": true,
+      "openapiOperationId": "getSystemStats"
+    },
+    {
+      "id": "upload-shares.delete",
+      "method": "DELETE",
+      "path": "/api/upload-shares/{id}",
+      "source": "backend/nodejs/api/upload-shares/[id].delete.ts",
+      "sourceType": "filesystem",
+      "capability": "upload-shares",
+      "owner": "node",
+      "sideEffect": "database",
+      "auth": "user-owner",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "deleteUploadShare"
+    },
+    {
+      "id": "upload-shares.update",
+      "method": "PATCH",
+      "path": "/api/upload-shares/{id}",
+      "source": "backend/nodejs/api/upload-shares/[id].patch.ts",
+      "sourceType": "filesystem",
+      "capability": "upload-shares",
+      "owner": "node",
+      "sideEffect": "database",
+      "auth": "user-owner",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "updateUploadShare"
+    },
+    {
+      "id": "upload-shares.list",
+      "method": "GET",
+      "path": "/api/upload-shares",
+      "source": "backend/nodejs/api/upload-shares/index.get.ts",
+      "sourceType": "filesystem",
+      "capability": "upload-shares",
+      "owner": "node",
+      "sideEffect": "none",
+      "auth": "user-owner",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": true,
+      "allowShadow": true,
+      "userSelectable": true,
+      "openapiOperationId": "listUploadShares"
+    },
+    {
+      "id": "upload-shares.create",
+      "method": "POST",
+      "path": "/api/upload-shares",
+      "source": "backend/nodejs/api/upload-shares/index.post.ts",
+      "sourceType": "filesystem",
+      "capability": "upload-shares",
+      "owner": "node",
+      "sideEffect": "database",
+      "auth": "user-owner",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "createUploadShare"
+    },
+    {
+      "id": "upload-shares.public.read",
+      "method": "GET",
+      "path": "/api/upload-shares/public/{token}",
+      "source": "backend/nodejs/api/upload-shares/public/[token].get.ts",
+      "sourceType": "filesystem",
+      "capability": "upload-shares",
+      "owner": "node",
+      "sideEffect": "none",
+      "auth": "upload-token",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": true,
+      "allowShadow": true,
+      "userSelectable": true,
+      "openapiOperationId": "getPublicUploadShare"
+    },
+    {
+      "id": "upload-shares.public.prepare",
+      "method": "POST",
+      "path": "/api/upload-shares/public/{token}/prepare",
+      "source": "backend/nodejs/api/upload-shares/public/[token]/prepare.post.ts",
+      "sourceType": "filesystem",
+      "capability": "upload-shares",
+      "owner": "node",
+      "sideEffect": "storage",
+      "auth": "upload-token",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "preparePublicUpload"
+    },
+    {
+      "id": "upload-shares.public.task",
+      "method": "POST",
+      "path": "/api/upload-shares/public/{token}/task",
+      "source": "backend/nodejs/api/upload-shares/public/[token]/task.post.ts",
+      "sourceType": "filesystem",
+      "capability": "upload-shares",
+      "owner": "node",
+      "sideEffect": "database-queue",
+      "auth": "upload-token",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "createPublicUploadTask"
+    },
+    {
+      "id": "upload-shares.public.upload",
+      "method": "PUT",
+      "path": "/api/upload-shares/public/{token}/upload",
+      "source": "backend/nodejs/api/upload-shares/public/[token]/upload.put.ts",
+      "sourceType": "filesystem",
+      "capability": "upload-shares",
+      "owner": "node",
+      "sideEffect": "storage",
+      "auth": "upload-token",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "uploadPublicObject"
+    },
+    {
+      "id": "wizard.admin",
+      "method": "POST",
+      "path": "/api/wizard/admin",
+      "source": "backend/nodejs/api/wizard/admin.post.ts",
+      "sourceType": "filesystem",
+      "capability": "setup",
+      "owner": "node",
+      "sideEffect": "database",
+      "auth": "setup-only",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "configureWizardAdmin"
+    },
+    {
+      "id": "wizard.complete",
+      "method": "POST",
+      "path": "/api/wizard/complete",
+      "source": "backend/nodejs/api/wizard/complete.post.ts",
+      "sourceType": "filesystem",
+      "capability": "setup",
+      "owner": "node",
+      "sideEffect": "database",
+      "auth": "setup-only",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "completeWizard"
+    },
+    {
+      "id": "wizard.map",
+      "method": "POST",
+      "path": "/api/wizard/map",
+      "source": "backend/nodejs/api/wizard/map.post.ts",
+      "sourceType": "filesystem",
+      "capability": "setup",
+      "owner": "node",
+      "sideEffect": "database",
+      "auth": "setup-only",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "configureWizardMap"
+    },
+    {
+      "id": "wizard.schema",
+      "method": "GET",
+      "path": "/api/wizard/schema",
+      "source": "backend/nodejs/api/wizard/schema.get.ts",
+      "sourceType": "filesystem",
+      "capability": "setup",
+      "owner": "node",
+      "sideEffect": "none",
+      "auth": "setup-only",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "getWizardSchema"
+    },
+    {
+      "id": "wizard.site",
+      "method": "POST",
+      "path": "/api/wizard/site",
+      "source": "backend/nodejs/api/wizard/site.post.ts",
+      "sourceType": "filesystem",
+      "capability": "setup",
+      "owner": "node",
+      "sideEffect": "database",
+      "auth": "setup-only",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "configureWizardSite"
+    },
+    {
+      "id": "wizard.storage",
+      "method": "POST",
+      "path": "/api/wizard/storage",
+      "source": "backend/nodejs/api/wizard/storage.post.ts",
+      "sourceType": "filesystem",
+      "capability": "setup",
+      "owner": "node",
+      "sideEffect": "database-storage",
+      "auth": "setup-only",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "configureWizardStorage"
+    },
+    {
+      "id": "wizard.submit",
+      "method": "POST",
+      "path": "/api/wizard/submit",
+      "source": "backend/nodejs/api/wizard/submit.post.ts",
+      "sourceType": "filesystem",
+      "capability": "setup",
+      "owner": "node",
+      "sideEffect": "database-storage-session",
+      "auth": "setup-only",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "submitWizard"
+    },
+    {
+      "id": "media.display",
+      "method": "GET",
+      "path": "/display/{photoId}",
+      "source": "backend/nodejs/routes/display/[photoId].get.ts",
+      "sourceType": "filesystem",
+      "capability": "media-read",
+      "owner": "node",
+      "sideEffect": "storage",
+      "auth": "public-or-user-owner",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "getDisplayMedia"
+    },
+    {
+      "id": "media.image",
+      "method": "GET",
+      "path": "/image/{key}",
+      "source": "backend/nodejs/routes/image/[...key].get.ts",
+      "sourceType": "filesystem",
+      "capability": "media-read",
+      "owner": "node",
+      "sideEffect": "session",
+      "auth": "preview",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "getImageMedia",
+      "catchAllParameters": [
+        "key"
+      ]
+    },
+    {
+      "id": "media.image.head",
+      "method": "HEAD",
+      "path": "/image/{key}",
+      "source": "backend/nodejs/routes/image/[...key].head.ts",
+      "sourceType": "filesystem",
+      "capability": "media-read",
+      "owner": "node",
+      "sideEffect": "session",
+      "auth": "preview",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "headImageMedia",
+      "catchAllParameters": [
+        "key"
+      ]
+    },
+    {
+      "id": "media.og",
+      "method": "GET",
+      "path": "/og-media/{photoId}",
+      "source": "backend/nodejs/routes/og-media/[photoId].get.ts",
+      "sourceType": "filesystem",
+      "capability": "media-read",
+      "owner": "node",
+      "sideEffect": "none",
+      "auth": "signed-media-token",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "getOpenGraphMedia"
+    },
+    {
+      "id": "media.share-og",
+      "method": "GET",
+      "path": "/share-og/{photoId}.png",
+      "source": "backend/nodejs/routes/share-og/[photoId].png.get.ts",
+      "sourceType": "filesystem",
+      "capability": "media-render",
+      "owner": "node",
+      "sideEffect": "none",
+      "auth": "preview",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "renderShareOpenGraphImage"
+    },
+    {
+      "id": "media.storage",
+      "method": "GET",
+      "path": "/storage/{path}",
+      "source": "backend/nodejs/routes/storage/[...path].get.ts",
+      "sourceType": "filesystem",
+      "capability": "media-read",
+      "owner": "node",
+      "sideEffect": "session",
+      "auth": "preview",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "getStorageMedia",
+      "catchAllParameters": [
+        "path"
+      ]
+    },
+    {
+      "id": "media.storage.head",
+      "method": "HEAD",
+      "path": "/storage/{path}",
+      "source": "backend/nodejs/routes/storage/[...path].head.ts",
+      "sourceType": "filesystem",
+      "capability": "media-read",
+      "owner": "node",
+      "sideEffect": "session",
+      "auth": "preview",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "headStorageMedia",
+      "catchAllParameters": [
+        "path"
+      ]
+    },
+    {
+      "id": "media.thumbnail",
+      "method": "GET",
+      "path": "/thumb/{thumbnailUrl}",
+      "source": "backend/nodejs/routes/thumb/[...thumbnailUrl].get.ts",
+      "sourceType": "filesystem",
+      "capability": "media-read",
+      "owner": "node",
+      "sideEffect": "session",
+      "auth": "preview",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "getThumbnailMedia",
+      "catchAllParameters": [
+        "thumbnailUrl"
+      ]
+    },
+    {
+      "id": "identity.session.read",
+      "method": "GET",
+      "path": "/api/_auth/session",
+      "source": "nuxt-auth-utils@0.5.29:dist/runtime/server/api/session.get.js",
+      "sourceType": "framework",
+      "capability": "identity",
+      "owner": "node",
+      "sideEffect": "session",
+      "auth": "session",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "getAuthSession"
+    },
+    {
+      "id": "identity.session.delete",
+      "method": "DELETE",
+      "path": "/api/_auth/session",
+      "source": "nuxt-auth-utils@0.5.29:dist/runtime/server/api/session.delete.js",
+      "sourceType": "framework",
+      "capability": "identity",
+      "owner": "node",
+      "sideEffect": "session",
+      "auth": "session",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "deleteAuthSession"
+    },
+    {
+      "id": "runtime.health.live",
+      "method": "GET",
+      "path": "/health/live",
+      "source": "backend/go/internal/app/app.go",
+      "sourceType": "virtual",
+      "capability": "backend-runtime",
+      "owner": "go",
+      "sideEffect": "none",
+      "auth": "anonymous",
+      "maturity": {
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "getLiveness"
+    },
+    {
+      "id": "runtime.health.ready",
+      "method": "GET",
+      "path": "/health/ready",
+      "source": "backend/go/internal/app/app.go",
+      "sourceType": "virtual",
+      "capability": "backend-runtime",
+      "owner": "go",
+      "sideEffect": "none",
+      "auth": "anonymous",
+      "maturity": {
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "getReadiness"
+    },
+    {
+      "id": "runtime.version",
+      "method": "GET",
+      "path": "/version",
+      "source": "backend/go/internal/app/app.go",
+      "sourceType": "virtual",
+      "capability": "backend-runtime",
+      "owner": "go",
+      "sideEffect": "none",
+      "auth": "anonymous",
+      "maturity": {
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "getBackendVersion"
+    }
+  ],
+  "actors": [
+    {
+      "id": "db-migrator",
+      "method": "ACTOR",
+      "path": "actor://db-migrator",
+      "source": "backend/nodejs/plugins/0.db-migrate.ts",
+      "sourceType": "runtime",
+      "capability": "db-migrator",
+      "owner": "node",
+      "sideEffect": "database-schema",
+      "auth": "internal",
+      "maturity": {
+        "node": "stable"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false
+    },
+    {
+      "id": "pipeline-consumer",
+      "method": "ACTOR",
+      "path": "actor://pipeline-consumer",
+      "source": "backend/nodejs/plugins/4.pipeline-queue.ts",
+      "sourceType": "runtime",
+      "capability": "pipeline-consumer",
+      "owner": "node",
+      "sideEffect": "database-storage-external-process",
+      "auth": "internal",
+      "maturity": {
+        "node": "stable"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false
+    },
+    {
+      "id": "backup-scheduler",
+      "method": "ACTOR",
+      "path": "actor://backup-scheduler",
+      "source": "backend/nodejs/plugins/5.database-backup.ts",
+      "sourceType": "runtime",
+      "capability": "backup-scheduler",
+      "owner": "node",
+      "sideEffect": "database-read-filesystem-email",
+      "auth": "internal",
+      "maturity": {
+        "node": "stable"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false
+    }
+  ]
+}

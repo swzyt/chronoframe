@@ -1,0 +1,13 @@
+name: chronoframe-dual
+
+services:
+  node:
+    environment:
+      # Node sees owner=go and skips its Nitro database-backup plugin.
+      CFRAME_BACKUP_SCHEDULER: go
+
+  go:
+    environment:
+      # Go starts the database backup scheduler only for this explicit owner.
+      CFRAME_BACKUP_SCHEDULER: go
+      CFRAME_GO_BACKUP_SCHEDULE_REFRESH_INTERVAL: ${CFRAME_GO_BACKUP_SCHEDULE_REFRESH_INTERVAL:-1s}

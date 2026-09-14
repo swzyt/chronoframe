@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "contract": {
+    "input": "A setting declared as number accepts only a finite JSON number or null. Numeric strings are invalid inputs.",
+    "storageGrammar": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+    "storage": "Finite numbers use the RFC 8785 ECMAScript number serialization; negative zero is stored as 0.",
+    "invalidRead": "A non-null stored value that fails the full grammar or decodes outside finite IEEE-754 binary64 is read as null."
+  },
+  "cases": [
+    {
+      "name": "hexadecimal",
+      "stored": "0x10",
+      "valid": false,
+      "decoded": null,
+      "canonical": null
+    },
+    {
+      "name": "whitespace",
+      "stored": " 12.5 ",
+      "valid": false,
+      "decoded": null,
+      "canonical": null
+    },
+    {
+      "name": "whitespace-only",
+      "stored": "   ",
+      "valid": false,
+      "decoded": null,
+      "canonical": null
+    },
+    {
+      "name": "exponent",
+      "stored": "1e3",
+      "valid": true,
+      "decoded": 1000,
+      "canonical": "1000"
+    },
+    {
+      "name": "positive-infinity",
+      "stored": "Infinity",
+      "valid": false,
+      "decoded": null,
+      "canonical": null
+    },
+    {
+      "name": "not-a-number",
+      "stored": "NaN",
+      "valid": false,
+      "decoded": null,
+      "canonical": null
+    },
+    {
+      "name": "empty-string",
+      "stored": "",
+      "valid": false,
+      "decoded": null,
+      "canonical": null
+    },
+    {
+      "name": "decimal-integer",
+      "stored": "16",
+      "valid": true,
+      "decoded": 16,
+      "canonical": "16"
+    },
+    {
+      "name": "decimal-fraction",
+      "stored": "-12.50",
+      "valid": true,
+      "decoded": -12.5,
+      "canonical": "-12.5"
+    },
+    {
+      "name": "leading-zero",
+      "stored": "01",
+      "valid": false,
+      "decoded": null,
+      "canonical": null
+    },
+    {
+      "name": "negative-zero",
+      "stored": "-0",
+      "valid": true,
+      "decoded": 0,
+      "canonical": "0"
+    },
+    {
+      "name": "overflowing-exponent",
+      "stored": "1e999",
+      "valid": false,
+      "decoded": null,
+      "canonical": null
+    }
+  ]
+}

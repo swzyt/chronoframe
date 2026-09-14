@@ -225,10 +225,15 @@ chronoframe/
 │   └── stores/             # Pinia stores
 ├── packages/
 │   └── webgl-image/        # WebGL image viewer
-├── server/
-│   ├── api/                # API routes
-│   ├── database/           # DB schema & migrations
-│   └── services/           # Business logic services
+├── backend/
+│   ├── contracts/          # Language-neutral backend contracts
+│   ├── go/
+│   │   ├── cmd/api/        # Go API executable
+│   │   └── internal/       # Private Go application packages
+│   └── nodejs/             # Nuxt/Nitro server directory
+│       ├── api/            # API routes
+│       ├── database/       # DB schema & migrations
+│       └── services/       # Business logic services
 └── shared/                 # Shared types & utils
 ```
 

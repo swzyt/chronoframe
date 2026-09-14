@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "requiredTables": {
+    "__drizzle_migrations": ["created_at", "hash"],
+    "album_photos": ["album_id", "photo_id", "position"],
+    "albums": ["id", "is_hidden", "owner_user_id"],
+    "photo_reactions": ["photo_id", "fingerprint", "reaction_type"],
+    "photos": ["id", "content_hash", "owner_user_id", "storage_key"],
+    "pipeline_queue": [
+      "id",
+      "owner_user_id",
+      "payload",
+      "priority",
+      "status",
+      "created_at",
+      "available_at",
+      "claimed_by",
+      "claim_token",
+      "claim_expires_at"
+    ],
+    "settings": ["namespace", "key", "type", "value", "is_public"],
+    "settings_storage_providers": ["id", "provider", "config"],
+    "upload_shares": ["id", "token_hash", "owner_user_id"],
+    "users": [
+      "id",
+      "name",
+      "email",
+      "password",
+      "is_admin",
+      "is_active",
+      "auth_version"
+    ]
+  },
+  "requiredIndexes": [
+    "idx_namespace_key",
+    "idx_photos_owner_content_hash",
+    "idx_pipeline_queue_claim_expires",
+    "idx_pipeline_queue_ready",
+    "idx_upload_shares_token_hash"
+  ],
+  "requiredTriggers": ["users_security_fields_bump_auth_version"]
+}

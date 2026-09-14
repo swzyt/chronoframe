@@ -18,6 +18,54 @@ const {
 const toast = useToast()
 const backupRunning = ref(false)
 
+type BackendStatusResponse = {
+  currentProvider: 'node' | 'go'
+  node: {
+    status: string
+    owned: boolean
+  }
+  go: {
+    configured: boolean
+    status: string
+    owned: boolean
+    upstream: string
+    checks: Record<string, string>
+    schema: {
+      migrationCount?: number
+      latestMigrationMillis?: number
+    } | null
+    error: string
+  }
+}
+
+const backendStatus = ref<BackendStatusResponse | null>(null)
+const backendStatusLoading = ref(false)
+
+const fetchBackendStatus = async () => {
+  backendStatusLoading.value = true
+  try {
+    backendStatus.value = await $fetch<BackendStatusResponse>(
+      '/api/system/backend/status',
+    )
+  } catch {
+    backendStatus.value = null
+  } finally {
+    backendStatusLoading.value = false
+  }
+}
+
+const backendStatusColor = computed(() => {
+  if (!backendStatus.value) return 'neutral'
+  if (backendStatus.value.currentProvider === 'node') return 'success'
+  return backendStatus.value.go.status === 'ready' ? 'success' : 'error'
+})
+
+const goBackendCheckEntries = computed(() =>
+  Object.entries(backendStatus.value?.go.checks || {}),
+)
+
+onMounted(fetchBackendStatus)
+
 const systemFields = computed(() =>
   rawSystemFields.value.filter((field) => !field.isReadonly),
 )
@@ -33,6 +81,11 @@ type SystemSectionWithFields = SystemSection & {
 }
 
 const SYSTEM_SECTION_ORDER: SystemSection[] = [
+  {
+    id: 'backend',
+    titleKey: 'settings.system.sections.backend',
+    keys: ['backend.readProvider'],
+  },
   {
     id: 'thirdPartyLogin',
     titleKey: 'settings.system.sections.thirdPartyLogin',
@@ -118,6 +171,9 @@ const handleSectionSettingsSubmit = async (
 
   try {
     await submitSystem(systemData)
+    if (section.id === 'backend') {
+      await fetchBackendStatus()
+    }
   } catch {
     /* empty */
   }
@@ -225,6 +281,93 @@ const handleRunBackup = async () => {
               :model-value="systemState[field.key]"
               @update:model-value="(val) => (systemState[field.key] = val)"
             />
+
+            <div
+              v-if="section.id === 'backend'"
+              class="rounded-md border border-neutral-200 bg-neutral-50 p-4 text-sm dark:border-neutral-800 dark:bg-neutral-900/40"
+            >
+              <div class="flex flex-wrap items-center gap-2">
+                <UBadge
+                  :color="backendStatusColor"
+                  variant="soft"
+                >
+                  {{
+                    backendStatus?.currentProvider === 'go'
+                      ? $t('settings.system.backend.status.currentGo')
+                      : $t('settings.system.backend.status.currentNode')
+                  }}
+                </UBadge>
+                <UButton
+                  size="xs"
+                  color="neutral"
+                  variant="ghost"
+                  :loading="backendStatusLoading"
+                  icon="tabler:refresh"
+                  @click="fetchBackendStatus"
+                >
+                  {{ $t('settings.system.backend.status.refresh') }}
+                </UButton>
+              </div>
+
+              <div
+                v-if="backendStatus"
+                class="mt-3 grid gap-3 md:grid-cols-2"
+              >
+                <div>
+                  <p class="font-medium text-neutral-900 dark:text-neutral-100">
+                    {{ $t('settings.system.backend.status.nodeTitle') }}
+                  </p>
+                  <p class="mt-1 text-neutral-600 dark:text-neutral-400">
+                    {{ $t('settings.system.backend.status.nodeReady') }}
+                  </p>
+                </div>
+                <div>
+                  <p class="font-medium text-neutral-900 dark:text-neutral-100">
+                    {{ $t('settings.system.backend.status.goTitle') }}
+                  </p>
+                  <p class="mt-1 text-neutral-600 dark:text-neutral-400">
+                    {{
+                      backendStatus.go.configured
+                        ? $t(
+                            `settings.system.backend.status.go.${backendStatus.go.status}`,
+                          )
+                        : $t('settings.system.backend.status.go.not_configured')
+                    }}
+                  </p>
+                  <p
+                    v-if="backendStatus.go.upstream"
+                    class="mt-1 break-all text-xs text-neutral-500 dark:text-neutral-500"
+                  >
+                    {{ backendStatus.go.upstream }}
+                  </p>
+                  <ul
+                    v-if="goBackendCheckEntries.length"
+                    class="mt-2 space-y-1 text-xs text-neutral-500 dark:text-neutral-400"
+                  >
+                    <li
+                      v-for="[name, status] in goBackendCheckEntries"
+                      :key="name"
+                      class="flex justify-between gap-3"
+                    >
+                      <span>{{ name }}</span>
+                      <span>{{ status }}</span>
+                    </li>
+                  </ul>
+                  <p
+                    v-if="backendStatus.go.error"
+                    class="mt-2 text-xs text-error-600 dark:text-error-400"
+                  >
+                    {{ backendStatus.go.error }}
+                  </p>
+                </div>
+              </div>
+              <p
+                v-else
+                class="mt-3 text-neutral-600 dark:text-neutral-400"
+              >
+                {{ $t('settings.system.backend.status.unavailable') }}
+              </p>
+            </div>
           </UForm>
 
           <footer

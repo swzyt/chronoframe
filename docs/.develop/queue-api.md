@@ -183,7 +183,7 @@ console.log('队列状态:', status)
 ### 在照片上传时自动添加任务
 
 ```typescript
-// 在 server/api/photos/process.post.ts 中
+// 在 backend/nodejs/api/photos/process.post.ts 中
 export default defineEventHandler(async (event) => {
   const { storageKey } = await readBody(event)
 
@@ -206,7 +206,7 @@ export default defineEventHandler(async (event) => {
 ### 程序内部直接使用
 
 ```typescript
-import { QueueManager } from '~~/server/services/pipeline-queue'
+import { QueueManager } from '#server/services/pipeline-queue'
 
 // 获取特定工作器实例
 const worker = QueueManager.getInstance('worker-1')
@@ -225,7 +225,7 @@ const taskId = await worker.addTask(
 
 ## 配置说明
 
-工作器池在 `server/plugins/pipeline-queue.ts` 中配置：
+工作器池在 `backend/nodejs/plugins/4.pipeline-queue.ts` 中配置：
 
 ```typescript
 const workerPoolConfig = {

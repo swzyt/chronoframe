@@ -1316,10 +1316,37 @@
     },
     "system": {
       "sections": {
+        "backend": "API 后端实现",
         "thirdPartyLogin": "第三方登录",
         "fileProcessing": "文件处理",
         "debugSettings": "调试设置",
         "databaseBackup": "数据库备份"
+      },
+      "backend": {
+        "readProvider": {
+          "label": "API 后端实现",
+          "description": "选择已登记接口由 Node.js 还是 Go 后端实现提供。",
+          "help": "Node.js 是默认稳定实现；切换到 Go 后，已登记并具备 Go 实现的读写 API 会转发到 Go。切换开关本身仍由 Node.js 持有，便于随时回退。",
+          "options": {
+            "node": "Node.js",
+            "go": "Go"
+          }
+        },
+        "status": {
+          "currentNode": "当前：Node.js",
+          "currentGo": "当前：Go",
+          "refresh": "刷新状态",
+          "nodeTitle": "Node.js 后端",
+          "nodeReady": "稳定网关和回退路径可用。",
+          "goTitle": "Go 后端",
+          "unavailable": "暂时无法读取后端状态。仍可保存设置，但切到 Go 前应先确认 Go 服务。",
+          "go": {
+            "ready": "已就绪，已登记路由可以由 Go 提供。",
+            "not_ready": "未就绪，请保持流量走 Node.js，直到检查通过。",
+            "unreachable": "无法连接，请先检查 Go 服务再切换。",
+            "not_configured": "未配置，请先设置 CFRAME_GO_UPSTREAM。"
+          }
+        }
       },
       "upload": {
         "duplicateCheck": {

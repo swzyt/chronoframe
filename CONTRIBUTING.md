@@ -100,21 +100,17 @@ chronoframe/
 │       │   ├── components/ # Vue components
 │       │   └── types/     # Type definitions
 │       └── package.json
-├── server/                # Nitro server-side
-│   ├── api/              # API routes
-│   │   ├── photos/       # Photo management API
-│   │   ├── auth/         # Authentication API
-│   │   └── system/       # System API
-│   ├── database/         # Database related
-│   │   ├── schema.ts     # Database schema
-│   │   └── migrations/   # Migration files
-│   ├── services/         # Business logic services
-│   │   ├── storage/      # Storage services
-│   │   ├── image/        # Image processing
-│   │   ├── location/     # Geolocation
-│   │   └── pipeline-queue/ # Processing queue
-│   ├── tasks/            # Background tasks
-│   └── utils/            # Server-side utilities
+├── backend/               # All backend implementations and contracts
+│   ├── contracts/        # Language-neutral routes, schema and fixtures
+│   ├── go/
+│   │   ├── cmd/api/      # Go API executable
+│   │   └── internal/     # Private application and platform packages
+│   └── nodejs/           # Nuxt/Nitro serverDir
+│       ├── api/          # API routes
+│       ├── database/     # Database schema and migrations
+│       ├── services/     # Business logic services
+│       ├── tasks/        # Background tasks
+│       └── utils/        # Server-side utilities
 ├── shared/               # Shared code between frontend and backend
 │   ├── types/           # TypeScript type definitions
 │   └── utils/           # Shared utilities

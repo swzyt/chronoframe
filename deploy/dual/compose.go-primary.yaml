@@ -1,0 +1,57 @@
+name: chronoframe-dual
+
+# Go-primary keeps the Nuxt process only as the web/UI host and rollback
+# control plane. Schema migration, asynchronous media work, scheduled backups,
+# and every selectable API implementation are owned by the Go services. The Go
+# API is also published directly so it remains testable while Node is stopped.
+services:
+  go-migrator:
+    build:
+      context: ../..
+      dockerfile: backend/go/Dockerfile
+    restart: 'no'
+    env_file:
+      - path: ../../.env
+        required: false
+    environment:
+      DATABASE_URL: /app/data/app.sqlite3
+      CFRAME_BACKEND_VERSION: ${CFRAME_GO_VERSION:-dev}
+      CFRAME_ENV: ${CFRAME_ENV:-development}
+      CFRAME_GO_MATURITY: experimental
+      CFRAME_GO_MODE: normal
+      CFRAME_DB_MIGRATOR: go
+      CFRAME_GO_MIGRATE_ONLY: 'true'
+      CFRAME_REDIS_REQUIRED: 'false'
+      CFRAME_PIPELINE_CONSUMER: none
+      CFRAME_BACKUP_SCHEDULER: none
+    volumes:
+      - ${CFRAME_DATA_DIR:-app_data}:/app/data
+      - ../../backend/contracts:/app/contracts:ro
+    user: '0:0'
+
+  node:
+    environment:
+      CFRAME_DB_MIGRATOR: go
+      CFRAME_PIPELINE_CONSUMER: go
+      CFRAME_BACKUP_SCHEDULER: go
+    depends_on: !override
+      go-migrator:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  go:
+    ports:
+      - '127.0.0.1:${CFRAME_DUAL_GO_PORT:-38080}:8080'
+    environment:
+      CFRAME_DB_MIGRATOR: none
+      CFRAME_PIPELINE_CONSUMER: go
+      CFRAME_BACKUP_SCHEDULER: go
+      CFRAME_GO_PIPELINE_WORKER_COUNT: ${CFRAME_GO_PIPELINE_WORKER_COUNT:-1}
+      CFRAME_GO_PIPELINE_POLL_INTERVAL: ${CFRAME_GO_PIPELINE_POLL_INTERVAL:-3s}
+      CFRAME_GO_BACKUP_SCHEDULE_REFRESH_INTERVAL: ${CFRAME_GO_BACKUP_SCHEDULE_REFRESH_INTERVAL:-1s}
+    depends_on: !override
+      go-migrator:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy

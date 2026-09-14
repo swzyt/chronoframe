@@ -1,0 +1,52 @@
+name: chronoframe-dual
+
+services:
+  go-migrator:
+    build:
+      context: ../..
+      dockerfile: backend/go/Dockerfile
+    restart: 'no'
+    env_file:
+      - path: ../../.env
+        required: false
+    environment:
+      # One-shot Go migrator proof for the same Drizzle migration ledger and
+      # generated DEFAULT_SETTINGS metadata used by Node. Use this override only
+      # when validating Go-owned schema bootstrap.
+      DATABASE_URL: /app/data/app.sqlite3
+      CFRAME_BACKEND_VERSION: ${CFRAME_GO_VERSION:-dev}
+      CFRAME_ENV: ${CFRAME_ENV:-development}
+      CFRAME_GO_MATURITY: experimental
+      CFRAME_GO_MODE: normal
+      CFRAME_DB_MIGRATOR: go
+      CFRAME_GO_MIGRATE_ONLY: 'true'
+      CFRAME_REDIS_REQUIRED: 'false'
+      CFRAME_PIPELINE_CONSUMER: none
+      CFRAME_BACKUP_SCHEDULER: none
+    volumes:
+      - ${CFRAME_DATA_DIR:-app_data}:/app/data
+      - ../../backend/contracts:/app/contracts:ro
+    user: '0:0'
+
+  node:
+    environment:
+      # Node sees owner=go and skips its Drizzle migrator plugin.
+      CFRAME_DB_MIGRATOR: go
+    depends_on:
+      go-migrator:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  go:
+    environment:
+      # The API service itself does not run migration in the dual stack; the
+      # one-shot go-migrator service above owns schema bootstrap for this run.
+      CFRAME_DB_MIGRATOR: none
+    depends_on:
+      go-migrator:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      node:
+        condition: service_healthy

@@ -7,14 +7,16 @@ ChronoFrame is a high-performance photo management and gallery application built
 ### Core Components
 
 - **Frontend**: Nuxt 4 app with Vue 3, TypeScript, and TailwindCSS
-- **Backend**: Nitro server with SQLite (Drizzle ORM) and multi-provider storage
+- **Backends**: Nuxt/Nitro Node.js and Go implementations sharing SQLite, Redis, storage keys, and language-neutral contracts
 - **WebGL Package**: Custom `@chronoframe/webgl-image` for hardware-accelerated viewing
 - **Processing Pipeline**: Async photo processing with EXIF, thumbnails, and geolocation
 
 ### Key Directories
 
 - `app/`: Nuxt 4 application (components, pages, composables)
-- `server/`: API routes and backend services
+- `backend/contracts/`: Routes, schema requirements, and cross-language fixtures
+- `backend/nodejs/`: Nuxt/Nitro `serverDir`, API routes, database, and backend services
+- `backend/go/`: Go module with `cmd/api` and private packages under `internal`
 - `packages/webgl-image/`: Standalone WebGL image viewer package
 - `shared/`: Type definitions shared between client/server
 
@@ -45,7 +47,7 @@ This is a pnpm workspace with the WebGL package as a local dependency. Always us
 
 ### Multi-Provider System
 
-Storage providers are abstracted through `server/services/storage/interfaces.ts`:
+Storage providers are abstracted through `backend/nodejs/services/storage/interfaces.ts`:
 
 - **S3**: AWS S3-compatible storage (primary)
 - **HubR2**: Cloudflare R2 via NuxtHub
@@ -59,7 +61,7 @@ All storage operations go through `useStorageProvider(event)` in API routes. The
 
 ### Async Processing Pattern
 
-Photos are processed via `execPhotoPipelineAsync()` in `server/services/photo/pipeline-async.ts`:
+Photos are processed by the shared queue implementation in `backend/nodejs/services/pipeline-queue/manager.ts` or its Go counterpart:
 
 1. **Preprocessing**: HEIC conversion to JPEG, buffer management
 2. **Metadata**: Sharp processing for dimensions/format
@@ -72,7 +74,7 @@ Photos are processed via `execPhotoPipelineAsync()` in `server/services/photo/pi
 
 - Use `setImmediate()` for non-blocking async operations
 - Always handle HEIC → JPEG conversion for Apple photos
-- EXIF processing requires temporary file writes (see `server/services/image/exif.ts`)
+- EXIF processing requires temporary file writes (see `backend/nodejs/services/image/exif.ts`)
 - Thumbnails are stored as separate WebP files with hash compression
 
 ## Component Patterns
@@ -104,10 +106,10 @@ Register WebGL components via plugin (`app/plugins/chrono-webgl-image.ts`). The 
 
 ### Core Database Pattern
 
-**ALWAYS use `useDB()` from `server/utils/db.ts` for all database operations:**
+**ALWAYS use `useDB()` from `backend/nodejs/utils/db.ts` for Node.js database operations:**
 
 ```typescript
-import { useDB, tables, eq } from '~~/server/utils/db'
+import { useDB, tables, eq } from '#server/utils/db'
 
 // Get all photos
 const photos = await useDB().select().from(tables.photos)
@@ -138,7 +140,7 @@ await useDB()
 
 ### Photo Model Schema
 
-Key fields in `server/database/schema.ts`:
+Key fields in `backend/nodejs/database/schema.ts`:
 
 - `storageKey`: Original file path in storage
 - `originalUrl`: Public URL (may point to JPEG version for HEIC)
@@ -206,8 +208,8 @@ Each provider has specific env vars (see README). S3 is most commonly used with 
 
 ### Database Operations
 
-- **CRITICAL**: Always use `useDB()` from `server/utils/db.ts` - never import Drizzle directly
-- Import query helpers: `import { useDB, tables, eq, and, or } from '~~/server/utils/db'`
+- **CRITICAL**: Always use `useDB()` from `backend/nodejs/utils/db.ts` in Node.js code - never import Drizzle directly
+- Import query helpers: `import { useDB, tables, eq, and, or } from '#server/utils/db'`
 - Use `tables.photos`, `tables.users` for schema references
 - Database file is `data/app.sqlite3` (better-sqlite3 + Drizzle ORM)
 

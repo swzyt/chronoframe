@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { motion } from 'motion-v'
-import type { Album } from '~~/server/utils/db'
+import type { Album } from '#server/utils/db'
 interface AlbumWithPhotos extends Album {
   photoIds?: string[]
   previewPhotos?: Photo[]

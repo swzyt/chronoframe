@@ -103,21 +103,17 @@ chronoframe/
 │       │   ├── components/ # Vue 组件
 │       │   └── types/     # 类型定义
 │       └── package.json
-├── server/                # Nitro 服务端
-│   ├── api/              # API 路由
-│   │   ├── photos/       # 照片管理 API
-│   │   ├── auth/         # 认证 API
-│   │   └── system/       # 系统 API
-│   ├── database/         # 数据库相关
-│   │   ├── schema.ts     # 数据库模式
-│   │   └── migrations/   # 迁移文件
-│   ├── services/         # 业务逻辑服务
-│   │   ├── storage/      # 存储服务
-│   │   ├── image/        # 图片处理
-│   │   ├── location/     # 地理位置
-│   │   └── pipeline-queue/ # 处理队列
-│   ├── tasks/            # 后台任务
-│   └── utils/            # 服务端工具
+├── backend/               # 全部后端实现与共享契约
+│   ├── contracts/        # 跨语言路由、schema 与测试夹具
+│   ├── go/
+│   │   ├── cmd/api/      # Go API 可执行程序
+│   │   └── internal/     # 私有应用与基础设施包
+│   └── nodejs/           # Nuxt/Nitro serverDir
+│       ├── api/          # API 路由
+│       ├── database/     # 数据库 schema 与迁移
+│       ├── services/     # 业务逻辑服务
+│       ├── tasks/        # 后台任务
+│       └── utils/        # 服务端工具
 ├── shared/               # 前后端共享代码
 │   ├── types/           # TypeScript 类型定义
 │   └── utils/           # 共享工具函数

@@ -2,9 +2,12 @@ import pkg from './package.json'
 import type { AnalyticsConfig } from './shared/types/config'
 import i18n, { dayjsLocales } from './i18n/i18n.options'
 
+const useRemoteFonts = process.env.CFRAME_OFFLINE_FONTS !== 'true'
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
+  serverDir: 'backend/nodejs',
   devtools: { enabled: true },
   site: {
     url: process.env.NUXT_PUBLIC_SITE_URL || 'http://127.0.0.1:3000',
@@ -13,7 +16,7 @@ export default defineNuxtConfig({
   modules: [
     'reka-ui/nuxt',
     '@nuxt/ui',
-    '@nuxt/fonts',
+    ...(useRemoteFonts ? ['@nuxt/fonts'] : []),
     '@nuxt/icon',
     '@nuxt/test-utils',
     '@pinia/nuxt',
@@ -129,7 +132,7 @@ export default defineNuxtConfig({
         mode: 'skip' as 'warn' | 'block' | 'skip',
       },
     },
-    /** @deprecated Defaults to allow insecure cookies now */
+    /** Force non-Secure cookies even when the request transport is HTTPS. */
     allowInsecureCookie: false,
   },
 
@@ -139,7 +142,6 @@ export default defineNuxtConfig({
       inline: ['unhead'],
     },
     experimental: {
-      websocket: true,
       tasks: true,
     },
   },
@@ -247,12 +249,23 @@ export default defineNuxtConfig({
     },
   },
 
-  fonts: {
-    families: [
-      { name: "Rubik", weights: [400, 500, 600, 700], global: true },
-      { name: "Noto Sans SC", weights: [400, 500, 600, 700], global: true },
-    ],
-  },
+  fonts: useRemoteFonts
+    ? {
+        families: [
+          { name: 'Rubik', weights: [400, 500, 600, 700], global: true },
+          {
+            name: 'Noto Sans SC',
+            weights: [400, 500, 600, 700],
+            global: true,
+          },
+        ],
+      }
+    : {
+        // @nuxt/ui installs @nuxt/fonts transitively. Restricting resolution to
+        // the built-in local provider keeps container builds deterministic and
+        // leaves CSS fallbacks intact when no matching font file is bundled.
+        provider: 'local',
+      },
 
   dayjs: {
     locales: dayjsLocales,

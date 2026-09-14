@@ -227,10 +227,15 @@ chronoframe/
 │   └── stores/             # Pinia 状态管理
 ├── packages/
 │   └── webgl-image/        # WebGL 图片查看器
-├── server/
-│   ├── api/                # API 路由
-│   ├── database/           # 数据库 schema 和迁移
-│   └── services/           # 业务逻辑服务
+├── backend/
+│   ├── contracts/          # 跨语言共享的后端契约
+│   ├── go/
+│   │   ├── cmd/api/        # Go API 可执行程序
+│   │   └── internal/       # Go 私有应用包
+│   └── nodejs/             # Nuxt/Nitro 服务端目录
+│       ├── api/            # API 路由
+│       ├── database/       # 数据库 schema 和迁移
+│       └── services/       # 业务逻辑服务
 └── shared/                 # 共享类型和工具
 ```
 

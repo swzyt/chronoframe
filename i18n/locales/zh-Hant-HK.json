@@ -1242,10 +1242,37 @@
     },
     "system": {
       "sections": {
+        "backend": "API 後端實作",
         "thirdPartyLogin": "第三方登入",
         "fileProcessing": "檔案處理",
         "debugSettings": "除錯設定",
         "databaseBackup": "資料庫備份"
+      },
+      "backend": {
+        "readProvider": {
+          "label": "API 後端實作",
+          "description": "選擇已登記 API 路由由 Node.js 還是 Go 後端實作提供。",
+          "help": "Node.js 是預設穩定實作；切換至 Go 後，已登記並具備 Go 實作的讀寫 API 會代理到 Go。切換開關本身仍由 Node.js 持有，方便隨時回退。",
+          "options": {
+            "node": "Node.js",
+            "go": "Go"
+          }
+        },
+        "status": {
+          "currentNode": "目前：Node.js",
+          "currentGo": "目前：Go",
+          "refresh": "重新整理狀態",
+          "nodeTitle": "Node.js 後端",
+          "nodeReady": "穩定閘道和回退路徑可用。",
+          "goTitle": "Go 後端",
+          "unavailable": "暫時無法讀取後端狀態。仍可儲存設定，但切到 Go 前應先確認 Go 服務。",
+          "go": {
+            "ready": "已就緒，已登記路由可以由 Go 提供。",
+            "not_ready": "未就緒，請保持流量走 Node.js，直到檢查通過。",
+            "unreachable": "無法連線，請先檢查 Go 服務再切換。",
+            "not_configured": "未設定，請先設定 CFRAME_GO_UPSTREAM。"
+          }
+        }
       },
       "upload": {
         "duplicateCheck": {

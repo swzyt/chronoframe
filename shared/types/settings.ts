@@ -1,4 +1,4 @@
-import type * as schema from '../../server/database/schema'
+import type * as schema from '../../backend/nodejs/database/schema'
 
 export type SettingType = typeof schema.settings.$inferSelect.type
 export type SettingValue =

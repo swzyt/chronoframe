@@ -59,6 +59,14 @@ export default defineConfig({
         items: [
           { text: '贡献指南', link: '/zh/development/contributing' },
           { text: 'API 文档', link: '/zh/development/api' },
+          {
+            text: '双后端学习模式 PRD',
+            link: '/zh/development/dual-backend-product',
+          },
+          {
+            text: 'Node.js + Go 双后端技术设计',
+            link: '/zh/development/dual-backend-technical-design',
+          },
         ],
       },
     ],

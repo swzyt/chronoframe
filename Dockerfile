@@ -11,6 +11,7 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
 FROM base AS build
 WORKDIR /usr/src/app
+ENV CFRAME_OFFLINE_FONTS=true
 COPY --from=deps /usr/src/app/node_modules ./node_modules
 COPY --from=deps /usr/src/app/packages/webgl-image/node_modules ./packages/webgl-image/node_modules
 COPY . .
@@ -46,7 +47,7 @@ COPY --from=runtime_deps /etc/ssl /etc/ssl
 COPY --from=runtime_deps /tmp /tmp
 
 COPY --from=build /usr/src/app/.output ./.output
-COPY --from=build /usr/src/app/server/database/migrations ./server/database/migrations
+COPY --from=build /usr/src/app/backend/nodejs/database/migrations ./backend/nodejs/database/migrations
 
 EXPOSE 3000
 VOLUME ["/app/data"]

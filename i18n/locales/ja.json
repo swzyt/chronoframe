@@ -1242,10 +1242,37 @@
     },
     "system": {
       "sections": {
+        "backend": "API バックエンド実装",
         "thirdPartyLogin": "外部ログイン",
         "fileProcessing": "ファイル処理",
         "debugSettings": "デバッグ設定",
         "databaseBackup": "データベースバックアップ"
+      },
+      "backend": {
+        "readProvider": {
+          "label": "API バックエンド実装",
+          "description": "登録済み API ルートを Node.js と Go のどちらのバックエンド実装で提供するか選択します。",
+          "help": "Node.js が安定した既定値です。Go を選択すると、Go 実装のある登録済みの読み書き API が Go にプロキシされます。切り替え設定自体は常に Node.js が保持するため、いつでも戻せます。",
+          "options": {
+            "node": "Node.js",
+            "go": "Go"
+          }
+        },
+        "status": {
+          "currentNode": "現在: Node.js",
+          "currentGo": "現在: Go",
+          "refresh": "状態を更新",
+          "nodeTitle": "Node.js バックエンド",
+          "nodeReady": "安定したゲートウェイとロールバック経路が利用できます。",
+          "goTitle": "Go バックエンド",
+          "unavailable": "バックエンド状態を取得できません。設定は保存できますが、Go に切り替える前に Go サービスを確認してください。",
+          "go": {
+            "ready": "準備完了です。登録済みルートを Go で提供できます。",
+            "not_ready": "未準備です。チェックが通るまで Node.js に流量を残してください。",
+            "unreachable": "到達できません。切り替える前に Go サービスを確認してください。",
+            "not_configured": "未設定です。先に CFRAME_GO_UPSTREAM を設定してください。"
+          }
+        }
       },
       "upload": {
         "duplicateCheck": {

@@ -1,0 +1,22 @@
+name: chronoframe-dual
+
+services:
+  node:
+    environment:
+      # Node sees owner=go and skips its Nitro pipeline queue plugin.
+      # Use this override only for Go consumer learning slices.
+      # Shared Redis runtime lease is still active as a defense-in-depth guard.
+      CFRAME_PIPELINE_CONSUMER: go
+
+  go:
+    environment:
+      # The current Go consumer safely claims only the task types listed in
+      # backend/go/internal/app/pipeline_consumer.go. It covers Live Photo
+      # pairing, ordinary photo import, MP4 video processing, reverse geocoding,
+      # and location erasure learning slices. Synthetic HEIC conversion is
+      # covered by the Go runtime image. Shared Redis runtime lease prevents
+      # accidental dual startup; production handoff, task-row fencing, and
+      # broader real-media corpus validation are still required before stable promotion.
+      CFRAME_PIPELINE_CONSUMER: go
+      CFRAME_GO_PIPELINE_WORKER_COUNT: ${CFRAME_GO_PIPELINE_WORKER_COUNT:-1}
+      CFRAME_GO_PIPELINE_POLL_INTERVAL: ${CFRAME_GO_PIPELINE_POLL_INTERVAL:-3s}

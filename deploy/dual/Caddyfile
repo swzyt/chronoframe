@@ -1,0 +1,40 @@
+{
+	admin off
+	auto_https off
+}
+
+:80 {
+	request_header -X-ChronoFrame-Backend
+	request_header -X-ChronoFrame-Backend-Version
+	request_header -X-ChronoFrame-Maturity
+	request_header -X-ChronoFrame-Mode
+	request_header -X-ChronoFrame-Internal-User
+	request_header -X-ChronoFrame-Lab-Backend
+	request_header -X-ChronoFrame-Original-URL
+	request_header -X-ChronoFrame-Original-Accept-Encoding
+	request_header -X-ChronoFrame-Backend-Request
+	request_header -X-ChronoFrame-Route-Id
+
+	# Health/version are owned by Go so operators can verify both services
+	# independently of the Node gateway.
+	@go_runtime path /health/live /health/ready /version
+	handle @go_runtime {
+		reverse_proxy go:8080
+	}
+
+	# The lab gateway exposes the same complete API surface as the Node
+	# gateway. Go's own ServeMux remains the final route allowlist.
+	@go_api path_regexp go_api ^/__lab/go/(api|image|storage|display|thumb|og-media|share-og)(/|$)
+	handle @go_api {
+		uri strip_prefix /__lab/go
+		reverse_proxy go:8080
+	}
+
+	handle /__lab/go/* {
+		respond "Go lab route is not allowlisted" 404
+	}
+
+	handle {
+		reverse_proxy node:3000
+	}
+}

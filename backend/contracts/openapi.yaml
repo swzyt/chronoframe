@@ -1,0 +1,2191 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ChronoFrame backend contract",
+    "version": "1.0.0",
+    "description": "Language-neutral contract for Node and Go backend routing. Route ownership, maturity, authorization class, and side-effect policy are authoritative in routes.yaml. This document uses the JSON subset of YAML 1.2."
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "ChronoFrame gateway"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Access"
+    },
+    {
+      "name": "Admin"
+    },
+    {
+      "name": "Albums"
+    },
+    {
+      "name": "Identity"
+    },
+    {
+      "name": "Photos"
+    },
+    {
+      "name": "Queue"
+    },
+    {
+      "name": "Settings"
+    },
+    {
+      "name": "System"
+    },
+    {
+      "name": "Upload shares"
+    },
+    {
+      "name": "Wizard"
+    },
+    {
+      "name": "Media"
+    },
+    {
+      "name": "Runtime"
+    }
+  ],
+  "paths": {
+    "/api/access/config": {
+      "get": {
+        "operationId": "getAccessConfig",
+        "tags": [
+          "Access"
+        ],
+        "x-chronoframe-route-id": "access.config.read",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateAccessConfig",
+        "tags": [
+          "Access"
+        ],
+        "x-chronoframe-route-id": "access.config.update",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/access/status": {
+      "get": {
+        "operationId": "getAccessStatus",
+        "tags": [
+          "Access"
+        ],
+        "x-chronoframe-route-id": "access.status.read",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/access/verify": {
+      "post": {
+        "operationId": "verifyAccessPassword",
+        "tags": [
+          "Access"
+        ],
+        "x-chronoframe-route-id": "access.verify",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/admin/users/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Id"
+        }
+      ],
+      "delete": {
+        "operationId": "deleteAdminUser",
+        "tags": [
+          "Admin"
+        ],
+        "x-chronoframe-route-id": "admin.users.delete",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateAdminUser",
+        "tags": [
+          "Admin"
+        ],
+        "x-chronoframe-route-id": "admin.users.update",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/admin/users": {
+      "get": {
+        "operationId": "listAdminUsers",
+        "tags": [
+          "Admin"
+        ],
+        "x-chronoframe-route-id": "admin.users.list",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createAdminUser",
+        "tags": [
+          "Admin"
+        ],
+        "x-chronoframe-route-id": "admin.users.create",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/albums/{albumId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AlbumId"
+        }
+      ],
+      "delete": {
+        "operationId": "deleteAlbum",
+        "tags": [
+          "Albums"
+        ],
+        "x-chronoframe-route-id": "albums.delete",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "get": {
+        "operationId": "getAlbum",
+        "tags": [
+          "Albums"
+        ],
+        "x-chronoframe-route-id": "albums.detail",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateAlbum",
+        "tags": [
+          "Albums"
+        ],
+        "x-chronoframe-route-id": "albums.update",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/albums/{albumId}/photos/{photoId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AlbumId"
+        },
+        {
+          "$ref": "#/components/parameters/PhotoId"
+        }
+      ],
+      "delete": {
+        "operationId": "removePhotoFromAlbum",
+        "tags": [
+          "Albums"
+        ],
+        "x-chronoframe-route-id": "albums.photos.remove",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/albums": {
+      "get": {
+        "operationId": "listAlbums",
+        "tags": [
+          "Albums"
+        ],
+        "x-chronoframe-route-id": "albums.list",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createAlbum",
+        "tags": [
+          "Albums"
+        ],
+        "x-chronoframe-route-id": "albums.create",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/auth/github": {
+      "get": {
+        "operationId": "githubOAuthCallback",
+        "tags": [
+          "Identity"
+        ],
+        "x-chronoframe-route-id": "identity.github.callback",
+        "responses": {
+          "302": {
+            "$ref": "#/components/responses/Redirect"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/login": {
+      "post": {
+        "operationId": "login",
+        "tags": [
+          "Identity"
+        ],
+        "x-chronoframe-route-id": "identity.login",
+        "responses": {
+          "201": {
+            "$ref": "#/components/responses/EmptySuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/logout": {
+      "get": {
+        "operationId": "logout",
+        "tags": [
+          "Identity"
+        ],
+        "x-chronoframe-route-id": "identity.logout",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/photos/{photoId}/albums": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/PhotoId"
+        }
+      ],
+      "get": {
+        "operationId": "getPhotoAlbums",
+        "tags": [
+          "Photos",
+          "Albums"
+        ],
+        "x-chronoframe-route-id": "photos.albums.read",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "put": {
+        "operationId": "updatePhotoAlbums",
+        "tags": [
+          "Photos",
+          "Albums"
+        ],
+        "x-chronoframe-route-id": "photos.albums.update",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/photos/{photoId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/PhotoId"
+        }
+      ],
+      "delete": {
+        "operationId": "deletePhoto",
+        "tags": [
+          "Photos"
+        ],
+        "x-chronoframe-route-id": "photos.delete",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "put": {
+        "operationId": "updatePhoto",
+        "tags": [
+          "Photos"
+        ],
+        "x-chronoframe-route-id": "photos.update",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/photos/{photoId}/livephoto": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/PhotoId"
+        }
+      ],
+      "get": {
+        "operationId": "getPhotoLivePhoto",
+        "tags": [
+          "Photos",
+          "Media"
+        ],
+        "x-chronoframe-route-id": "photos.livephoto.read",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/photos/{photoId}/reactions": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/PhotoId"
+        }
+      ],
+      "delete": {
+        "operationId": "deletePhotoReaction",
+        "tags": [
+          "Photos"
+        ],
+        "x-chronoframe-route-id": "photos.reactions.delete",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "get": {
+        "operationId": "getPhotoReactions",
+        "tags": [
+          "Photos"
+        ],
+        "x-chronoframe-route-id": "photos.reactions.read",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createPhotoReaction",
+        "tags": [
+          "Photos"
+        ],
+        "x-chronoframe-route-id": "photos.reactions.create",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/photos/albums": {
+      "put": {
+        "operationId": "bulkUpdatePhotoAlbums",
+        "tags": [
+          "Photos",
+          "Albums"
+        ],
+        "x-chronoframe-route-id": "photos.albums.bulk-update",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/photos/check-duplicate": {
+      "post": {
+        "operationId": "checkDuplicatePhoto",
+        "tags": [
+          "Photos"
+        ],
+        "x-chronoframe-route-id": "photos.duplicate.check",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/photos/exif/reindex": {
+      "post": {
+        "operationId": "reindexPhotoExif",
+        "tags": [
+          "Photos"
+        ],
+        "x-chronoframe-route-id": "photos.exif.reindex",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/photos": {
+      "get": {
+        "operationId": "listPhotos",
+        "tags": [
+          "Photos"
+        ],
+        "x-chronoframe-route-id": "photos.list",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createPhoto",
+        "tags": [
+          "Photos"
+        ],
+        "x-chronoframe-route-id": "photos.create",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/photos/livephoto/manage": {
+      "post": {
+        "operationId": "manageLivePhotos",
+        "tags": [
+          "Photos"
+        ],
+        "x-chronoframe-route-id": "photos.livephoto.manage",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/photos/map": {
+      "get": {
+        "operationId": "getPhotoMap",
+        "tags": [
+          "Photos"
+        ],
+        "x-chronoframe-route-id": "photos.map",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/photos/reactions": {
+      "get": {
+        "operationId": "listPhotoReactions",
+        "tags": [
+          "Photos"
+        ],
+        "x-chronoframe-route-id": "photos.reactions.list",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/photos/status": {
+      "get": {
+        "operationId": "getPhotoStatus",
+        "tags": [
+          "Photos"
+        ],
+        "x-chronoframe-route-id": "photos.status",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/photos/upload": {
+      "put": {
+        "operationId": "uploadPhotoObject",
+        "tags": [
+          "Photos"
+        ],
+        "x-chronoframe-route-id": "photos.upload",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/photos/visible": {
+      "get": {
+        "operationId": "listVisiblePhotos",
+        "tags": [
+          "Photos"
+        ],
+        "x-chronoframe-route-id": "photos.visible",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/profile": {
+      "get": {
+        "operationId": "getProfile",
+        "tags": [
+          "Identity"
+        ],
+        "x-chronoframe-route-id": "identity.profile",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/queue/add-task": {
+      "post": {
+        "operationId": "addQueueTask",
+        "tags": [
+          "Queue"
+        ],
+        "x-chronoframe-route-id": "queue.add-task",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/queue/add-tasks": {
+      "post": {
+        "operationId": "addQueueTasks",
+        "tags": [
+          "Queue"
+        ],
+        "x-chronoframe-route-id": "queue.add-tasks",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/queue/stats/{taskId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/TaskId"
+        }
+      ],
+      "get": {
+        "operationId": "getQueueTaskStats",
+        "tags": [
+          "Queue"
+        ],
+        "x-chronoframe-route-id": "queue.task-stats",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/queue/stats": {
+      "get": {
+        "operationId": "getQueueStats",
+        "tags": [
+          "Queue"
+        ],
+        "x-chronoframe-route-id": "queue.stats",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/queue/task/clear": {
+      "delete": {
+        "operationId": "clearQueueTasks",
+        "tags": [
+          "Queue"
+        ],
+        "x-chronoframe-route-id": "queue.clear",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/queue/task/list": {
+      "get": {
+        "operationId": "listQueueTasks",
+        "tags": [
+          "Queue"
+        ],
+        "x-chronoframe-route-id": "queue.tasks.list",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/queue/task/retry-batch": {
+      "post": {
+        "operationId": "retryQueueTasks",
+        "tags": [
+          "Queue"
+        ],
+        "x-chronoframe-route-id": "queue.retry-batch",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/queue/task/retry": {
+      "post": {
+        "operationId": "retryQueueTask",
+        "tags": [
+          "Queue"
+        ],
+        "x-chronoframe-route-id": "queue.retry",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/system/backup/run": {
+      "post": {
+        "operationId": "runSystemBackup",
+        "tags": [
+          "System"
+        ],
+        "x-chronoframe-route-id": "system.backup.run",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/system/logs": {
+      "get": {
+        "operationId": "streamSystemLogs",
+        "tags": [
+          "System"
+        ],
+        "x-chronoframe-route-id": "system.logs",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/EventStream"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/system/backend/status": {
+      "get": {
+        "operationId": "getBackendStatus",
+        "tags": [
+          "System"
+        ],
+        "x-chronoframe-route-id": "system.backend.status",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/system/settings/{namespace}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Namespace"
+        }
+      ],
+      "get": {
+        "operationId": "getSettingsNamespace",
+        "tags": [
+          "Settings"
+        ],
+        "x-chronoframe-route-id": "settings.namespace.read",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/system/settings/{namespace}/{key}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Namespace"
+        },
+        {
+          "$ref": "#/components/parameters/Key"
+        }
+      ],
+      "get": {
+        "operationId": "getSetting",
+        "tags": [
+          "Settings"
+        ],
+        "x-chronoframe-route-id": "settings.key.read",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateSetting",
+        "tags": [
+          "Settings"
+        ],
+        "x-chronoframe-route-id": "settings.key.update",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/system/settings/all": {
+      "get": {
+        "operationId": "getPublicSettings",
+        "summary": "Read all public settings",
+        "description": "Returns settings where is_public is true, plus system.firstLaunch, grouped first by namespace and then by key. Values are decoded according to the stored setting type.",
+        "tags": [
+          "Settings"
+        ],
+        "x-chronoframe-route-id": "settings.public.read",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Public settings snapshot",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-ChronoFrame-Backend": {
+                "$ref": "#/components/headers/Backend"
+              },
+              "X-ChronoFrame-Backend-Version": {
+                "$ref": "#/components/headers/BackendVersion"
+              },
+              "X-ChronoFrame-Maturity": {
+                "$ref": "#/components/headers/Maturity"
+              },
+              "X-ChronoFrame-Mode": {
+                "$ref": "#/components/headers/Mode"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicSettingsResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/system/settings/batch": {
+      "put": {
+        "operationId": "updateSettingsBatch",
+        "tags": [
+          "Settings"
+        ],
+        "x-chronoframe-route-id": "settings.batch.update",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/system/settings/fields": {
+      "get": {
+        "operationId": "getSettingFields",
+        "tags": [
+          "Settings"
+        ],
+        "x-chronoframe-route-id": "settings.fields",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/system/settings/schema": {
+      "get": {
+        "operationId": "getSettingsSchema",
+        "tags": [
+          "Settings"
+        ],
+        "x-chronoframe-route-id": "settings.schema",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/system/settings/storage-config/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Id"
+        }
+      ],
+      "delete": {
+        "operationId": "deleteStorageConfig",
+        "tags": [
+          "Settings"
+        ],
+        "x-chronoframe-route-id": "settings.storage-config.delete",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "get": {
+        "operationId": "getStorageConfig",
+        "tags": [
+          "Settings"
+        ],
+        "x-chronoframe-route-id": "settings.storage-config.read",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateStorageConfig",
+        "tags": [
+          "Settings"
+        ],
+        "x-chronoframe-route-id": "settings.storage-config.update",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/system/settings/storage-config": {
+      "get": {
+        "operationId": "listStorageConfigs",
+        "tags": [
+          "Settings"
+        ],
+        "x-chronoframe-route-id": "settings.storage-config.list",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createStorageConfig",
+        "tags": [
+          "Settings"
+        ],
+        "x-chronoframe-route-id": "settings.storage-config.create",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/system/stats": {
+      "get": {
+        "operationId": "getSystemStats",
+        "tags": [
+          "System"
+        ],
+        "x-chronoframe-route-id": "system.stats",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/upload-shares/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Id"
+        }
+      ],
+      "delete": {
+        "operationId": "deleteUploadShare",
+        "tags": [
+          "Upload shares"
+        ],
+        "x-chronoframe-route-id": "upload-shares.delete",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateUploadShare",
+        "tags": [
+          "Upload shares"
+        ],
+        "x-chronoframe-route-id": "upload-shares.update",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/upload-shares": {
+      "get": {
+        "operationId": "listUploadShares",
+        "tags": [
+          "Upload shares"
+        ],
+        "x-chronoframe-route-id": "upload-shares.list",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createUploadShare",
+        "tags": [
+          "Upload shares"
+        ],
+        "x-chronoframe-route-id": "upload-shares.create",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/upload-shares/public/{token}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Token"
+        }
+      ],
+      "get": {
+        "operationId": "getPublicUploadShare",
+        "tags": [
+          "Upload shares"
+        ],
+        "x-chronoframe-route-id": "upload-shares.public.read",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/upload-shares/public/{token}/prepare": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Token"
+        }
+      ],
+      "post": {
+        "operationId": "preparePublicUpload",
+        "tags": [
+          "Upload shares"
+        ],
+        "x-chronoframe-route-id": "upload-shares.public.prepare",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/upload-shares/public/{token}/task": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Token"
+        }
+      ],
+      "post": {
+        "operationId": "createPublicUploadTask",
+        "tags": [
+          "Upload shares"
+        ],
+        "x-chronoframe-route-id": "upload-shares.public.task",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/upload-shares/public/{token}/upload": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Token"
+        }
+      ],
+      "put": {
+        "operationId": "uploadPublicObject",
+        "tags": [
+          "Upload shares"
+        ],
+        "x-chronoframe-route-id": "upload-shares.public.upload",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/wizard/admin": {
+      "post": {
+        "operationId": "configureWizardAdmin",
+        "tags": [
+          "Wizard"
+        ],
+        "x-chronoframe-route-id": "wizard.admin",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/wizard/complete": {
+      "post": {
+        "operationId": "completeWizard",
+        "tags": [
+          "Wizard"
+        ],
+        "x-chronoframe-route-id": "wizard.complete",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/wizard/map": {
+      "post": {
+        "operationId": "configureWizardMap",
+        "tags": [
+          "Wizard"
+        ],
+        "x-chronoframe-route-id": "wizard.map",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/wizard/schema": {
+      "get": {
+        "operationId": "getWizardSchema",
+        "tags": [
+          "Wizard"
+        ],
+        "x-chronoframe-route-id": "wizard.schema",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/wizard/site": {
+      "post": {
+        "operationId": "configureWizardSite",
+        "tags": [
+          "Wizard"
+        ],
+        "x-chronoframe-route-id": "wizard.site",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/wizard/storage": {
+      "post": {
+        "operationId": "configureWizardStorage",
+        "tags": [
+          "Wizard"
+        ],
+        "x-chronoframe-route-id": "wizard.storage",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/wizard/submit": {
+      "post": {
+        "operationId": "submitWizard",
+        "tags": [
+          "Wizard"
+        ],
+        "x-chronoframe-route-id": "wizard.submit",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/display/{photoId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/PhotoId"
+        }
+      ],
+      "get": {
+        "operationId": "getDisplayMedia",
+        "tags": [
+          "Media"
+        ],
+        "x-chronoframe-route-id": "media.display",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/BinarySuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/image/{key}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MediaKey"
+        }
+      ],
+      "x-chronoframe-catch-all": [
+        "key"
+      ],
+      "get": {
+        "operationId": "getImageMedia",
+        "tags": [
+          "Media"
+        ],
+        "x-chronoframe-route-id": "media.image",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/BinarySuccess"
+          },
+          "206": {
+            "$ref": "#/components/responses/BinarySuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "head": {
+        "operationId": "headImageMedia",
+        "tags": [
+          "Media"
+        ],
+        "x-chronoframe-route-id": "media.image.head",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/BinarySuccess"
+          },
+          "206": {
+            "$ref": "#/components/responses/BinarySuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/og-media/{photoId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/PhotoId"
+        }
+      ],
+      "get": {
+        "operationId": "getOpenGraphMedia",
+        "tags": [
+          "Media"
+        ],
+        "x-chronoframe-route-id": "media.og",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/BinarySuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/share-og/{photoId}.png": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/PhotoId"
+        }
+      ],
+      "get": {
+        "operationId": "renderShareOpenGraphImage",
+        "tags": [
+          "Media"
+        ],
+        "x-chronoframe-route-id": "media.share-og",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/PngSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/storage/{path}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MediaPath"
+        }
+      ],
+      "x-chronoframe-catch-all": [
+        "path"
+      ],
+      "get": {
+        "operationId": "getStorageMedia",
+        "tags": [
+          "Media"
+        ],
+        "x-chronoframe-route-id": "media.storage",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/BinarySuccess"
+          },
+          "206": {
+            "$ref": "#/components/responses/BinarySuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "head": {
+        "operationId": "headStorageMedia",
+        "tags": [
+          "Media"
+        ],
+        "x-chronoframe-route-id": "media.storage.head",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/BinarySuccess"
+          },
+          "206": {
+            "$ref": "#/components/responses/BinarySuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/thumb/{thumbnailUrl}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ThumbnailUrl"
+        }
+      ],
+      "x-chronoframe-catch-all": [
+        "thumbnailUrl"
+      ],
+      "get": {
+        "operationId": "getThumbnailMedia",
+        "tags": [
+          "Media"
+        ],
+        "x-chronoframe-route-id": "media.thumbnail",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/BinarySuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/_auth/session": {
+      "get": {
+        "operationId": "getAuthSession",
+        "tags": [
+          "Identity"
+        ],
+        "x-chronoframe-route-id": "identity.session.read",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteAuthSession",
+        "tags": [
+          "Identity"
+        ],
+        "x-chronoframe-route-id": "identity.session.delete",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/health/live": {
+      "get": {
+        "operationId": "getLiveness",
+        "summary": "Check whether the Go process is alive",
+        "tags": [
+          "Runtime"
+        ],
+        "x-chronoframe-route-id": "runtime.health.live",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "The process is alive",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-ChronoFrame-Backend": {
+                "$ref": "#/components/headers/Backend"
+              },
+              "X-ChronoFrame-Backend-Version": {
+                "$ref": "#/components/headers/BackendVersion"
+              },
+              "X-ChronoFrame-Maturity": {
+                "$ref": "#/components/headers/Maturity"
+              },
+              "X-ChronoFrame-Mode": {
+                "$ref": "#/components/headers/Mode"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LivenessResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "operationId": "getReadiness",
+        "summary": "Check database schema and required Redis readiness",
+        "tags": [
+          "Runtime"
+        ],
+        "x-chronoframe-route-id": "runtime.health.ready",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "All required dependencies are ready",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-ChronoFrame-Backend": {
+                "$ref": "#/components/headers/Backend"
+              },
+              "X-ChronoFrame-Backend-Version": {
+                "$ref": "#/components/headers/BackendVersion"
+              },
+              "X-ChronoFrame-Maturity": {
+                "$ref": "#/components/headers/Maturity"
+              },
+              "X-ChronoFrame-Mode": {
+                "$ref": "#/components/headers/Mode"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A required dependency or schema check failed",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-ChronoFrame-Backend": {
+                "$ref": "#/components/headers/Backend"
+              },
+              "X-ChronoFrame-Backend-Version": {
+                "$ref": "#/components/headers/BackendVersion"
+              },
+              "X-ChronoFrame-Maturity": {
+                "$ref": "#/components/headers/Maturity"
+              },
+              "X-ChronoFrame-Mode": {
+                "$ref": "#/components/headers/Mode"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/version": {
+      "get": {
+        "operationId": "getBackendVersion",
+        "summary": "Read Go backend build and runtime mode metadata",
+        "tags": [
+          "Runtime"
+        ],
+        "x-chronoframe-route-id": "runtime.version",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Backend version metadata",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-ChronoFrame-Backend": {
+                "$ref": "#/components/headers/Backend"
+              },
+              "X-ChronoFrame-Backend-Version": {
+                "$ref": "#/components/headers/BackendVersion"
+              },
+              "X-ChronoFrame-Maturity": {
+                "$ref": "#/components/headers/Maturity"
+              },
+              "X-ChronoFrame-Mode": {
+                "$ref": "#/components/headers/Mode"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "Id": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "AlbumId": {
+        "name": "albumId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "PhotoId": {
+        "name": "photoId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "TaskId": {
+        "name": "taskId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "Namespace": {
+        "name": "namespace",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "Key": {
+        "name": "key",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "Token": {
+        "name": "token",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "MediaKey": {
+        "name": "key",
+        "in": "path",
+        "required": true,
+        "description": "Percent-encoded catch-all media object key; decoded value may contain slashes.",
+        "schema": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "MediaPath": {
+        "name": "path",
+        "in": "path",
+        "required": true,
+        "description": "Percent-encoded catch-all storage path; decoded value may contain slashes.",
+        "schema": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "ThumbnailUrl": {
+        "name": "thumbnailUrl",
+        "in": "path",
+        "required": true,
+        "description": "Percent-encoded catch-all thumbnail URL; decoded value may contain slashes.",
+        "schema": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "headers": {
+      "RequestId": {
+        "description": "Trusted or generated request correlation identifier.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "Backend": {
+        "description": "Backend implementation that served the response.",
+        "schema": {
+          "enum": [
+            "node",
+            "go"
+          ]
+        }
+      },
+      "BackendVersion": {
+        "description": "Backend build version.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "Maturity": {
+        "description": "Maturity of the serving implementation.",
+        "schema": {
+          "enum": [
+            "experimental",
+            "verified",
+            "stable"
+          ]
+        }
+      },
+      "Mode": {
+        "description": "Backend execution mode.",
+        "schema": {
+          "enum": [
+            "normal",
+            "compare",
+            "shadow",
+            "sandbox"
+          ]
+        }
+      }
+    },
+    "schemas": {
+      "LivenessResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "const": "ok"
+          }
+        }
+      },
+      "ReadinessChecks": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "database",
+          "redis"
+        ],
+        "properties": {
+          "database": {
+            "enum": [
+              "ok",
+              "failed"
+            ]
+          },
+          "redis": {
+            "enum": [
+              "ok",
+              "disabled",
+              "failed"
+            ]
+          }
+        }
+      },
+      "SchemaStatus": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "latestMigrationMillis",
+          "migrationCount"
+        ],
+        "properties": {
+          "latestMigrationMillis": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "migrationCount": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "ReadinessResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "status",
+          "checks",
+          "schema"
+        ],
+        "properties": {
+          "status": {
+            "enum": [
+              "ready",
+              "not_ready"
+            ]
+          },
+          "checks": {
+            "$ref": "#/components/schemas/ReadinessChecks"
+          },
+          "schema": {
+            "$ref": "#/components/schemas/SchemaStatus"
+          }
+        }
+      },
+      "VersionResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "backend",
+          "version",
+          "maturity",
+          "mode"
+        ],
+        "properties": {
+          "backend": {
+            "const": "go"
+          },
+          "version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "maturity": {
+            "enum": [
+              "experimental",
+              "verified",
+              "stable"
+            ]
+          },
+          "mode": {
+            "enum": [
+              "normal",
+              "compare",
+              "shadow",
+              "sandbox"
+            ]
+          }
+        }
+      },
+      "SettingValue": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "object",
+            "additionalProperties": true
+          },
+          {
+            "type": "array",
+            "items": {}
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "SettingsNamespace": {
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "#/components/schemas/SettingValue"
+        }
+      },
+      "PublicSettingsResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "timestamp",
+          "data"
+        ],
+        "properties": {
+          "timestamp": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "Unix epoch timestamp in milliseconds."
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/SettingsNamespace"
+            }
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "statusCode",
+          "statusMessage"
+        ],
+        "properties": {
+          "statusCode": {
+            "type": "integer",
+            "minimum": 400,
+            "maximum": 599
+          },
+          "statusMessage": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "responses": {
+      "GenericSuccess": {
+        "description": "Successful response; payload remains defined by the current Node characterization contract.",
+        "content": {
+          "application/json": {
+            "schema": {}
+          }
+        }
+      },
+      "EmptySuccess": {
+        "description": "Successful response with no required response body."
+      },
+      "BinarySuccess": {
+        "description": "Binary media response.",
+        "content": {
+          "application/octet-stream": {
+            "schema": {
+              "type": "string",
+              "contentEncoding": "binary"
+            }
+          }
+        }
+      },
+      "PngSuccess": {
+        "description": "PNG image response.",
+        "content": {
+          "image/png": {
+            "schema": {
+              "type": "string",
+              "contentEncoding": "binary"
+            }
+          }
+        }
+      },
+      "EventStream": {
+        "description": "Server-sent event stream.",
+        "content": {
+          "text/event-stream": {
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "Redirect": {
+        "description": "OAuth redirect.",
+        "headers": {
+          "Location": {
+            "description": "Redirect target.",
+            "schema": {
+              "type": "string",
+              "format": "uri-reference"
+            }
+          }
+        }
+      },
+      "Error": {
+        "description": "Request failure.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      }
+    }
+  }
+}

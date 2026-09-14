@@ -1,0 +1,169 @@
+{
+  "version": 2,
+  "authority": "backend/nodejs/database/migrations/meta/_journal.json + SQL bytes + backend/contracts/schema-requirements.json",
+  "journalVersion": "7",
+  "requirementsVersion": 1,
+  "requiredTables": {
+    "__drizzle_migrations": ["created_at", "hash"],
+    "album_photos": ["album_id", "photo_id", "position"],
+    "albums": ["id", "is_hidden", "owner_user_id"],
+    "photo_reactions": ["photo_id", "fingerprint", "reaction_type"],
+    "photos": ["id", "content_hash", "owner_user_id", "storage_key"],
+    "pipeline_queue": [
+      "id",
+      "owner_user_id",
+      "payload",
+      "priority",
+      "status",
+      "created_at",
+      "available_at",
+      "claimed_by",
+      "claim_token",
+      "claim_expires_at"
+    ],
+    "settings": ["namespace", "key", "type", "value", "is_public"],
+    "settings_storage_providers": ["id", "provider", "config"],
+    "upload_shares": ["id", "token_hash", "owner_user_id"],
+    "users": [
+      "id",
+      "name",
+      "email",
+      "password",
+      "is_admin",
+      "is_active",
+      "auth_version"
+    ]
+  },
+  "requiredIndexes": [
+    "idx_namespace_key",
+    "idx_photos_owner_content_hash",
+    "idx_pipeline_queue_claim_expires",
+    "idx_pipeline_queue_ready",
+    "idx_upload_shares_token_hash"
+  ],
+  "requiredTriggers": {
+    "users_security_fields_bump_auth_version": "7bdf9157e5ed884917805a1730c3f77705bf1120f0c9c0efc2e0fb02f15c2809"
+  },
+  "migrations": [
+    {
+      "tag": "0000_curvy_scarlet_witch",
+      "createdAt": 1756139400238,
+      "hash": "04d7488efc9cfd490fd368aa916983ae2a7ba26df2d9c666dc4c0a6f6219d6e5"
+    },
+    {
+      "tag": "0001_narrow_spot",
+      "createdAt": 1756737014171,
+      "hash": "f765ac822a4cbb898d5bdbde2471d08fbdfb07eda5b17ff782071ad18f7c4fd7"
+    },
+    {
+      "tag": "0002_faulty_tyrannus",
+      "createdAt": 1756831944824,
+      "hash": "f0773ea09a10804ea0b92ac9303fe81fdd2de3f3d62535515809b73a565aad85"
+    },
+    {
+      "tag": "0003_nifty_hellcat",
+      "createdAt": 1758511705153,
+      "hash": "2a7139c7c1c2a8a9ccf214650a814566b9d70bd664fbae963605419fa07c9467"
+    },
+    {
+      "tag": "0004_absent_lockheed",
+      "createdAt": 1758650003665,
+      "hash": "cc7f73e658bcd638b5cbea3e85d60e46a39116da4a1d4106b63d974afc06e534"
+    },
+    {
+      "tag": "0005_light_stranger",
+      "createdAt": 1758651965719,
+      "hash": "30a678f0640a9954271a737eeea7fe7aabe32136ecbb5b8ca1ac2de20ec0f030"
+    },
+    {
+      "tag": "0006_flaky_the_enforcers",
+      "createdAt": 1758723057975,
+      "hash": "b6f88ee13bbaf0729a1a46a326c61e4e72d966d6ef3111ba8e7f988d3f5ffb0a"
+    },
+    {
+      "tag": "0007_uneven_spectrum",
+      "createdAt": 1759771246422,
+      "hash": "9c7b00656964699f219d8a94a0eca5744e5e9b95a27292f593532a6013acb1d9"
+    },
+    {
+      "tag": "0008_nervous_taskmaster",
+      "createdAt": 1760618594229,
+      "hash": "5d3cdfa057478bd5627f982e9269d06e0cca9724bd8e4ace26930ed8812c468c"
+    },
+    {
+      "tag": "0009_careful_ultragirl",
+      "createdAt": 1762089381492,
+      "hash": "ed7ff5c6353e7d276e7c65ad05c5dea097ae778b016c5bb8a5480f23ed4365f6"
+    },
+    {
+      "tag": "0010_bent_retro_girl",
+      "createdAt": 1775699286491,
+      "hash": "7098b226ec0db20b2046fe76be5ff81c333bfb76b6e9e570570346521baa92e6"
+    },
+    {
+      "tag": "0011_update_location_language_enum",
+      "createdAt": 1784142342471,
+      "hash": "d28011bc36465cdb5d1c55f770322e5daf620a18734f323c3f88ecb06aafa2b4"
+    },
+    {
+      "tag": "0012_multi_user_access",
+      "createdAt": 1785330359856,
+      "hash": "18f9c64a291cc37561762b92ad8639cf641cca1114a623253a002e2eafcdd910"
+    },
+    {
+      "tag": "0013_enforce_owner_not_null",
+      "createdAt": 1785335266510,
+      "hash": "1d9454a0d6d1a723c3c42a3d4d80746b1f9c1fe9e9f68b1fe5b530695ae01fa7"
+    },
+    {
+      "tag": "0014_chemical_dragon_man",
+      "createdAt": 1785420451552,
+      "hash": "c47ce9af895d2a34e84a50ee282ea35aa09c5f8c7c6756e2bf80fec0056710c5"
+    },
+    {
+      "tag": "0015_fast_random",
+      "createdAt": 1785421854938,
+      "hash": "f15ead935546fa07a55f198ace2878cce16c3e12574c3941f46139f3de44921a"
+    },
+    {
+      "tag": "0016_slippery_shadow_king",
+      "createdAt": 1785849137956,
+      "hash": "82eb1920cfd9ff088622ca798f79b72fa6a024316beae1af8c0741dbca6fcb6c"
+    },
+    {
+      "tag": "0017_absent_corsair",
+      "createdAt": 1785851649362,
+      "hash": "927570ab22a4f55daf31cfdeea7d84259ad97b9948ba0c036248c6f9b137b54c"
+    },
+    {
+      "tag": "0018_default_location_language_zh_hans",
+      "createdAt": 1785971709918,
+      "hash": "d30a349d302916a9723f0fe04b56b4824c8c72d645ee125980887173806cfe6a"
+    },
+    {
+      "tag": "0019_upload_shares",
+      "createdAt": 1785974300000,
+      "hash": "59f546b24806e6c40d3011a1a6fa842ceafd6ebeb6a2918889195e54c93a97f8"
+    },
+    {
+      "tag": "0020_upload_share_tokens",
+      "createdAt": 1786046400000,
+      "hash": "1104ad1392ead7cb78159f77632baf1fe710bbd27189fa0e497bbbc9e4d5951c"
+    },
+    {
+      "tag": "0021_photo_content_hash",
+      "createdAt": 1787086800000,
+      "hash": "10db7399b231782342a2f650cdeda63efb8fc449b0545e0470eda681234b1061"
+    },
+    {
+      "tag": "0022_user_auth_version",
+      "createdAt": 1788969309752,
+      "hash": "f4121333daa22c127e6caf4d3485f88d2d5e6dfd67e9d8ad168ded3e6fe31e62"
+    },
+    {
+      "tag": "0023_skinny_gambit",
+      "createdAt": 1789137245151,
+      "hash": "892f83600b17ffc78497feb47726cb61ee4aa5089dd7b17da4d721037c4cd7b9"
+    }
+  ]
+}

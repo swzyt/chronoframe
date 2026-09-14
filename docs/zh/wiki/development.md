@@ -30,14 +30,15 @@ pnpm db:migrate
 
 ## 目录速览
 
-| 路径                    | 说明                              |
-| ----------------------- | --------------------------------- |
-| `app/`                  | Nuxt 应用页面、组件、composables  |
-| `server/`               | API、数据库、存储、队列、媒体处理 |
-| `packages/webgl-image/` | 自研 WebGL 图片查看组件           |
-| `docs/`                 | VitePress 文档                    |
-| `drizzle/`              | 数据库迁移                        |
-| `.github/workflows/`    | CI 和镜像构建                     |
+| 路径                    | 说明                                    |
+| ----------------------- | --------------------------------------- |
+| `app/`                  | Nuxt 应用页面、组件、composables        |
+| `backend/contracts/`    | Node/Go 共用的路由、schema 与测试夹具   |
+| `backend/nodejs/`       | Nitro API、数据库、存储、队列、媒体处理 |
+| `backend/go/`           | Go API、worker 与基础设施实现           |
+| `packages/webgl-image/` | 自研 WebGL 图片查看组件                 |
+| `docs/`                 | VitePress 文档                          |
+| `.github/workflows/`    | CI 和镜像构建                           |
 
 ## 权限开发原则
 

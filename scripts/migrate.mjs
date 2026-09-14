@@ -15,7 +15,7 @@ try {
   const db = drizzle(sqlite)
 
   await migrate(db, {
-    migrationsFolder: join(__dirname, '../server/database/migrations'),
+    migrationsFolder: join(__dirname, '../backend/nodejs/database/migrations'),
   })
 
   console.log('Database migrations completed successfully!')

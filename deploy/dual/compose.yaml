@@ -1,0 +1,162 @@
+name: chronoframe-dual
+
+services:
+  gateway:
+    image: caddy:2.11.3-alpine
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:${CFRAME_DUAL_PORT:-3000}:80'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      node:
+        condition: service_healthy
+
+  node:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    expose:
+      - '3000'
+    env_file:
+      - path: ../../.env
+        required: false
+    environment:
+      DATABASE_URL: /app/data/app.sqlite3
+      CFRAME_BACKEND_ID: node
+      CFRAME_BACKEND_VERSION: ${CFRAME_NODE_VERSION:-dev}
+      CFRAME_ENV: ${CFRAME_ENV:-development}
+      CFRAME_GO_UPSTREAM: http://go:8080
+      CFRAME_REDIS_URL: redis://redis:6379/0
+      CFRAME_REDIS_PASSWORD: ${CFRAME_REDIS_PASSWORD:-chronoframe-development-only-change-me}
+      CFRAME_REDIS_REQUIRED: 'true'
+      NUXT_SESSION_PASSWORD: ${NUXT_SESSION_PASSWORD:-chronoframe-dual-development-secret-change-me}
+      NUXT_OG_IMAGE_SECRET: ${NUXT_OG_IMAGE_SECRET:-chronoframe-dual-og-development-secret}
+      CFRAME_DB_MIGRATOR: node
+      CFRAME_PIPELINE_CONSUMER: node
+      CFRAME_BACKUP_SCHEDULER: node
+    volumes:
+      - ${CFRAME_DATA_DIR:-app_data}:/app/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - /usr/bin/node
+        - -e
+        - >-
+          fetch('http://127.0.0.1:3000/api/_auth/session')
+          .then((response) => process.exit(response.ok ? 0 : 1))
+          .catch(() => process.exit(1))
+      interval: 3s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+
+  go:
+    build:
+      context: ../..
+      dockerfile: backend/go/Dockerfile
+    restart: unless-stopped
+    expose:
+      - '8080'
+    env_file:
+      - path: ../../.env
+        required: false
+    environment:
+      DATABASE_URL: /app/data/app.sqlite3
+      CFRAME_BACKEND_VERSION: ${CFRAME_GO_VERSION:-dev}
+      CFRAME_ENV: ${CFRAME_ENV:-development}
+      CFRAME_GO_MATURITY: experimental
+      CFRAME_GO_MODE: normal
+      CFRAME_REDIS_URL: redis://redis:6379/0
+      CFRAME_REDIS_PASSWORD: ${CFRAME_REDIS_PASSWORD:-chronoframe-development-only-change-me}
+      CFRAME_REDIS_REQUIRED: 'true'
+      NUXT_SESSION_PASSWORD: ${NUXT_SESSION_PASSWORD:-chronoframe-dual-development-secret-change-me}
+      NUXT_OG_IMAGE_SECRET: ${NUXT_OG_IMAGE_SECRET:-chronoframe-dual-og-development-secret}
+      CFRAME_ROUTE_MANIFEST: /app/contracts/routes.yaml
+      CFRAME_DB_MIGRATOR: none
+      CFRAME_PIPELINE_CONSUMER: none
+      CFRAME_BACKUP_SCHEDULER: none
+    volumes:
+      - ${CFRAME_DATA_DIR:-app_data}:/app/data
+      - ../../backend/contracts:/app/contracts:ro
+    # The shared SQLite and local-media bind mount is created by the Node
+    # container as root in the learning stack. Go is allowed to perform the
+    # same API writes when the provider is switched to Go.
+    user: '0:0'
+    depends_on:
+      redis:
+        condition: service_healthy
+      node:
+        condition: service_healthy
+    healthcheck:
+      test:
+        ['CMD', 'wget', '-q', '--spider', 'http://127.0.0.1:8080/health/ready']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+
+  fixture:
+    profiles:
+      - tools
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+      target: build
+    working_dir: /usr/src/app
+    env_file:
+      - path: ../../.env
+        required: false
+    environment:
+      DATABASE_URL: /app/data/app.sqlite3
+      CFRAME_ENV: ${CFRAME_ENV:-development}
+      CFRAME_REDIS_URL: redis://redis:6379/0
+      CFRAME_REDIS_PASSWORD: ${CFRAME_REDIS_PASSWORD:-chronoframe-development-only-change-me}
+      NUXT_SESSION_PASSWORD: ${NUXT_SESSION_PASSWORD:-chronoframe-dual-development-secret-change-me}
+      NUXT_OG_IMAGE_SECRET: ${NUXT_OG_IMAGE_SECRET:-chronoframe-dual-og-development-secret}
+    volumes:
+      - ${CFRAME_DATA_DIR:-app_data}:/app/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    command:
+      - pnpm
+      - dual:seed-compare
+
+  redis:
+    image: redis:8.10.1-alpine3.23
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:${CFRAME_DUAL_REDIS_PORT:-36379}:6379'
+    environment:
+      REDIS_PASSWORD: ${CFRAME_REDIS_PASSWORD:-chronoframe-development-only-change-me}
+    command:
+      - /bin/sh
+      - -ec
+      - >-
+        exec redis-server
+        --appendonly yes
+        --appendfsync everysec
+        --maxmemory-policy noeviction
+        --requirepass "$${REDIS_PASSWORD}"
+    expose:
+      - '6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'REDISCLI_AUTH="$${REDIS_PASSWORD}" redis-cli ping | grep -q PONG',
+        ]
+      interval: 3s
+      timeout: 2s
+      retries: 20
+
+volumes:
+  app_data:
+  redis_data:

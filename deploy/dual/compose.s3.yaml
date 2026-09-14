@@ -1,0 +1,29 @@
+services:
+  minio:
+    image: quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z
+    restart: unless-stopped
+    command:
+      - server
+      - /data
+      - --address
+      - :9000
+      - --console-address
+      - :9001
+    environment:
+      MINIO_ROOT_USER: ${CFRAME_DUAL_S3_ACCESS_KEY:-chronoframe-minio}
+      MINIO_ROOT_PASSWORD: ${CFRAME_DUAL_S3_SECRET_KEY:-chronoframe-minio-development-secret}
+    ports:
+      - '127.0.0.1:${CFRAME_DUAL_MINIO_PORT:-39000}:9000'
+    expose:
+      - '9000'
+    tmpfs:
+      - /data
+
+  fixture:
+    environment:
+      CFRAME_DUAL_S3_ENDPOINT: http://minio:9000
+      CFRAME_DUAL_S3_ACCESS_KEY: ${CFRAME_DUAL_S3_ACCESS_KEY:-chronoframe-minio}
+      CFRAME_DUAL_S3_SECRET_KEY: ${CFRAME_DUAL_S3_SECRET_KEY:-chronoframe-minio-development-secret}
+    depends_on:
+      minio:
+        condition: service_started

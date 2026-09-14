@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { Album, Photo } from '~~/server/utils/db'
+import type { Album, Photo } from '#server/utils/db'
 import type { FormSubmitEvent, FormError } from '@nuxt/ui'
 
 definePageMeta({

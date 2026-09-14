@@ -1316,10 +1316,37 @@
     },
     "system": {
       "sections": {
+        "backend": "API backend implementation",
         "thirdPartyLogin": "Third-Party Login",
         "fileProcessing": "File Processing",
         "debugSettings": "Debug Settings",
         "databaseBackup": "Database Backup"
+      },
+      "backend": {
+        "readProvider": {
+          "label": "API backend implementation",
+          "description": "Choose whether registered API routes are served by the Node.js or Go backend implementation.",
+          "help": "Node.js is the stable default. When Go is selected, registered read and write API routes with a Go implementation are proxied to Go. The switch itself remains Node-owned so you can always roll back.",
+          "options": {
+            "node": "Node.js",
+            "go": "Go"
+          }
+        },
+        "status": {
+          "currentNode": "Current: Node.js",
+          "currentGo": "Current: Go",
+          "refresh": "Refresh status",
+          "nodeTitle": "Node.js backend",
+          "nodeReady": "Stable gateway and fallback are available.",
+          "goTitle": "Go backend",
+          "unavailable": "Backend status is unavailable. You can still save the setting, but verify the Go service before switching traffic.",
+          "go": {
+            "ready": "Ready. Registered routes can be served by Go.",
+            "not_ready": "Not ready. Keep traffic on Node.js until checks pass.",
+            "unreachable": "Unreachable. Check the Go service before switching.",
+            "not_configured": "Not configured. Set CFRAME_GO_UPSTREAM first."
+          }
+        }
       },
       "upload": {
         "duplicateCheck": {
