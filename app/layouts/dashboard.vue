@@ -5,11 +5,50 @@ const route = useRoute()
 const router = useRouter()
 const { loggedIn, user } = useUserSession()
 const settingsStore = useSettingsStore()
+const {
+  status: backendStatus,
+  loading: backendStatusLoading,
+  refresh: refreshBackendStatus,
+} = useBackendStatus()
 
 const appTitle = computed(() => {
   const value = settingsStore.getSetting('app:title')
   return value ? String(value) : $t('title.dashboard')
 })
+
+const backendRuntimeLabel = computed(() => {
+  if (!backendStatus.value) return 'API'
+  return backendStatus.value.currentProvider === 'go' ? 'Go' : 'Node.js'
+})
+
+const backendRuntimeIcon = computed(() => {
+  if (!backendStatus.value) return 'tabler:server'
+  return backendStatus.value.currentProvider === 'go'
+    ? 'tabler:brand-golang'
+    : 'tabler:brand-nodejs'
+})
+
+const backendRuntimeColor = computed(() => {
+  if (!backendStatus.value) return 'neutral'
+  return backendStatus.value.currentProvider === 'go' ? 'info' : 'success'
+})
+
+const backendRuntimeDescription = computed(() => {
+  if (!backendStatus.value) {
+    return $t('settings.system.backend.status.unavailable')
+  }
+  return backendStatus.value.currentProvider === 'go'
+    ? $t('settings.system.backend.status.currentGo')
+    : $t('settings.system.backend.status.currentNode')
+})
+
+watch(
+  () => user.value?.isAdmin,
+  (isAdmin) => {
+    if (import.meta.client && isAdmin) void refreshBackendStatus()
+  },
+  { immediate: true },
+)
 
 const navItems = computed<NavigationMenuItem[][]>(() => [
   [
@@ -201,19 +240,38 @@ const handleLogin = () => {
       </template>
 
       <template #footer="{ collapsed }">
-        <UButton
-          :avatar="{
-            src: user?.avatar || '',
-            alt: user?.username || user?.email || 'User Avatar',
-            icon: 'tabler:user',
-          }"
-          :label="collapsed ? undefined : user?.username || 'User'"
-          size="lg"
-          color="neutral"
-          variant="ghost"
-          class="w-full"
-          :block="collapsed"
-        />
+        <div class="w-full space-y-1">
+          <UTooltip
+            v-if="user?.isAdmin"
+            :text="backendRuntimeDescription"
+          >
+            <UButton
+              :icon="backendRuntimeIcon"
+              :label="collapsed ? undefined : backendRuntimeLabel"
+              :aria-label="backendRuntimeDescription"
+              :loading="backendStatusLoading"
+              :color="backendRuntimeColor"
+              variant="soft"
+              size="sm"
+              class="w-full"
+              :block="collapsed"
+              @click="refreshBackendStatus"
+            />
+          </UTooltip>
+          <UButton
+            :avatar="{
+              src: user?.avatar || '',
+              alt: user?.username || user?.email || 'User Avatar',
+              icon: 'tabler:user',
+            }"
+            :label="collapsed ? undefined : user?.username || 'User'"
+            size="lg"
+            color="neutral"
+            variant="ghost"
+            class="w-full"
+            :block="collapsed"
+          />
+        </div>
       </template>
     </UDashboardSidebar>
 

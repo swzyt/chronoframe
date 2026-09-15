@@ -10,6 +10,14 @@ const settingsFormComposable = readFileSync(
   new URL('../app/composables/useSettingsForm.ts', import.meta.url),
   'utf8',
 )
+const backendStatusComposable = readFileSync(
+  new URL('../app/composables/useBackendStatus.ts', import.meta.url),
+  'utf8',
+)
+const dashboardLayout = readFileSync(
+  new URL('../app/layouts/dashboard.vue', import.meta.url),
+  'utf8',
+)
 const backendStatusAPI = readFileSync(
   new URL('../backend/nodejs/api/system/backend/status.get.ts', import.meta.url),
   'utf8',
@@ -60,7 +68,8 @@ test('admin backend provider switch stays Node-owned so Go can always roll back'
 })
 
 test('admin backend section shows Node-owned Go readiness before switching', () => {
-  assert.match(systemSettingsPage, /\/api\/system\/backend\/status/)
+  assert.match(systemSettingsPage, /useBackendStatus\(\)/)
+  assert.match(backendStatusComposable, /\/api\/system\/backend\/status/)
   assert.match(
     systemSettingsPage,
     /backendStatus\.value\.go\.status === 'ready'/,
@@ -77,6 +86,16 @@ test('admin backend section shows Node-owned Go readiness before switching', () 
     /resolveGoRoute|proxyRequest/,
     'status endpoint must stay Node-owned and must not depend on Go route dispatch',
   )
+})
+
+test('dashboard shows the shared runtime provider only to administrators', () => {
+  assert.match(dashboardLayout, /useBackendStatus\(\)/)
+  assert.match(dashboardLayout, /v-if="user\?\.isAdmin"/)
+  assert.match(dashboardLayout, /import\.meta\.client && isAdmin/)
+  assert.match(dashboardLayout, /backendRuntimeLabel/)
+  assert.match(dashboardLayout, /refreshBackendStatus/)
+  assert.match(backendStatusComposable, /useState<BackendStatusResponse \| null>/)
+  assert.doesNotMatch(systemSettingsPage, /onMounted\(fetchBackendStatus\)/)
 })
 
 test('Go proxy preserves an unencoded upstream Content-Length', () => {

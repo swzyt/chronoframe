@@ -17,42 +17,11 @@ const {
 } = useSettingsForm('system')
 const toast = useToast()
 const backupRunning = ref(false)
-
-type BackendStatusResponse = {
-  currentProvider: 'node' | 'go'
-  node: {
-    status: string
-    owned: boolean
-  }
-  go: {
-    configured: boolean
-    status: string
-    owned: boolean
-    upstream: string
-    checks: Record<string, string>
-    schema: {
-      migrationCount?: number
-      latestMigrationMillis?: number
-    } | null
-    error: string
-  }
-}
-
-const backendStatus = ref<BackendStatusResponse | null>(null)
-const backendStatusLoading = ref(false)
-
-const fetchBackendStatus = async () => {
-  backendStatusLoading.value = true
-  try {
-    backendStatus.value = await $fetch<BackendStatusResponse>(
-      '/api/system/backend/status',
-    )
-  } catch {
-    backendStatus.value = null
-  } finally {
-    backendStatusLoading.value = false
-  }
-}
+const {
+  status: backendStatus,
+  loading: backendStatusLoading,
+  refresh: fetchBackendStatus,
+} = useBackendStatus()
 
 const backendStatusColor = computed(() => {
   if (!backendStatus.value) return 'neutral'
@@ -63,8 +32,6 @@ const backendStatusColor = computed(() => {
 const goBackendCheckEntries = computed(() =>
   Object.entries(backendStatus.value?.go.checks || {}),
 )
-
-onMounted(fetchBackendStatus)
 
 const systemFields = computed(() =>
   rawSystemFields.value.filter((field) => !field.isReadonly),
@@ -171,11 +138,12 @@ const handleSectionSettingsSubmit = async (
 
   try {
     await submitSystem(systemData)
+  } catch {
+    /* empty */
+  } finally {
     if (section.id === 'backend') {
       await fetchBackendStatus()
     }
-  } catch {
-    /* empty */
   }
 }
 
