@@ -34,3 +34,4 @@ logs
 # VitePress outputs
 docs/.vitepress/dist
 docs/.vitepress/cache
+docs/public/architecture/*.visual-check.*

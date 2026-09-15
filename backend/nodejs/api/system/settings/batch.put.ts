@@ -4,6 +4,10 @@ import {
   settingNamespaces,
 } from '#server/services/settings/contants'
 import { settingsManager } from '#server/services/settings/settingsManager'
+import {
+  assertGoBackendReadyForSwitch,
+  normalizeBackendProvider,
+} from '#server/utils/backend-routing'
 
 /**
  * PUT /api/system/settings/batch
@@ -40,6 +44,16 @@ export default eventHandler(async (event) => {
   )
 
   try {
+    const switchesToGo = body.updates.some(
+      (update) =>
+        update.namespace === 'system' &&
+        update.key === 'backend.readProvider' &&
+        normalizeBackendProvider(update.value) === 'go',
+    )
+    if (switchesToGo) {
+      await assertGoBackendReadyForSwitch(event)
+    }
+
     let successCount = 0
     const errors: Array<{ namespace: string; key: string; error: string }> = []
 

@@ -1,3 +1,5 @@
+import { getRequestHeader, type H3Event } from 'h3'
+
 export type BackendProvider = 'node' | 'go'
 
 export interface GoRoute {
@@ -316,6 +318,56 @@ export function shouldDispatchReadToGo(input: {
     normalizeBackendProvider(input.provider) === 'go' &&
     resolveGoReadRoute(input.path, input.searchParams) !== null
   )
+}
+
+type GoReadyBody = {
+  status?: string
+  checks?: Record<string, string>
+}
+
+export async function assertGoBackendReadyForSwitch(event: H3Event) {
+  let upstream: URL | null = null
+  try {
+    upstream = resolveGoUpstream()
+  } catch (error) {
+    throw new Error((error as Error).message)
+  }
+
+  if (!upstream) {
+    throw new Error('Go backend is not configured')
+  }
+
+  const target = joinGoUpstreamURL(upstream, '/health/ready')
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 3_000)
+  try {
+    const response = await fetch(target, {
+      method: 'GET',
+      signal: controller.signal,
+      headers: {
+        'X-Request-Id': getRequestHeader(event, 'x-request-id') || '',
+      },
+    })
+    const body = (await response.json().catch(() => null)) as GoReadyBody | null
+    const checks = body?.checks || {}
+    const missingChecks = ['database', 'mediaTools', 'redis'].filter(
+      (name) => checks[name] !== 'ok',
+    )
+
+    if (!response.ok || body?.status !== 'ready' || missingChecks.length) {
+      const reason = missingChecks.length
+        ? `Go backend readiness checks failed: ${missingChecks.join(', ')}`
+        : `Go backend readiness returned HTTP ${response.status}`
+      throw new Error(reason)
+    }
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Cannot switch to Go backend: ${error.message}`)
+    }
+    throw new Error('Cannot switch to Go backend: readiness request failed')
+  } finally {
+    clearTimeout(timeout)
+  }
 }
 
 export function shouldDispatchToGo(input: {

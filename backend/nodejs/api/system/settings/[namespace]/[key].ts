@@ -4,6 +4,10 @@ import {
   settingNamespaces,
 } from '#server/services/settings/contants'
 import { settingsManager } from '#server/services/settings/settingsManager'
+import {
+  assertGoBackendReadyForSwitch,
+  normalizeBackendProvider,
+} from '#server/utils/backend-routing'
 
 export default eventHandler(async (event) => {
   const user = await requireAdmin(event)
@@ -37,6 +41,13 @@ export default eventHandler(async (event) => {
     )
 
     try {
+      if (
+        namespace === 'system' &&
+        key === 'backend.readProvider' &&
+        normalizeBackendProvider(value) === 'go'
+      ) {
+        await assertGoBackendReadyForSwitch(event)
+      }
       await settingsManager.set(namespace, key, value, user.id)
       return { namespace, key, value }
     } catch (err) {

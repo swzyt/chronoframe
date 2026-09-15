@@ -1,0 +1,408 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "ChronoFrame 当前系统架构",
+    "locale": "zh-CN",
+    "output": "/architecture/chronoframe-current.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/swzyt/chronoframe",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "835eee2c9c1b280e3b1c5e282e306a97f54df023"
+    },
+    "viewBox": [
+      1320,
+      760
+    ],
+    "views": [
+      {
+        "id": "request",
+        "label": "请求入口",
+        "focus": [
+          "visitor",
+          "nuxt",
+          "node-gateway",
+          "go-api",
+          "sqlite"
+        ],
+        "note": "所有公网请求先进入 Nuxt/Node，再按设置把已登记 API 代理到 Go。"
+      },
+      {
+        "id": "state",
+        "label": "共享状态",
+        "focus": [
+          "node-gateway",
+          "go-api",
+          "sqlite",
+          "redis",
+          "object-storage"
+        ],
+        "note": "Node 与 Go 共享 SQLite、Redis 与对象存储，但副作用 owner 必须唯一。"
+      },
+      {
+        "id": "pipeline",
+        "label": "媒体管线",
+        "focus": [
+          "node-gateway",
+          "go-api",
+          "queue",
+          "media-tools",
+          "object-storage",
+          "sqlite"
+        ],
+        "note": "上传、EXIF、缩略图、视频和 Live Photo 由任务队列驱动处理。"
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "visitor",
+      "type": "external",
+      "label": "访客 / 用户 / 管理员",
+      "pos": [
+        30,
+        340
+      ],
+      "size": [
+        154,
+        72
+      ]
+    },
+    {
+      "id": "nuxt",
+      "type": "frontend",
+      "label": "Nuxt 4 前端",
+      "pos": [
+        234,
+        340
+      ],
+      "size": [
+        158,
+        72
+      ],
+      "sources": [
+        {
+          "path": "app/pages/[...slug].vue",
+          "label": "照片详情"
+        },
+        {
+          "path": "app/components/photo/Viewer.vue",
+          "label": "查看器"
+        }
+      ]
+    },
+    {
+      "id": "node-gateway",
+      "type": "backend",
+      "label": "Node.js / Nitro 网关",
+      "tag": "public :3000",
+      "pos": [
+        424,
+        336
+      ],
+      "size": [
+        184,
+        80
+      ],
+      "sources": [
+        {
+          "path": "backend/nodejs/middleware/01.backend-dispatch.ts",
+          "label": "代理"
+        },
+        {
+          "path": "backend/nodejs/utils/backend-routing.ts",
+          "label": "路由表"
+        }
+      ]
+    },
+    {
+      "id": "go-api",
+      "type": "backend",
+      "label": "Go API / Workers",
+      "tag": "internal :8080",
+      "pos": [
+        638,
+        336
+      ],
+      "size": [
+        184,
+        80
+      ],
+      "sources": [
+        {
+          "path": "backend/go/internal/app/app.go",
+          "label": "ServeMux"
+        },
+        {
+          "path": "backend/go/internal/app/pipeline_consumer.go",
+          "label": "worker"
+        }
+      ]
+    },
+    {
+      "id": "contracts",
+      "type": "security",
+      "label": "共享契约",
+      "pos": [
+        424,
+        128
+      ],
+      "size": [
+        184,
+        72
+      ],
+      "sources": [
+        {
+          "path": "backend/contracts/routes.yaml",
+          "label": "route manifest"
+        },
+        {
+          "path": "backend/contracts/schema.json",
+          "label": "schema"
+        }
+      ]
+    },
+    {
+      "id": "sqlite",
+      "type": "database",
+      "label": "SQLite + WAL",
+      "pos": [
+        852,
+        340
+      ],
+      "size": [
+        184,
+        72
+      ]
+    },
+    {
+      "id": "redis",
+      "type": "messagebus",
+      "label": "Redis",
+      "pos": [
+        638,
+        128
+      ],
+      "size": [
+        190,
+        72
+      ]
+    },
+    {
+      "id": "object-storage",
+      "type": "cloud",
+      "label": "对象存储",
+      "pos": [
+        1064,
+        340
+      ],
+      "size": [
+        190,
+        72
+      ]
+    },
+    {
+      "id": "queue",
+      "type": "messagebus",
+      "label": "SQLite 任务队列",
+      "pos": [
+        638,
+        552
+      ],
+      "size": [
+        184,
+        72
+      ]
+    },
+    {
+      "id": "media-tools",
+      "type": "external",
+      "label": "媒体工具链",
+      "pos": [
+        852,
+        552
+      ],
+      "size": [
+        184,
+        72
+      ]
+    },
+    {
+      "id": "deployment",
+      "type": "cloud",
+      "label": "Docker / GHCR / Actions",
+      "pos": [
+        196,
+        552
+      ],
+      "size": [
+        184,
+        72
+      ],
+      "sources": [
+        {
+          "path": ".github/workflows/publish-images.yml",
+          "label": "发布"
+        },
+        {
+          "path": "deploy/dual/compose.yaml",
+          "label": "双栈"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "ChronoFrame 单仓库双后端运行时",
+      "wraps": [
+        "nuxt",
+        "node-gateway",
+        "go-api",
+        "contracts",
+        "sqlite",
+        "redis",
+        "object-storage",
+        "queue",
+        "media-tools",
+        "deployment"
+      ],
+      "pad": 24
+    },
+    {
+      "kind": "security-group",
+      "label": "内部共享状态：只允许唯一副作用 owner",
+      "wraps": [
+        "sqlite",
+        "redis",
+        "object-storage",
+        "queue"
+      ],
+      "pad": 22
+    }
+  ],
+  "connections": [
+    {
+      "id": "visitor-to-nuxt",
+      "from": "visitor",
+      "to": "nuxt",
+      "variant": "emphasis"
+    },
+    {
+      "id": "nuxt-to-node",
+      "from": "nuxt",
+      "to": "node-gateway",
+      "variant": "emphasis"
+    },
+    {
+      "id": "node-to-go",
+      "from": "node-gateway",
+      "to": "go-api",
+      "label": "provider=go 代理",
+      "variant": "emphasis",
+      "labelAt": [
+        632,
+        430
+      ]
+    },
+    {
+      "id": "contracts-to-node",
+      "from": "contracts",
+      "to": "node-gateway",
+      "label": "契约校验",
+      "variant": "security",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        516,
+        220
+      ]
+    },
+    {
+      "id": "go-sqlite",
+      "from": "go-api",
+      "to": "sqlite",
+      "label": "共享读写",
+      "labelAt": [
+        838,
+        318
+      ]
+    },
+    {
+      "id": "go-redis",
+      "from": "go-api",
+      "to": "redis",
+      "label": "limit / lease",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "labelDx": 70
+    },
+    {
+      "id": "go-storage",
+      "from": "sqlite",
+      "to": "object-storage",
+      "label": "对象 key 指向媒体",
+      "labelAt": [
+        1010,
+        318
+      ]
+    },
+    {
+      "id": "queue-to-go",
+      "from": "go-api",
+      "to": "queue",
+      "label": "claim task",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        722,
+        500
+      ]
+    },
+    {
+      "id": "tools-to-go",
+      "from": "go-api",
+      "to": "media-tools",
+      "label": "媒体处理",
+      "labelAt": [
+        910,
+        500
+      ]
+    },
+    {
+      "id": "deploy-to-node",
+      "from": "deployment",
+      "to": "node-gateway",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "入口原则",
+      "items": [
+        "Node/Nitro 仍是唯一公网入口与默认 owner。",
+        "Go 只处理显式登记且通过 readiness 的 operation。"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "共享状态",
+      "items": [
+        "SQLite 保存业务真相，Redis 保存跨进程运行态。",
+        "对象存储保存原图、派生图、Live Photo 与视频资源。"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "迁移安全",
+      "items": [
+        "切换 Go 前校验 DB、Redis 和媒体工具链。",
+        "迁移、队列 consumer、备份 scheduler 均要求单 owner。"
+      ]
+    }
+  ]
+}

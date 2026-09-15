@@ -94,6 +94,10 @@ export default defineConfig({
         items: [
           { text: 'Contributing Guide', link: '/development/contributing' },
           { text: 'API Documentation', link: '/development/api' },
+          {
+            text: 'Current Architecture',
+            link: '/development/current-architecture',
+          },
         ],
       },
     ],
@@ -184,6 +188,10 @@ export default defineConfig({
             items: [
               { text: '贡献指南', link: '/zh/development/contributing' },
               { text: 'API 文档', link: '/zh/development/api' },
+              {
+                text: '当前技术与业务架构',
+                link: '/zh/development/current-architecture',
+              },
               {
                 text: '双后端学习模式 PRD',
                 link: '/zh/development/dual-backend-product',
