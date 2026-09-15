@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "ChronoFrame 公开访问与媒体授权时序",
+    "locale": "zh-CN",
+    "output": "docs/public/architecture/access-media.html",
+    "viewBox": [960, 500],
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "views": [
+      {
+        "id": "preview-mode",
+        "label": "未验证预览",
+        "focus": ["visitor", "gateway", "redis", "sqlite"],
+        "note": "匿名访客没有资格 Cookie 时，只返回后台配置的预览数量。"
+      },
+      {
+        "id": "password-verify",
+        "label": "访问密码验证",
+        "focus": ["visitor", "gateway", "redis", "sqlite"],
+        "note": "后端校验哈希并签发带密码版本的 HttpOnly Cookie。"
+      },
+      {
+        "id": "media-read",
+        "label": "媒体读取",
+        "focus": ["visitor", "gateway", "sqlite", "storage"],
+        "note": "媒体路由重新执行授权，客户端不会直接获得私有对象 key。"
+      }
+    ]
+  },
+  "participants": [
+    {
+      "id": "visitor",
+      "type": "external",
+      "label": "访客浏览器",
+      "sublabel": "anonymous / cookie"
+    },
+    {
+      "id": "gateway",
+      "type": "backend",
+      "label": "Node 网关",
+      "sublabel": "route dispatch"
+    },
+    {
+      "id": "redis",
+      "type": "messagebus",
+      "label": "Redis",
+      "sublabel": "资格、限流、session"
+    },
+    {
+      "id": "sqlite",
+      "type": "database",
+      "label": "SQLite",
+      "sublabel": "设置与可见性"
+    },
+    {
+      "id": "storage",
+      "type": "cloud",
+      "label": "对象存储",
+      "sublabel": "private media bytes"
+    }
+  ],
+  "segments": [
+    { "from": 150, "to": 235, "label": "未验证预览" },
+    { "from": 245, "to": 300, "label": "验证访问密码" },
+    { "from": 310, "to": 425, "label": "授权媒体交付" }
+  ],
+  "messages": [
+    {
+      "from": "visitor",
+      "to": "gateway",
+      "y": 165,
+      "label": "GET public page / API",
+      "variant": "emphasis"
+    },
+    {
+      "from": "gateway",
+      "to": "redis",
+      "y": 195,
+      "label": "读取 session / entitlement",
+      "variant": "security"
+    },
+    {
+      "from": "gateway",
+      "to": "sqlite",
+      "y": 225,
+      "label": "保护配置 + 预览可见集",
+      "variant": "default"
+    },
+    {
+      "from": "visitor",
+      "to": "gateway",
+      "y": 260,
+      "label": "POST /api/access/verify",
+      "variant": "emphasis"
+    },
+    {
+      "from": "gateway",
+      "to": "sqlite",
+      "y": 290,
+      "label": "限流后校验哈希并签发 Cookie",
+      "variant": "security",
+      "note": "失败窗口存于 Redis；Cookie 有效期 30 天；密码版本变化后旧凭证失效。"
+    },
+    {
+      "from": "visitor",
+      "to": "gateway",
+      "y": 325,
+      "label": "GET /display/:photoId + cookie",
+      "variant": "emphasis"
+    },
+    {
+      "from": "gateway",
+      "to": "sqlite",
+      "y": 355,
+      "label": "校验可见性并解析媒体 key",
+      "variant": "security"
+    },
+    {
+      "from": "gateway",
+      "to": "storage",
+      "y": 385,
+      "label": "读取私有派生对象",
+      "variant": "default"
+    },
+    {
+      "from": "storage",
+      "to": "visitor",
+      "y": 415,
+      "label": "缓存、条件请求或 Range 响应",
+      "variant": "return"
+    }
+  ],
+  "activations": [
+    { "participant": "gateway", "from": 160, "to": 298, "type": "backend" },
+    { "participant": "redis", "from": 190, "to": 203, "type": "messagebus" },
+    { "participant": "sqlite", "from": 220, "to": 298, "type": "database" },
+    { "participant": "gateway", "from": 320, "to": 393, "type": "backend" },
+    { "participant": "storage", "from": 380, "to": 423, "type": "cloud" }
+  ]
+}

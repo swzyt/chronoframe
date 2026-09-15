@@ -64,6 +64,22 @@ export default defineConfig({
             link: '/zh/development/current-architecture',
           },
           {
+            text: 'API 迁移矩阵',
+            link: '/zh/development/api-migration-matrix',
+          },
+          {
+            text: '数据模型与归属',
+            link: '/zh/development/data-model',
+          },
+          {
+            text: '核心请求生命周期',
+            link: '/zh/development/request-lifecycles',
+          },
+          {
+            text: '运维、安全、性能与成本',
+            link: '/zh/development/operations-security-performance',
+          },
+          {
             text: '双后端学习模式 PRD',
             link: '/zh/development/dual-backend-product',
           },

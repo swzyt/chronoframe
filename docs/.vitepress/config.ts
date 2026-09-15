@@ -98,6 +98,22 @@ export default defineConfig({
             text: 'Current Architecture',
             link: '/development/current-architecture',
           },
+          {
+            text: 'API Migration Matrix',
+            link: '/development/api-migration-matrix',
+          },
+          {
+            text: 'Data Model and Ownership',
+            link: '/development/data-model',
+          },
+          {
+            text: 'Request Lifecycles',
+            link: '/development/request-lifecycles',
+          },
+          {
+            text: 'Operations, Security and Performance',
+            link: '/development/operations-security-performance',
+          },
         ],
       },
     ],
@@ -191,6 +207,22 @@ export default defineConfig({
               {
                 text: '当前技术与业务架构',
                 link: '/zh/development/current-architecture',
+              },
+              {
+                text: 'API 迁移矩阵',
+                link: '/zh/development/api-migration-matrix',
+              },
+              {
+                text: '数据模型与归属',
+                link: '/zh/development/data-model',
+              },
+              {
+                text: '核心请求生命周期',
+                link: '/zh/development/request-lifecycles',
+              },
+              {
+                text: '运维、安全、性能与成本',
+                link: '/zh/development/operations-security-performance',
               },
               {
                 text: '双后端学习模式 PRD',

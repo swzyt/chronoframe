@@ -9,6 +9,16 @@
 1. 当前系统由哪些技术模块组成，它们如何协作。
 2. 当前产品业务能力如何分层，权限、媒体、上传、后台和运维分别由谁负责。
 
+## 文档导航
+
+| 需要解决的问题                               | 文档                                                                          |
+| -------------------------------------------- | ----------------------------------------------------------------------------- |
+| 快速理解整体组件和业务边界                   | 本文与[系统总览交互图](/architecture/chronoframe-current.html)                |
+| 查某类 API 是否已迁移、谁负责路由和如何回滚  | [API 迁移矩阵与双后端切换](/zh/development/api-migration-matrix)              |
+| 理解表关系、owner、删除转移和 queue 一致性   | [数据模型、归属与一致性](/zh/development/data-model)                          |
+| 追踪访问密码、上传、媒体、分享图和备份调用链 | [核心请求与任务生命周期](/zh/development/request-lifecycles)                  |
+| 部署、回滚、排障、安全、性能和成本控制       | [运维、安全、性能与成本手册](/zh/development/operations-security-performance) |
+
 ## 1. 总体结论
 
 ChronoFrame 当前是“Nuxt/Node 稳定入口 + Go 可切换后端 + SQLite/Redis/对象存储共享状态”的单仓库双后端系统。
@@ -56,16 +66,16 @@ chronoframe/
 
 ### 2.2 运行时组件
 
-| 组件 | 责任 | 当前定位 |
-| --- | --- | --- |
-| Nuxt 4 前端 | 首页、相片/相簿页面、后台、访问密码页、访客上传页、多语言 | 用户可见 UI |
-| Node.js / Nitro | SSR、默认 API、网关分流、DB migration、稳定 fallback、Node worker/scheduler | 默认 owner |
-| Go API | 已迁移 API、媒体读取、设置/用户/照片/相簿/队列等能力、Go worker/scheduler | 可切换 owner |
-| SQLite + WAL | 用户、照片、相簿、反应、上传分享、设置、任务队列 | 业务真相 |
-| Redis | session、站点访问凭证、限流、设置版本、runtime lease、worker telemetry | 跨进程运行态 |
-| 对象存储 | 原图、缩略图、展示图、Live Photo、视频播放文件 | Local / S3/COS / OpenList |
-| 媒体工具链 | EXIF、缩略图、HEIC、MP4、Live/Motion Photo、分享图 | ExifTool / FFmpeg / Sharp/Vips / ImageMagick |
-| GitHub Actions + GHCR | Node/Go 多架构镜像构建发布 | 部署供应链 |
+| 组件                  | 责任                                                                        | 当前定位                                     |
+| --------------------- | --------------------------------------------------------------------------- | -------------------------------------------- |
+| Nuxt 4 前端           | 首页、相片/相簿页面、后台、访问密码页、访客上传页、多语言                   | 用户可见 UI                                  |
+| Node.js / Nitro       | SSR、默认 API、网关分流、DB migration、稳定 fallback、Node worker/scheduler | 默认 owner                                   |
+| Go API                | 已迁移 API、媒体读取、设置/用户/照片/相簿/队列等能力、Go worker/scheduler   | 可切换 owner                                 |
+| SQLite + WAL          | 用户、照片、相簿、反应、上传分享、设置、任务队列                            | 业务真相                                     |
+| Redis                 | session、站点访问凭证、限流、设置版本、runtime lease、worker telemetry      | 跨进程运行态                                 |
+| 对象存储              | 原图、缩略图、展示图、Live Photo、视频播放文件                              | Local / S3/COS / OpenList                    |
+| 媒体工具链            | EXIF、缩略图、HEIC、MP4、Live/Motion Photo、分享图                          | ExifTool / FFmpeg / Sharp/Vips / ImageMagick |
+| GitHub Actions + GHCR | Node/Go 多架构镜像构建发布                                                  | 部署供应链                                   |
 
 ### 2.3 请求分流
 
@@ -107,12 +117,12 @@ save backend.readProvider=go
 
 `backend/contracts` 是 Node/Go 共存的中立权威层。
 
-| 契约 | 作用 |
-| --- | --- |
-| `routes.yaml` | route id、method/path、owner、能力分组、鉴权类别、成熟度 |
-| `openapi.yaml` | 对外 API 结构描述 |
-| `schema.json` | SQLite schema、migration ledger、必需表/索引/trigger |
-| `settings-defaults.json` | Go 侧 settings 默认值和 UI metadata 的生成来源 |
+| 契约                     | 作用                                                     |
+| ------------------------ | -------------------------------------------------------- |
+| `routes.yaml`            | route id、method/path、owner、能力分组、鉴权类别、成熟度 |
+| `openapi.yaml`           | 对外 API 结构描述                                        |
+| `schema.json`            | SQLite schema、migration ledger、必需表/索引/trigger     |
+| `settings-defaults.json` | Go 侧 settings 默认值和 UI metadata 的生成来源           |
 
 所有新增 Go 能力都应该先进入契约或验证脚本，再进入运行时切换。
 
@@ -195,12 +205,12 @@ GitHub Actions 的 `publish-images.yml` 会为 Node 和 Go 分别构建 amd64/ar
 
 ### 3.1 角色与访问边界
 
-| 角色 | 能力 |
-| --- | --- |
-| 匿名访客 | 可看公开内容；未通过访问密码时受预览数量限制；可使用有效访客上传链接上传 |
-| 普通用户 | 登录后台；管理自己的相片和相簿；不能操作他人数据；只看到允许的菜单 |
-| 管理员 | 全站管理；用户管理；设置；队列；日志；备份；所有相片/相簿 |
-| 分享上传访客 | 通过 token 页面上传媒体；不获得后台身份 |
+| 角色         | 能力                                                                     |
+| ------------ | ------------------------------------------------------------------------ |
+| 匿名访客     | 可看公开内容；未通过访问密码时受预览数量限制；可使用有效访客上传链接上传 |
+| 普通用户     | 登录后台；管理自己的相片和相簿；不能操作他人数据；只看到允许的菜单       |
+| 管理员       | 全站管理；用户管理；设置；队列；日志；备份；所有相片/相簿                |
+| 分享上传访客 | 通过 token 页面上传媒体；不获得后台身份                                  |
 
 权限原则：
 
@@ -358,7 +368,15 @@ system
 6. 验证脚本比口头确认更可信。
 7. 文档、契约、代码和部署配置要同步更新。
 
-## 6. Review 清单
+## 6. 已知限制
+
+- Node 仍是公网、Nuxt SSR 和 provider 回滚控制面的必需入口。
+- 89 个 registry operation 中，88 个有 verified Go 实现；`/api/system/backend/status` 有意固定在 Node。
+- 自动化测试不能覆盖全部真实 JPEG/HEIC/MP4/Live Photo/Motion Photo 变体。
+- SQLite 适合当前单实例形态，不适合未经重新设计的多 writer 横向扩展。
+- 邮件数据库备份不包含对象存储媒体，需要独立对象版本和备份策略。
+
+## 7. Review 清单
 
 本次文档基于以下代码事实整理：
 

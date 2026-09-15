@@ -3,6 +3,13 @@
 > Baseline: current `main` branch during the Node.js + Go dual-backend phase.  
 > Interactive diagram: [/architecture/chronoframe-current.html](/architecture/chronoframe-current.html)
 
+Deep-dive documents:
+
+- [API migration matrix](/development/api-migration-matrix)
+- [Data model and ownership](/development/data-model)
+- [Request and job lifecycles](/development/request-lifecycles)
+- [Operations, security and performance](/development/operations-security-performance)
+
 ChronoFrame currently runs as a single repository with a stable Nuxt/Node entry point and an independently built Go backend. Node remains the public gateway and default owner; Go can take over explicitly registered routes after readiness checks pass. Both implementations share SQLite, Redis and object storage, while side-effectful actors such as database migration, queue consumers and backup schedulers must have exactly one owner at a time.
 
 ```text
@@ -53,12 +60,12 @@ Switching `system.backend.readProvider` to `go` is protected by a readiness gate
 
 ## Business architecture
 
-| Actor | Capabilities |
-| --- | --- |
-| Anonymous visitor | Browse public content, limited by preview quotas before access-password verification |
-| Normal user | Manage own photos and albums from the dashboard |
-| Admin | Manage all content, users, settings, queue, logs and backups |
-| Upload-share visitor | Upload through a tokenized page without receiving a dashboard session |
+| Actor                | Capabilities                                                                         |
+| -------------------- | ------------------------------------------------------------------------------------ |
+| Anonymous visitor    | Browse public content, limited by preview quotas before access-password verification |
+| Normal user          | Manage own photos and albums from the dashboard                                      |
+| Admin                | Manage all content, users, settings, queue, logs and backups                         |
+| Upload-share visitor | Upload through a tokenized page without receiving a dashboard session                |
 
 Core domains:
 

@@ -1,0 +1,195 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "ChronoFrame 媒体上传与派生数据流",
+    "locale": "zh-CN",
+    "output": "docs/public/architecture/media-pipeline.html",
+    "viewBox": [1068, 600],
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "authenticated-upload",
+        "label": "登录用户上传",
+        "focus": [
+          "dashboard",
+          "prepare",
+          "originals",
+          "queue",
+          "consumer",
+          "photos"
+        ],
+        "note": "上传者身份写入任务，最终照片保持同一 ownerUserId。"
+      },
+      {
+        "id": "visitor-upload",
+        "label": "访客链接上传",
+        "focus": [
+          "visitor",
+          "prepare",
+          "originals",
+          "queue",
+          "consumer",
+          "photos"
+        ],
+        "note": "访客 token 只授予受限上传资格，照片归属链接创建者。"
+      },
+      {
+        "id": "derived-media",
+        "label": "媒体派生",
+        "focus": ["originals", "consumer", "derived", "photos"],
+        "note": "Consumer 解析元数据并生成缩略图、展示图与视频播放文件。"
+      }
+    ]
+  },
+  "stages": [
+    { "label": "上传入口" },
+    { "label": "鉴权与准备" },
+    { "label": "持久化接收" },
+    { "label": "异步处理" },
+    { "label": "结果持久化" }
+  ],
+  "nodes": [
+    {
+      "id": "dashboard",
+      "type": "frontend",
+      "label": "后台照片库",
+      "sublabel": "登录用户",
+      "stage": 0,
+      "row": 0,
+      "tag": "session"
+    },
+    {
+      "id": "visitor",
+      "type": "external",
+      "label": "访客上传页",
+      "sublabel": "/upload/:token",
+      "stage": 0,
+      "row": 2,
+      "tag": "token + quota"
+    },
+    {
+      "id": "prepare",
+      "type": "security",
+      "label": "上传准备 API",
+      "sublabel": "权限、配额、重复检查",
+      "stage": 1,
+      "row": 0,
+      "tag": "Node / Go"
+    },
+    {
+      "id": "originals",
+      "type": "cloud",
+      "label": "原始对象",
+      "sublabel": "Local / S3 / OpenList",
+      "stage": 2,
+      "row": 0,
+      "tag": "users/<id>/..."
+    },
+    {
+      "id": "queue",
+      "type": "messagebus",
+      "label": "pipeline_queue",
+      "sublabel": "SQLite durable queue",
+      "stage": 2,
+      "row": 2,
+      "tag": "token fencing"
+    },
+    {
+      "id": "consumer",
+      "type": "backend",
+      "label": "Pipeline Consumer",
+      "sublabel": "EXIF / Sharp / FFmpeg",
+      "stage": 3,
+      "row": 1,
+      "tag": "single owner"
+    },
+    {
+      "id": "derived",
+      "type": "cloud",
+      "label": "派生媒体对象",
+      "sublabel": "缩略 / 展示 / 播放",
+      "stage": 4,
+      "row": 0,
+      "width": 140,
+      "tag": "private bytes"
+    },
+    {
+      "id": "photos",
+      "type": "database",
+      "label": "photos",
+      "sublabel": "元数据与派生 key",
+      "stage": 4,
+      "row": 2,
+      "tag": "source of truth"
+    }
+  ],
+  "flows": [
+    {
+      "from": "dashboard",
+      "to": "prepare",
+      "label": "session + metadata",
+      "classification": "owner identity",
+      "variant": "emphasis",
+      "route": "straight",
+      "labelDy": -26
+    },
+    {
+      "from": "visitor",
+      "to": "prepare",
+      "label": "token validation + quota",
+      "classification": "limited capability",
+      "variant": "security",
+      "labelDy": 30
+    },
+    {
+      "from": "prepare",
+      "to": "originals",
+      "label": "isolated object key",
+      "classification": "media bytes",
+      "variant": "emphasis",
+      "route": "straight",
+      "labelDy": -26
+    },
+    {
+      "from": "prepare",
+      "to": "queue",
+      "label": "task + ownerUserId",
+      "classification": "durable work",
+      "variant": "emphasis",
+      "labelDy": 24
+    },
+    {
+      "from": "queue",
+      "to": "consumer",
+      "label": "claim token + lease",
+      "classification": "single owner",
+      "variant": "security",
+      "labelDy": 34
+    },
+    {
+      "from": "originals",
+      "to": "consumer",
+      "label": "original stream",
+      "classification": "private media",
+      "variant": "default",
+      "labelDy": -22
+    },
+    {
+      "from": "consumer",
+      "to": "derived",
+      "label": "thumb / display / playback",
+      "classification": "derived media",
+      "variant": "dashed",
+      "labelDy": 24
+    },
+    {
+      "from": "consumer",
+      "to": "photos",
+      "label": "metadata + storage keys",
+      "classification": "transactional state",
+      "variant": "emphasis",
+      "labelDy": -4
+    }
+  ]
+}
