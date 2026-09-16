@@ -28,6 +28,7 @@ export const GO_API_ROUTES: ReadonlyArray<GoRoute> = [
   ['admin.users.delete', 'DELETE', '/api/admin/users/{id}'],
   ['albums.list', 'GET', '/api/albums'],
   ['albums.create', 'POST', '/api/albums'],
+  ['albums.reorder', 'PUT', '/api/albums/reorder'],
   ['albums.detail', 'GET', '/api/albums/{albumId}'],
   ['albums.update', 'PUT', '/api/albums/{albumId}'],
   ['albums.delete', 'DELETE', '/api/albums/{albumId}'],

@@ -23,6 +23,7 @@ export const ALBUM_ROUTE_IDS = Object.freeze([
   'albums.detail',
   'albums.update',
   'albums.photos.remove',
+  'albums.reorder',
   'albums.list',
   'albums.create',
   'photos.albums.read',
@@ -44,6 +45,7 @@ const MUTATION_ALBUM_KEYS = Object.freeze([
   'id',
   'isHidden',
   'ownerUserId',
+  'position',
   'title',
   'updatedAt',
 ])

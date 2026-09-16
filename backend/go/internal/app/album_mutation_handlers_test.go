@@ -210,7 +210,7 @@ func TestAlbumMutationResponseMatchesRawNodeAlbumRow(t *testing.T) {
 
 	wantKeys := []string{
 		"coverPhotoId", "createdAt", "description", "id", "isHidden",
-		"ownerUserId", "title", "updatedAt",
+		"ownerUserId", "position", "title", "updatedAt",
 	}
 	gotKeys := make([]string, 0, len(response))
 	for key := range response {

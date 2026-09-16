@@ -271,6 +271,25 @@
       "openapiOperationId": "createAlbum"
     },
     {
+      "id": "albums.reorder",
+      "method": "PUT",
+      "path": "/api/albums/reorder",
+      "source": "backend/nodejs/api/albums/reorder.put.ts",
+      "sourceType": "filesystem",
+      "capability": "albums-write",
+      "owner": "node",
+      "sideEffect": "database",
+      "auth": "user-owner",
+      "maturity": {
+        "node": "stable",
+        "go": "verified"
+      },
+      "allowCompare": false,
+      "allowShadow": false,
+      "userSelectable": false,
+      "openapiOperationId": "reorderAlbums"
+    },
+    {
       "id": "identity.github.callback",
       "method": "GET",
       "path": "/api/auth/github",

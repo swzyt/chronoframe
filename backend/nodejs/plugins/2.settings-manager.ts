@@ -119,40 +119,36 @@ async function migrateRuntimeConfigToSettings() {
     // Migrate auth settings (GitHub OAuth)
     const githubOauthConfig = config.oauth?.github || {}
     if (config.public?.oauth?.github?.enabled === true) {
-      try {
-        await settingsManager.set(
-          'system',
-          'auth.github.enabled' as any,
-          true,
-          undefined,
-          true,
-        )
-        _logger.debug('Migrated system.auth.github.enabled=true')
-      } catch (error) {
-        _logger.warn('Failed to migrate system.auth.github.enabled:', error)
-      }
+      await migrateRuntimeSetting({
+        namespace: 'system',
+        key: 'auth.github.enabled',
+        value: true,
+        env: 'NUXT_PUBLIC_OAUTH_GITHUB_ENABLED',
+        logger: _logger,
+      })
     }
 
-    const githubOauthSettings = {
-      'auth.github.clientId': githubOauthConfig.clientId || '',
-      'auth.github.clientSecret': githubOauthConfig.clientSecret || '',
-    }
+    const githubOauthSettings = [
+      {
+        env: 'NUXT_OAUTH_GITHUB_CLIENT_ID',
+        key: 'auth.github.clientId',
+        value: githubOauthConfig.clientId || '',
+      },
+      {
+        env: 'NUXT_OAUTH_GITHUB_CLIENT_SECRET',
+        key: 'auth.github.clientSecret',
+        value: githubOauthConfig.clientSecret || '',
+      },
+    ]
 
-    for (const [key, value] of Object.entries(githubOauthSettings)) {
-      if (typeof value === 'string' && value.length > 0) {
-        try {
-          await settingsManager.set(
-            'system',
-            key as any,
-            value,
-            undefined,
-            true,
-          )
-          _logger.debug(`Migrated system.${key}`)
-        } catch (error) {
-          _logger.warn(`Failed to migrate system.${key}:`, error)
-        }
-      }
+    for (const setting of githubOauthSettings) {
+      await migrateRuntimeSetting({
+        namespace: 'system',
+        key: setting.key,
+        value: setting.value,
+        env: setting.env,
+        logger: _logger,
+      })
     }
 
     // Migrate storage configuration and set as active provider

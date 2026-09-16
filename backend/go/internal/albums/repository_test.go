@@ -52,18 +52,19 @@ func openAlbumTestDatabase(t *testing.T) *sql.DB {
 			description TEXT,
 			cover_photo_id TEXT,
 			is_hidden INTEGER NOT NULL,
+			position REAL NOT NULL,
 			created_at INTEGER NOT NULL,
 			updated_at INTEGER NOT NULL,
 			owner_user_id INTEGER NOT NULL
 		);`,
 		`CREATE TABLE album_photos (album_id INTEGER NOT NULL, photo_id TEXT NOT NULL, position REAL NOT NULL);`,
 		`INSERT INTO users (id, name, avatar, is_admin) VALUES (1, 'owner', NULL, 0);`,
-		`INSERT INTO albums (id, title, description, cover_photo_id, is_hidden, created_at, updated_at, owner_user_id)
-		 VALUES (10, 'Older', NULL, NULL, 0, 100, 110, 1);`,
-		`INSERT INTO albums (id, title, description, cover_photo_id, is_hidden, created_at, updated_at, owner_user_id)
-		 VALUES (20, 'Newer', 'desc', 'photo-a', 0, 200, 210, 1);`,
-		`INSERT INTO albums (id, title, description, cover_photo_id, is_hidden, created_at, updated_at, owner_user_id)
-		 VALUES (30, 'Hidden', NULL, NULL, 1, 300, 310, 1);`,
+		`INSERT INTO albums (id, title, description, cover_photo_id, is_hidden, position, created_at, updated_at, owner_user_id)
+		 VALUES (10, 'Older', NULL, NULL, 0, 1000, 100, 110, 1);`,
+		`INSERT INTO albums (id, title, description, cover_photo_id, is_hidden, position, created_at, updated_at, owner_user_id)
+		 VALUES (20, 'Newer', 'desc', 'photo-a', 0, 0, 200, 210, 1);`,
+		`INSERT INTO albums (id, title, description, cover_photo_id, is_hidden, position, created_at, updated_at, owner_user_id)
+		 VALUES (30, 'Hidden', NULL, NULL, 1, -1000, 300, 310, 1);`,
 		`INSERT INTO album_photos (album_id, photo_id, position) VALUES (20, 'photo-a', 2);`,
 		`INSERT INTO album_photos (album_id, photo_id, position) VALUES (20, 'photo-b', 1);`,
 	}

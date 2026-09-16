@@ -294,6 +294,23 @@
         }
       }
     },
+    "/api/albums/reorder": {
+      "put": {
+        "operationId": "reorderAlbums",
+        "tags": [
+          "Albums"
+        ],
+        "x-chronoframe-route-id": "albums.reorder",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GenericSuccess"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
     "/api/auth/github": {
       "get": {
         "operationId": "githubOAuthCallback",

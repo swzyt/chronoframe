@@ -24,7 +24,7 @@ test('album verifier owns the complete album read/write route slice', () => {
   const contractIDs = albumRoutes.map((route) => route.id).sort()
 
   assert.deepEqual([...ALBUM_ROUTE_IDS].sort(), contractIDs)
-  assert.equal(contractIDs.length, 9)
+  assert.equal(contractIDs.length, 10)
   assert.ok(
     albumRoutes.every((route) => route.maturity.go === 'verified'),
     'all album routes must stay verified after the production parity gate',

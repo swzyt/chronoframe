@@ -76,7 +76,7 @@ test('route surface probe plan covers every Go-capable non-runtime contract rout
   const routes = loadGoRouteSurfaceRoutes()
   const plan = buildRouteSurfaceProbePlan(routes)
 
-  assert.equal(plan.length, 85)
+  assert.equal(plan.length, 86)
   assert.deepEqual(new Set(plan.map((step) => step.routeId)).size, plan.length)
   assert.ok(plan.some((step) => step.routeId === 'identity.login'))
   assert.ok(plan.some((step) => step.routeId === 'photos.upload'))

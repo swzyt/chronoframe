@@ -18,6 +18,7 @@ export default eventHandler(async (event) => {
         .where(
           user!.isAdmin ? undefined : eq(tables.albums.ownerUserId, user!.id),
         )
+        .orderBy(asc(tables.albums.position), asc(tables.albums.id))
     : accessState!.granted
       ? await getPublicAlbums()
       : await getPublicAlbums({ limit: limits!.albumLimit })

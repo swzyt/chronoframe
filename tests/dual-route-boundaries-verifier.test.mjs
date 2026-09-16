@@ -107,8 +107,8 @@ test('route boundary verifier options default to fixture session and lab URLs', 
 test('route boundary cases cover every Go-capable non-runtime contract route', () => {
   const cases = buildRouteBoundaryCases()
 
-  assert.equal(cases.length, 85)
-  assert.deepEqual(new Set(cases.map((entry) => entry.routeId)).size, 85)
+  assert.equal(cases.length, 86)
+  assert.deepEqual(new Set(cases.map((entry) => entry.routeId)).size, 86)
   assert.ok(cases.some((entry) => entry.routeId === 'identity.login'))
   assert.ok(cases.some((entry) => entry.routeId === 'photos.upload'))
   assert.ok(cases.some((entry) => entry.routeId === 'media.storage.head'))

@@ -609,6 +609,7 @@ func (a *Application) managedAlbums(w http.ResponseWriter, r *http.Request) {
 			"description":  album.Description,
 			"coverPhotoId": album.CoverPhotoID,
 			"isHidden":     album.IsHidden,
+			"position":     album.Position,
 			"createdAt":    album.CreatedAt,
 			"updatedAt":    album.UpdatedAt,
 			"ownerUserId":  album.OwnerUserID,

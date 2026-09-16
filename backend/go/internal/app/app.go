@@ -138,6 +138,7 @@ func (application *Application) Handler() http.Handler {
 	mux.HandleFunc("/api/admin/users", application.adminUsersRoute)
 	mux.HandleFunc("/api/admin/users/{id}", application.adminUserRoute)
 	mux.HandleFunc("/api/albums", application.albumsRoute)
+	mux.HandleFunc("/api/albums/reorder", writeJSONMethod(http.MethodPut, application.albumReorder))
 	mux.HandleFunc("/api/albums/{albumID}", application.albumRoute)
 	mux.HandleFunc("/api/albums/{albumID}/photos/{photoID}", writeJSONMethod(http.MethodDelete, application.albumPhotoDelete))
 	mux.HandleFunc("/api/access/status", application.method(http.MethodGet, application.accessStatus))
@@ -242,6 +243,7 @@ func (a *Application) publicAlbums(w http.ResponseWriter, r *http.Request) {
 			"description":  album.Description,
 			"coverPhotoId": album.CoverPhotoID,
 			"isHidden":     album.IsHidden,
+			"position":     album.Position,
 			"createdAt":    album.CreatedAt,
 			"updatedAt":    album.UpdatedAt,
 			"ownerUserId":  album.OwnerUserID,
@@ -369,6 +371,7 @@ func (a *Application) albumDetail(w http.ResponseWriter, r *http.Request) {
 		"description":     album.Description,
 		"coverPhotoId":    album.CoverPhotoID,
 		"isHidden":        album.IsHidden,
+		"position":        album.Position,
 		"createdAt":       album.CreatedAt,
 		"updatedAt":       album.UpdatedAt,
 		"ownerUserId":     album.OwnerUserID,

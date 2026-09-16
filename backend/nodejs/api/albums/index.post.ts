@@ -36,6 +36,11 @@ export default eventHandler(async (event) => {
   }
 
   const album = db.transaction((tx) => {
+    const firstPosition =
+      tx
+        .select({ value: sql<number>`min(${tables.albums.position})` })
+        .from(tables.albums)
+        .get()?.value ?? 1000
     const newAlbum = tx
       .insert(tables.albums)
       .values({
@@ -44,6 +49,7 @@ export default eventHandler(async (event) => {
         coverPhotoId: body.coverPhotoId || null,
         isHidden: body.isHidden || false,
         ownerUserId: user.id,
+        position: firstPosition - 1000,
       })
       .returning()
       .get()

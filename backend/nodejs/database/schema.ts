@@ -196,6 +196,7 @@ export const albums = sqliteTable(
     isHidden: integer('is_hidden', { mode: 'boolean' })
       .default(false)
       .notNull(),
+    position: real('position').default(0).notNull(),
     createdAt: integer('created_at', { mode: 'timestamp' })
       .notNull()
       .default(sql`(unixepoch())`),

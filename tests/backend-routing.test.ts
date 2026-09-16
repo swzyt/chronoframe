@@ -288,6 +288,10 @@ test('dispatch requires GET, Go selection, and a registered route', () => {
 
 test('complete Go registry matches mutations as well as reads', () => {
   assert.equal(resolveGoRoute('POST', '/api/albums')?.id, 'albums.create')
+  assert.equal(
+    resolveGoRoute('PUT', '/api/albums/reorder')?.id,
+    'albums.reorder',
+  )
   assert.equal(resolveGoRoute('DELETE', '/api/albums/42')?.id, 'albums.delete')
   assert.equal(
     resolveGoRoute('PUT', '/api/photos/photo-1')?.id,

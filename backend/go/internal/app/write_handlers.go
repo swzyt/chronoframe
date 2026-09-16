@@ -1361,9 +1361,112 @@ func albumMutationResponse(album albums.Album) map[string]any {
 	return map[string]any{
 		"id": album.ID, "title": album.Title, "description": album.Description,
 		"coverPhotoId": album.CoverPhotoID, "isHidden": album.IsHidden,
+		"position":  album.Position,
 		"createdAt": album.CreatedAt, "updatedAt": album.UpdatedAt,
 		"ownerUserId": album.OwnerUserID,
 	}
+}
+
+func (a *Application) albumReorder(w http.ResponseWriter, r *http.Request) {
+	user, err := a.auth.RequireUser(r.Context(), r)
+	if err != nil {
+		a.writeAuthError(w, err)
+		return
+	}
+	object, ok := decodeRequiredJSONObjectBody(w, r)
+	if !ok {
+		return
+	}
+	raw, exists := object["albumIds"]
+	if !exists {
+		writeSettingZodValidationError(w, zodInvalidTypeIssue([]any{"albumIds"}, "array", "undefined"))
+		return
+	}
+	albumIDs, issues := decodePositiveInt64ArrayPreserve(raw, "albumIds")
+	if len(albumIDs) == 0 && len(issues) == 0 {
+		issues = append(issues, zodTooSmallArrayIssue(
+			[]any{"albumIds"}, 1, "Too small: expected array to have >=1 items",
+		))
+	}
+	seen := make(map[int64]struct{}, len(albumIDs))
+	for _, id := range albumIDs {
+		if _, duplicate := seen[id]; duplicate {
+			issues = append(issues, zodCustomIssue([]any{"albumIds"}, "Album IDs must be unique"))
+			break
+		}
+		seen[id] = struct{}{}
+	}
+	if len(issues) > 0 {
+		writeSettingZodValidationError(w, issues...)
+		return
+	}
+
+	query := "SELECT id, position FROM albums"
+	args := []any{}
+	if user.IsAdmin == 0 {
+		query += " WHERE owner_user_id = ?"
+		args = append(args, user.ID)
+	}
+	query += " ORDER BY position ASC, id ASC"
+	rows, err := a.database.SQL().QueryContext(r.Context(), query, args...)
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, "Internal Server Error")
+		return
+	}
+	positions := make([]float64, 0, len(albumIDs))
+	manageableIDs := make(map[int64]struct{}, len(albumIDs))
+	for rows.Next() {
+		var id int64
+		var position float64
+		if err := rows.Scan(&id, &position); err != nil {
+			rows.Close()
+			httpx.Error(w, http.StatusInternalServerError, "Internal Server Error")
+			return
+		}
+		manageableIDs[id] = struct{}{}
+		positions = append(positions, position)
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		httpx.Error(w, http.StatusInternalServerError, "Internal Server Error")
+		return
+	}
+	if err := rows.Close(); err != nil {
+		httpx.Error(w, http.StatusInternalServerError, "Internal Server Error")
+		return
+	}
+	if len(positions) != len(albumIDs) {
+		httpx.Error(w, http.StatusNotFound, "Album not found")
+		return
+	}
+	for _, id := range albumIDs {
+		if _, exists := manageableIDs[id]; !exists {
+			httpx.Error(w, http.StatusNotFound, "Album not found")
+			return
+		}
+	}
+	tx, err := a.database.SQL().BeginTx(r.Context(), nil)
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, "Internal Server Error")
+		return
+	}
+	defer tx.Rollback()
+	for index, id := range albumIDs {
+		if _, err := tx.ExecContext(
+			r.Context(),
+			"UPDATE albums SET position = ? WHERE id = ?",
+			positions[index],
+			id,
+		); err != nil {
+			httpx.Error(w, http.StatusInternalServerError, "Internal Server Error")
+			return
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		httpx.Error(w, http.StatusInternalServerError, "Internal Server Error")
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"success": true})
 }
 
 func (a *Application) albumUpdate(w http.ResponseWriter, r *http.Request) {
@@ -1560,11 +1663,15 @@ func (a *Application) createAlbumTransaction(
 	}
 	defer tx.Rollback()
 	now := a.now().Unix()
+	var firstPosition float64
+	if err := tx.QueryRowContext(ctx, "SELECT COALESCE(MIN(position), 1000) FROM albums").Scan(&firstPosition); err != nil {
+		return 0, err
+	}
 	result, err := tx.ExecContext(ctx, `
-		INSERT INTO albums(title,description,cover_photo_id,is_hidden,created_at,updated_at,owner_user_id)
-		VALUES(?,?,?,?,?,?,?)
+		INSERT INTO albums(title,description,cover_photo_id,is_hidden,position,created_at,updated_at,owner_user_id)
+		VALUES(?,?,?,?,?,?,?,?)
 	`, body.Title, albumEmptyStringAsNil(body.Description), albumEmptyStringAsNil(body.CoverPhoto),
-		boolInt(body.IsHidden), now, now, ownerID)
+		boolInt(body.IsHidden), firstPosition-1000, now, now, ownerID)
 	if err != nil {
 		return 0, err
 	}

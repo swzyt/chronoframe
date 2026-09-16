@@ -169,6 +169,13 @@
       "when": 1789137245151,
       "tag": "0023_skinny_gambit",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1789573233559,
+      "tag": "0024_melted_echo",
+      "breakpoints": true
     }
   ]
 }

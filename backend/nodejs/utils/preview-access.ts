@@ -159,7 +159,7 @@ export async function getPublicAlbums(options: PublicPhotoQueryOptions = {}) {
     .select()
     .from(tables.albums)
     .where(eq(tables.albums.isHidden, false))
-    .orderBy(desc(tables.albums.createdAt))
+    .orderBy(asc(tables.albums.position), asc(tables.albums.id))
   return limit ? query.limit(limit).all() : query.all()
 }
 

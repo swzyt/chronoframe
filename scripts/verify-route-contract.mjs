@@ -579,8 +579,8 @@ async function validateManifest(manifest, expected) {
   }
 
   report(
-    expected.size === 86,
-    `filesystem/framework inventory changed: expected the audited 86 operations, found ${expected.size}`,
+    expected.size === 87,
+    `filesystem/framework inventory changed: expected the audited 87 operations, found ${expected.size}`,
   )
   for (const [key, route] of expected) {
     const declared = routesByKey.get(key)

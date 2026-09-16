@@ -20,6 +20,7 @@ type Album struct {
 	Description  *string  `json:"description"`
 	CoverPhotoID *string  `json:"coverPhotoId"`
 	IsHidden     bool     `json:"isHidden"`
+	Position     float64  `json:"position"`
 	CreatedAt    string   `json:"createdAt"`
 	UpdatedAt    string   `json:"updatedAt"`
 	OwnerUserID  int64    `json:"ownerUserId"`
@@ -49,11 +50,11 @@ func NewSQLiteRepository(db *sql.DB) *Repository {
 
 func (r *Repository) ListPublic(ctx context.Context, limits ...int64) ([]Album, error) {
 	query := `
-		SELECT id, title, description, cover_photo_id, is_hidden,
+		SELECT id, title, description, cover_photo_id, is_hidden, position,
 		       created_at, updated_at, owner_user_id
 		FROM albums
 		WHERE is_hidden = 0
-		ORDER BY created_at DESC
+		ORDER BY position ASC, id ASC
 	`
 	args := []any{}
 	if len(limits) > 0 && limits[0] > 0 {
@@ -74,7 +75,7 @@ func (r *Repository) ListPublic(ctx context.Context, limits ...int64) ([]Album, 
 		var updatedAt int64
 		if err := rows.Scan(
 			&album.ID, &album.Title, &album.Description, &album.CoverPhotoID,
-			&hidden, &createdAt, &updatedAt, &album.OwnerUserID,
+			&hidden, &album.Position, &createdAt, &updatedAt, &album.OwnerUserID,
 		); err != nil {
 			return nil, fmt.Errorf("scan public album: %w", err)
 		}
@@ -119,7 +120,7 @@ func (r *Repository) ListManage(
 	isAdmin bool,
 ) ([]Album, error) {
 	query := `
-		SELECT id, title, description, cover_photo_id, is_hidden,
+		SELECT id, title, description, cover_photo_id, is_hidden, position,
 		       created_at, updated_at, owner_user_id
 		FROM albums`
 	args := []any{}
@@ -127,7 +128,7 @@ func (r *Repository) ListManage(
 		query += " WHERE owner_user_id = ?"
 		args = append(args, userID)
 	}
-	query += " ORDER BY id ASC"
+	query += " ORDER BY position ASC, id ASC"
 
 	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -149,6 +150,7 @@ func (r *Repository) ListManage(
 			&album.Description,
 			&album.CoverPhotoID,
 			&hidden,
+			&album.Position,
 			&createdAt,
 			&updatedAt,
 			&album.OwnerUserID,
@@ -192,7 +194,7 @@ func (r *Repository) FindByID(ctx context.Context, id int64) (Album, error) {
 	var createdAt int64
 	var updatedAt int64
 	err := r.db.QueryRowContext(ctx, `
-		SELECT id, title, description, cover_photo_id, is_hidden,
+		SELECT id, title, description, cover_photo_id, is_hidden, position,
 		       created_at, updated_at, owner_user_id
 		FROM albums
 		WHERE id = ?
@@ -202,6 +204,7 @@ func (r *Repository) FindByID(ctx context.Context, id int64) (Album, error) {
 		&album.Description,
 		&album.CoverPhotoID,
 		&hidden,
+		&album.Position,
 		&createdAt,
 		&updatedAt,
 		&album.OwnerUserID,
@@ -311,7 +314,7 @@ func (r *Repository) IsPublicWithinLimit(
 			SELECT id
 			FROM albums
 			WHERE is_hidden = 0
-			ORDER BY created_at DESC
+			ORDER BY position ASC, id ASC
 			LIMIT ?
 		) AS visible
 		WHERE visible.id = ?
